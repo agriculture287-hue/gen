@@ -1,0 +1,23 @@
+{
+  "android": {
+    "latestVersion": "1.0.1",
+    "minimumVersion": "1.0.0",
+    "downloadUrl": "https://genmugic.vercel.app/download/genmusic.apk"
+  },
+  "windows": {
+    "latestVersion": "1.0.1",
+    "minimumVersion": "1.0.0",
+    "downloadUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe"
+  },
+  "macos": {
+    "latestVersion": "1.0.1",
+    "minimumVersion": "1.0.0",
+    "downloadUrl": "https://genmugic.vercel.app/download/genmusic.dmg"
+  },
+  "releaseNotes": [
+    "Improved streaming engine",
+    "Better audio quality",
+    "Playback bug fixes",
+    "UI enhancements"
+  ]
+}

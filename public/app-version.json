@@ -1,0 +1,15 @@
+{
+  "latest_version": "1.0.0",
+  "min_supported_version": "1.0.0",
+  "force_update": false,
+  "whats_new": [
+    "Added offline downloads",
+    "New EQ presets",
+    "Fixed playback bugs"
+  ],
+  "download_url": {
+    "android": "https://genmugic.vercel.app/downloads/genmusic-1.0.0.apk",
+    "windows": "https://genmugic.vercel.app/downloads/genmusic-1.0.0-setup.exe",
+    "macos": "https://genmugic.vercel.app/downloads/genmusic-1.0.0.dmg"
+  }
+}
