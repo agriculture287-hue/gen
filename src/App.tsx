@@ -12,9 +12,12 @@ import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
 import { BetaModal } from './components/BetaModal';
 import { AdminModal } from './components/AdminModal';
-import { UpdateModal } from './components/UpdateModal';
-import { useAutoUpdate } from './hooks/useAutoUpdate';
-import { getLocalVersionManifest, DEFAULT_VERSION_MANIFEST } from './data/versionManifest';
+import { 
+  AdLeaderboard728x90, 
+  AdBanner468x60, 
+  AdNativeContainer 
+} from './components/AdBanners';
+import { getLocalVersionManifest, saveLocalVersionManifest, DEFAULT_VERSION_MANIFEST } from './data/versionManifest';
 import { 
   getStoredReleases, 
   getStoredTelegramConfig, 
@@ -29,31 +32,13 @@ import {
   resetAppToDefaults
 } from './data/adminStore';
 import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem } from './types';
+import { loadAppDataFromBlob, autoSaveAdminDataToBlob } from './lib/blobStorage';
 
 export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Auto-Update Engine Hook (handles Capacitor on Android and Electron on Win/Mac, with 6h cache)
-  const {
-    updateInfo,
-    isChecking,
-    isDownloading,
-    downloadProgress,
-    isUpdateModalOpen,
-    isForceUpdateScreen,
-    detectedPlatform,
-    installedVersion,
-    checkNow,
-    triggerDownload,
-    installAndRestart,
-    dismissUpdate,
-    openUpdateModal,
-    closeUpdateModal,
-    simulateVersionCheck,
-  } = useAutoUpdate();
 
   // Admin dynamic state persisted in localStorage
   const [platforms, setPlatforms] = useState<AppPlatformRelease[]>([]);
@@ -67,13 +52,47 @@ export const App: React.FC = () => {
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
 
-  // Load from adminStore on mount and listen to /chutiya route
+  // Load from adminStore on mount and sync with Vercel Blob
   useEffect(() => {
+    // 1. Immediate local state hydration
     setPlatforms(getStoredReleases());
     setTelegramConfig(getStoredTelegramConfig());
     setChannels(getStoredChannels());
     setUpdates(getStoredUpdates());
     setIsAdminLoggedIn(isStoredAdminLoggedIn());
+
+    // 2. Fetch latest live cloud state from Vercel Blob
+    const fetchCloudState = async () => {
+      try {
+        const cloudRes = await loadAppDataFromBlob();
+        if (cloudRes.success && cloudRes.data) {
+          const cloudData = cloudRes.data;
+          if (Array.isArray(cloudData.platforms) && cloudData.platforms.length > 0) {
+            setPlatforms(cloudData.platforms);
+            saveStoredReleases(cloudData.platforms);
+          }
+          if (cloudData.telegramConfig && cloudData.telegramConfig.contactUrl) {
+            setTelegramConfig(cloudData.telegramConfig);
+            saveStoredTelegramConfig(cloudData.telegramConfig);
+          }
+          if (Array.isArray(cloudData.channels) && cloudData.channels.length > 0) {
+            setChannels(cloudData.channels);
+            saveStoredChannels(cloudData.channels);
+          }
+          if (Array.isArray(cloudData.updates) && cloudData.updates.length > 0) {
+            setUpdates(cloudData.updates);
+            saveStoredUpdates(cloudData.updates);
+          }
+          if (cloudData.manifest) {
+            saveLocalVersionManifest(cloudData.manifest);
+          }
+        }
+      } catch (err) {
+        console.warn('Vercel Blob remote fetch note:', err);
+      }
+    };
+
+    fetchCloudState();
 
     const checkAdminRoute = () => {
       const path = window.location.pathname.toLowerCase();
@@ -128,30 +147,72 @@ export const App: React.FC = () => {
   const handleSavePlatforms = (updated: AppPlatformRelease[]) => {
     setPlatforms(updated);
     saveStoredReleases(updated);
+    autoSaveAdminDataToBlob({
+      platforms: updated,
+      telegramConfig,
+      channels,
+      updates,
+      manifest: getLocalVersionManifest(),
+    });
   };
 
   const handleSaveTelegram = (updated: TelegramConfig) => {
     setTelegramConfig(updated);
     saveStoredTelegramConfig(updated);
+    autoSaveAdminDataToBlob({
+      platforms,
+      telegramConfig: updated,
+      channels,
+      updates,
+      manifest: getLocalVersionManifest(),
+    });
   };
 
   const handleSaveChannels = (updated: TelegramChannel[]) => {
     setChannels(updated);
     saveStoredChannels(updated);
+    autoSaveAdminDataToBlob({
+      platforms,
+      telegramConfig,
+      channels: updated,
+      updates,
+      manifest: getLocalVersionManifest(),
+    });
   };
 
   const handleSaveUpdates = (updated: UpdateItem[]) => {
     setUpdates(updated);
     saveStoredUpdates(updated);
+    autoSaveAdminDataToBlob({
+      platforms,
+      telegramConfig,
+      channels,
+      updates: updated,
+      manifest: getLocalVersionManifest(),
+    });
   };
 
   const handleResetDefaults = () => {
     resetAppToDefaults();
-    setPlatforms(getStoredReleases());
-    setTelegramConfig(getStoredTelegramConfig());
-    setChannels(getStoredChannels());
-    setUpdates(getStoredUpdates());
-    showToast('Reset all configurations to factory defaults!');
+    const defPlatforms = getStoredReleases();
+    const defTg = getStoredTelegramConfig();
+    const defChannels = getStoredChannels();
+    const defUpdates = getStoredUpdates();
+    const defManifest = DEFAULT_VERSION_MANIFEST;
+
+    setPlatforms(defPlatforms);
+    setTelegramConfig(defTg);
+    setChannels(defChannels);
+    setUpdates(defUpdates);
+
+    autoSaveAdminDataToBlob({
+      platforms: defPlatforms,
+      telegramConfig: defTg,
+      channels: defChannels,
+      updates: defUpdates,
+      manifest: defManifest,
+    });
+    showToast('Reset all configurations to factory defaults and saved to Vercel Blob!');
   };
 
   const handleLoginStateChange = (loggedIn: boolean) => {
@@ -201,6 +262,9 @@ export const App: React.FC = () => {
           onOpenBetaModal={() => setBetaModalOpen(true)}
         />
 
+        {/* Sponsored Leaderboard Banner (728x90) */}
+        <AdLeaderboard728x90 />
+
         {/* 4.1 Production Multi-Platform Release Hub & Version Matrix */}
         <div id="downloads-hub">
           <DownloadsPage 
@@ -209,6 +273,9 @@ export const App: React.FC = () => {
             telegramContactUrl={telegramConfig.contactUrl}
           />
         </div>
+
+        {/* Sponsored Native In-Feed Container */}
+        <AdNativeContainer />
 
         {/* 5. Official Telegram Channels & Contact Section */}
         <TelegramChannelsSection 
@@ -220,6 +287,9 @@ export const App: React.FC = () => {
         <WhyChooseSection 
           onDownloadClick={scrollToDownload}
         />
+
+        {/* Sponsored Compact Banner (468x60) */}
+        <AdBanner468x60 />
 
         {/* 7. Complete Features Section */}
         <PremiumFeaturesSection 
@@ -269,19 +339,6 @@ export const App: React.FC = () => {
         isOpen={betaModalOpen}
         onClose={() => setBetaModalOpen(false)}
         onShowToast={showToast}
-      />
-
-      {/* Production Auto-Update Modal (Mandatory & Optional states) */}
-      <UpdateModal
-        isOpen={isUpdateModalOpen}
-        updateInfo={updateInfo}
-        isDownloading={isDownloading}
-        downloadProgress={downloadProgress}
-        onDownload={triggerDownload}
-        onDismiss={dismissUpdate}
-        onInstallAndRestart={installAndRestart}
-        detectedPlatform={detectedPlatform}
-        installedVersion={installedVersion}
       />
 
       {/* Floating Toast Notification */}

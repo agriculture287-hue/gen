@@ -321,7 +321,7 @@ export const CONTACT_CHANNELS = [
     handle: '@GenMusicApp',
     link: 'https://t.me/GenMusicApp',
     icon: 'Send',
-    desc: 'Join 35,000+ members for instant APK updates, beta testing, and community chat.',
+    desc: 'Join the community for instant APK updates, beta testing, and community chat.',
     accent: 'purple',
     badge: 'Active Chat',
   },

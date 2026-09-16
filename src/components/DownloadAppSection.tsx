@@ -19,6 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { AppPlatformRelease, TelegramConfig } from '../types';
 import { GenMusicLogo } from './GenMusicLogo';
+import { AdDirectSponsorLink } from './AdBanners';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -279,6 +280,8 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                   <span>Telegram Mirror Link</span>
                   <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
                 </a>
+
+                <AdDirectSponsorLink label="Fast Direct Sponsor Mirror" className="py-4 px-6 rounded-2xl justify-center text-sm" />
               </div>
 
               {/* Progress Bar during simulated/active download */}
