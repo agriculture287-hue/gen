@@ -120,7 +120,7 @@ export const BetaModal: React.FC<BetaModalProps> = ({ isOpen, onClose, onShowToa
                   <input
                     type="email"
                     required
-                    value={email}
+                    value={email || ''}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your-name@gmail.com"
                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-cyan-400 transition"
@@ -136,7 +136,7 @@ export const BetaModal: React.FC<BetaModalProps> = ({ isOpen, onClose, onShowToa
                   <Smartphone className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3.5" />
                   <input
                     type="text"
-                    value={device}
+                    value={device || ''}
                     onChange={(e) => setDevice(e.target.value)}
                     placeholder="e.g. Samsung Galaxy S24, Pixel 8, Xiaomi 14"
                     className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white placeholder-neutral-500 text-sm focus:outline-none focus:border-cyan-400 transition"

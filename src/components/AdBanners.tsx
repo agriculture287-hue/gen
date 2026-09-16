@@ -151,3 +151,195 @@ export const AdDirectSponsorLink: React.FC<{ label?: string; className?: string 
     </a>
   );
 };
+
+/**
+ * Mobile Banner Ad Unit (320x50)
+ * key: aa73750d369623688925d762a277e45f
+ */
+export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const iframeHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : 'aa73750d369623688925d762a277e45f',
+            'format' : 'iframe',
+            'height' : 50,
+            'width' : 320,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highrevenueformat.com/aa73750d369623688925d762a277e45f/invoke.js"></script>
+      </body>
+    </html>
+  `;
+
+  return (
+    <div className={`w-full flex flex-col items-center justify-center my-4 overflow-hidden ${className}`}>
+      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1 select-none">
+        Sponsored
+      </span>
+      <div className="w-[320px] h-[50px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
+        <iframe
+          title="Sponsored Ad 320x50"
+          srcDoc={iframeHtml}
+          width="320"
+          height="50"
+          scrolling="no"
+          style={{ border: 'none', overflow: 'hidden' }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Medium Rectangle Ad Unit (300x250)
+ * key: 36019750f2238adf794264fc6b435242
+ */
+export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const iframeHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : '36019750f2238adf794264fc6b435242',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highrevenueformat.com/36019750f2238adf794264fc6b435242/invoke.js"></script>
+      </body>
+    </html>
+  `;
+
+  return (
+    <div className={`w-full flex flex-col items-center justify-center my-4 overflow-hidden ${className}`}>
+      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1 select-none">
+        Sponsored Content
+      </span>
+      <div className="w-[300px] h-[250px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
+        <iframe
+          title="Sponsored Ad 300x250"
+          srcDoc={iframeHtml}
+          width="300"
+          height="250"
+          scrolling="no"
+          style={{ border: 'none', overflow: 'hidden' }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Vertical Banner Ad Unit (160x300)
+ * key: ac7ea038a8b23ddb95125cadfe3d8acd
+ */
+export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const iframeHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : 'ac7ea038a8b23ddb95125cadfe3d8acd',
+            'format' : 'iframe',
+            'height' : 300,
+            'width' : 160,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highrevenueformat.com/ac7ea038a8b23ddb95125cadfe3d8acd/invoke.js"></script>
+      </body>
+    </html>
+  `;
+
+  return (
+    <div className={`flex flex-col items-center justify-center my-4 overflow-hidden ${className}`}>
+      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1 select-none">
+        Sponsored
+      </span>
+      <div className="w-[160px] h-[300px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
+        <iframe
+          title="Sponsored Ad 160x300"
+          srcDoc={iframeHtml}
+          width="160"
+          height="300"
+          scrolling="no"
+          style={{ border: 'none', overflow: 'hidden' }}
+        />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Skyscraper Ad Unit (160x600)
+ * key: 9a699eb9dc590e52d49a7e067d74b972
+ */
+export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const iframeHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
+        </style>
+      </head>
+      <body>
+        <script type="text/javascript">
+          atOptions = {
+            'key' : '9a699eb9dc590e52d49a7e067d74b972',
+            'format' : 'iframe',
+            'height' : 600,
+            'width' : 160,
+            'params' : {}
+          };
+        </script>
+        <script type="text/javascript" src="https://www.highrevenueformat.com/9a699eb9dc590e52d49a7e067d74b972/invoke.js"></script>
+      </body>
+    </html>
+  `;
+
+  return (
+    <div className={`flex flex-col items-center justify-center my-4 overflow-hidden ${className}`}>
+      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1 select-none">
+        Partner
+      </span>
+      <div className="w-[160px] h-[600px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
+        <iframe
+          title="Sponsored Skyscraper Ad 160x600"
+          srcDoc={iframeHtml}
+          width="160"
+          height="600"
+          scrolling="no"
+          style={{ border: 'none', overflow: 'hidden' }}
+        />
+      </div>
+    </div>
+  );
+};

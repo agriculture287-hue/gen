@@ -974,7 +974,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <div className="relative">
                     <input
                       type="text"
-                      value={adminId}
+                      value={adminId || ''}
                       onChange={(e) => setAdminId(e.target.value)}
                       placeholder="Enter Admin ID"
                       required
@@ -990,7 +990,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                   <div className="relative">
                     <input
                       type="password"
-                      value={adminPassword}
+                      value={adminPassword || ''}
                       onChange={(e) => setAdminPassword(e.target.value)}
                       placeholder="Enter Password"
                       required
@@ -1261,7 +1261,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           <div className="relative">
                             <input
                               type="url"
-                              value={unifiedDirectUrl}
+                              value={unifiedDirectUrl || ''}
                               onChange={(e) => setUnifiedDirectUrl(e.target.value)}
                               placeholder="https://github.com/genmusic/releases/download/v2.5.1/GEN_MUSIC.apk"
                               required={unifiedUseDirectUrl}
@@ -1287,7 +1287,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               Platform
                             </label>
                             <select
-                              value={unifiedPlatform}
+                              value={unifiedPlatform || ''}
                               onChange={(e) => handleUnifiedPlatformChange(e.target.value as PlatformType)}
                               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
                             >
@@ -1306,7 +1306,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={unifiedAppName}
+                              value={unifiedAppName || ''}
                               onChange={(e) => setUnifiedAppName(e.target.value)}
                               placeholder="e.g. GEN MUSIC for Android"
                               required
@@ -1322,7 +1322,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             <div className="flex gap-1.5">
                               <input
                                 type="text"
-                                value={unifiedVersion}
+                                value={unifiedVersion || ''}
                                 onChange={(e) => setUnifiedVersion(e.target.value)}
                                 placeholder="e.g. v2.5.1"
                                 required
@@ -1338,7 +1338,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={unifiedBadge}
+                              value={unifiedBadge || ''}
                               onChange={(e) => setUnifiedBadge(e.target.value)}
                               placeholder="e.g. Direct APK (Latest)"
                               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
@@ -1352,7 +1352,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={unifiedMinSystem}
+                              value={unifiedMinSystem || ''}
                               onChange={(e) => setUnifiedMinSystem(e.target.value)}
                               placeholder="e.g. Android 8.0 or later"
                               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
@@ -1366,7 +1366,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={unifiedArchitecture}
+                              value={unifiedArchitecture || ''}
                               onChange={(e) => setUnifiedArchitecture(e.target.value)}
                               placeholder="e.g. Universal ARM64 & ARM32"
                               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
@@ -1380,7 +1380,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={unifiedReleaseDate}
+                              value={unifiedReleaseDate || ''}
                               onChange={(e) => setUnifiedReleaseDate(e.target.value)}
                               placeholder="e.g. September 2026"
                               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
@@ -1394,7 +1394,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </label>
                             <input
                               type="text"
-                              value={unifiedMirrorUrl}
+                              value={unifiedMirrorUrl || ''}
                               onChange={(e) => setUnifiedMirrorUrl(e.target.value)}
                               placeholder="https://t.me/genmusic_apk"
                               className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-blue-500"
@@ -1415,7 +1415,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         </div>
                         <textarea
                           rows={3}
-                          value={unifiedHighlightsText}
+                          value={unifiedHighlightsText || ''}
                           onChange={(e) => setUnifiedHighlightsText(e.target.value)}
                           placeholder="Added next-gen Dolby Audio engine&#10;Batch offline MP3 downloader up to 320kbps&#10;Zero battery drain background playback"
                           className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-sans focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -1815,7 +1815,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         </label>
                         <textarea
                           rows={4}
-                          value={newHighlightsInput}
+                          value={newHighlightsInput || ''}
                           onChange={(e) => setNewHighlightsInput(e.target.value)}
                           placeholder="Added next-gen Dolby Audio engine&#10;Zero latency playback&#10;Improved equalizer stability"
                           required
@@ -1904,7 +1904,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 </label>
                                 <textarea
                                   rows={4}
-                                  value={editHighlightsInput}
+                                  value={editHighlightsInput || ''}
                                   onChange={(e) => setEditHighlightsInput(e.target.value)}
                                   className="w-full mt-1 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-mono"
                                   required
@@ -2516,7 +2516,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <form onSubmit={handleAddReleaseNote} className="flex gap-2 pt-2">
                       <input
                         type="text"
-                        value={newReleaseNote}
+                        value={newReleaseNote || ''}
                         onChange={(e) => setNewReleaseNote(e.target.value)}
                         placeholder="Add new release note highlight..."
                         className="flex-grow px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs focus:outline-none focus:border-blue-500"
@@ -2648,7 +2648,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             Target Platform Manifest Link
                           </label>
                           <select
-                            value={targetPlatform}
+                            value={targetPlatform || ''}
                             onChange={(e) => setTargetPlatform(e.target.value as any)}
                             className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none"
                           >
@@ -2666,7 +2666,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           </label>
                           <input
                             type="text"
-                            value={customBlobPath}
+                            value={customBlobPath || ''}
                             onChange={(e) => setCustomBlobPath(e.target.value)}
                             placeholder="e.g. downloads/genmusic-v2.5.0.apk"
                             className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono text-slate-800 focus:bg-white focus:outline-none"
@@ -2808,7 +2808,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       <div className="flex items-center gap-2">
                         <input
                           type="text"
-                          value={blobSearchFilter}
+                          value={blobSearchFilter || ''}
                           onChange={(e) => setBlobSearchFilter(e.target.value)}
                           placeholder="Filter files..."
                           className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-blue-500"
@@ -2900,20 +2900,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <form onSubmit={handleExecuteArticleTest} className="flex flex-wrap sm:flex-nowrap gap-2">
                       <input
                         type="text"
-                        value={articlePath}
+                        value={articlePath || ''}
                         onChange={(e) => setArticlePath(e.target.value)}
                         placeholder="Path (e.g. articles/blob.txt)"
                         className="w-full sm:w-1/3 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono"
                       />
                       <input
                         type="text"
-                        value={articleText}
+                        value={articleText || ''}
                         onChange={(e) => setArticleText(e.target.value)}
                         placeholder="Text content"
                         className="w-full sm:w-1/2 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs"
                       />
                       <select
-                        value={articleAccess}
+                        value={articleAccess || ''}
                         onChange={(e) => setArticleAccess(e.target.value as any)}
                         className="px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold"
                       >

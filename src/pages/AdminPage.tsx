@@ -108,7 +108,7 @@ export const AdminPage: React.FC = () => {
               </label>
               <input
                 type="password"
-                value={password}
+                value={password || ''}
                 onChange={e => { setPassword(e.target.value); setLoginError(''); }}
                 className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                 placeholder="Enter password..."
@@ -155,7 +155,7 @@ export const AdminPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.latest_version}
+                  value={formData.latest_version || ''}
                   onChange={e => setFormData({ ...formData, latest_version: e.target.value })}
                   placeholder="e.g. 1.0.1"
                   required
@@ -168,7 +168,7 @@ export const AdminPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  value={formData.min_supported_version}
+                  value={formData.min_supported_version || ''}
                   onChange={e => setFormData({ ...formData, min_supported_version: e.target.value })}
                   placeholder="e.g. 1.0.0"
                   required
@@ -181,7 +181,7 @@ export const AdminPage: React.FC = () => {
               <input
                 type="checkbox"
                 id="force_update"
-                checked={formData.force_update}
+                checked={Boolean(formData.force_update)}
                 onChange={e => setFormData({ ...formData, force_update: e.target.checked })}
                 className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
               />
@@ -195,7 +195,7 @@ export const AdminPage: React.FC = () => {
                 What's New (One bullet per line)
               </label>
               <textarea
-                value={formData.whats_new}
+                value={formData.whats_new || ''}
                 onChange={e => setFormData({ ...formData, whats_new: e.target.value })}
                 rows={4}
                 className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-500 text-sm resize-y"
@@ -210,7 +210,7 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-500 uppercase">Android URL (.apk)</label>
                 <input
                   type="url"
-                  value={formData.android_url}
+                  value={formData.android_url || ''}
                   onChange={e => setFormData({ ...formData, android_url: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none text-sm font-mono"
                 />
@@ -219,7 +219,7 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-500 uppercase">Windows URL (.exe)</label>
                 <input
                   type="url"
-                  value={formData.windows_url}
+                  value={formData.windows_url || ''}
                   onChange={e => setFormData({ ...formData, windows_url: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none text-sm font-mono"
                 />
@@ -228,7 +228,7 @@ export const AdminPage: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-500 uppercase">macOS URL (.dmg)</label>
                 <input
                   type="url"
-                  value={formData.macos_url}
+                  value={formData.macos_url || ''}
                   onChange={e => setFormData({ ...formData, macos_url: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none text-sm font-mono"
                 />
