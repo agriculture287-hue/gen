@@ -33,9 +33,11 @@ import {
 } from './data/adminStore';
 import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem } from './types';
 import { loadAppDataFromBlob, autoSaveAdminDataToBlob } from './lib/blobStorage';
+import { AdminPage } from './pages/AdminPage';
 
 export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
+  const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -98,6 +100,9 @@ export const App: React.FC = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       const search = window.location.search.toLowerCase();
+      
+      setCurrentPath(path);
+
       if (path.includes('chutiya') || hash.includes('chutiya') || search.includes('chutiya')) {
         setAdminModalOpen(true);
       }
@@ -224,6 +229,10 @@ export const App: React.FC = () => {
       showToast('Admin logged out.');
     }
   };
+
+  if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+    return <AdminPage />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">

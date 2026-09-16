@@ -162,36 +162,58 @@ export async function loadAppDataFromBlob(): Promise<{ success: boolean; data?: 
 }
 
 /**
- * Upload binary file (APK, EXE, DMG, ZIP, JSON) to Blob Storage
+ * Upload binary file (APK, EXE, DMG, ZIP, JSON) to Blob Storage with upload progress support
  */
 export async function uploadAppFileToBlob(
   file: File,
   pathname?: string,
   platform?: 'android' | 'windows' | 'macos',
-  access: 'public' | 'private' = 'public'
+  access: 'public' | 'private' = 'public',
+  onProgress?: (percent: number) => void
 ): Promise<{ success: boolean; blob?: BlobItem; error?: string; message?: string; publicUrl?: string; sha256?: string }> {
-  try {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
     const formData = new FormData();
     formData.append('file', file);
     if (pathname) formData.append('pathname', pathname);
     if (platform) formData.append('platform', platform);
     formData.append('access', access);
 
-    const res = await fetch('/api/blob/upload-file', {
-      method: 'POST',
-      body: formData,
-    });
+    xhr.open('POST', '/api/blob/upload-file', true);
 
-    return await safeJson(res, {
-      success: false,
-      error: 'Failed uploading file to Blob storage',
-    });
-  } catch (e: any) {
-    return {
-      success: false,
-      error: e?.message || 'Failed uploading file to Blob storage',
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded * 100) / event.total);
+          onProgress(percent);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      try {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const json = JSON.parse(xhr.responseText);
+          resolve(json);
+        } else {
+          try {
+            const errJson = JSON.parse(xhr.responseText);
+            resolve({ success: false, error: errJson.error || `Upload failed with status ${xhr.status}` });
+          } catch {
+            resolve({ success: false, error: `Upload failed with status ${xhr.status}` });
+          }
+        }
+      } catch (err: any) {
+        resolve({ success: false, error: err?.message || 'Failed parsing upload response' });
+      }
     };
-  }
+
+    xhr.onerror = () => {
+      resolve({ success: false, error: 'Network error occurred during upload' });
+    };
+
+    xhr.send(formData);
+  });
 }
 
 /**

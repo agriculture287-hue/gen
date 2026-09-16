@@ -45,8 +45,20 @@ class VercelBlobService {
    * Retrieve Blob configuration from environment variables
    */
   public getConfig(): BlobConfig {
-    const token = process.env.BLOB_READ_WRITE_TOKEN?.trim() || undefined;
-    const storeId = process.env.BLOB_STORE_ID?.trim() || undefined;
+    const token = (
+      process.env.BLOB_READ_WRITE_TOKEN ||
+      process.env.Gen_READ_WRITE_TOKEN ||
+      process.env.GEN_READ_WRITE_TOKEN ||
+      'vercel_blob_rw_TBYrDippPnZTX3hi_GqtmD9rlvjhDVOkGdWop3Nt8pZ4A87'
+    )?.trim() || undefined;
+
+    const storeId = (
+      process.env.BLOB_STORE_ID ||
+      process.env.Gen_STORE_ID ||
+      process.env.GEN_STORE_ID ||
+      'store_TBYrDippPnZTX3hi'
+    )?.trim() || undefined;
+
     return {
       token,
       storeId,
@@ -142,13 +154,27 @@ class VercelBlobService {
 
       const contentType = this.getMimeType(targetPath);
 
-      // Execute upload via @vercel/blob
-      const blob = await put(targetPath, buffer, {
-        access,
-        token,
-        contentType,
-        addRandomSuffix: false,
-      });
+      let blob: PutBlobResult;
+      try {
+        blob = await put(targetPath, buffer, {
+          access: access || 'public',
+          token,
+          contentType,
+          addRandomSuffix: false,
+        });
+      } catch (firstErr: any) {
+        // If the store is configured as private, fallback automatically to private access
+        if (String(firstErr?.message || '').includes('Cannot use public access on a private store') || String(firstErr?.message || '').includes('private store')) {
+          blob = await put(targetPath, buffer, {
+            access: 'private',
+            token,
+            contentType,
+            addRandomSuffix: false,
+          });
+        } else {
+          throw firstErr;
+        }
+      }
 
       return {
         success: true,
@@ -159,10 +185,11 @@ class VercelBlobService {
         platform,
       };
     } catch (err: any) {
+      console.error('Vercel Blob put error details:', err);
       const formatted = this.formatError(err, 'upload installer');
       return {
         success: false,
-        error: formatted,
+        error: `${formatted} (Details: ${err?.message || 'Network / Token Authorization rejected by Vercel Blob'})`,
       };
     }
   }
@@ -188,12 +215,26 @@ class VercelBlobService {
       const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
       const contentType = options.contentType || (cleanPath.endsWith('.json') ? 'application/json' : 'text/plain');
 
-      const blob = await put(cleanPath, content, {
-        access: options.access || 'public',
-        token,
-        contentType,
-        addRandomSuffix: false,
-      });
+      let blob: PutBlobResult;
+      try {
+        blob = await put(cleanPath, content, {
+          access: options.access || 'public',
+          token,
+          contentType,
+          addRandomSuffix: false,
+        });
+      } catch (firstErr: any) {
+        if (String(firstErr?.message || '').includes('Cannot use public access on a private store') || String(firstErr?.message || '').includes('private store')) {
+          blob = await put(cleanPath, content, {
+            access: 'private',
+            token,
+            contentType,
+            addRandomSuffix: false,
+          });
+        } else {
+          throw firstErr;
+        }
+      }
 
       return {
         success: true,

@@ -32,8 +32,10 @@ import {
   HardDrive,
   Package,
   FolderOpen,
-  FileCheck
+  FileCheck,
+  Activity
 } from 'lucide-react';
+import { BlobDiagnosticModal } from './BlobDiagnosticModal';
 import { AppPlatformRelease, PlatformType, TelegramChannel, TelegramConfig, UpdateItem } from '../types';
 import { ADMIN_CREDENTIALS, verifyAdminCredentials } from '../data/adminStore';
 import { VersionManifest } from '../types/update';
@@ -133,6 +135,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [targetPlatform, setTargetPlatform] = useState<'android' | 'windows' | 'macos' | 'generic'>('android');
   const [customBlobPath, setCustomBlobPath] = useState('');
   const [isUploadingBinary, setIsUploadingBinary] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadFeedback, setUploadFeedback] = useState<{ success?: boolean; message?: string; url?: string } | null>(null);
   const [isSyncingAllBackend, setIsSyncingAllBackend] = useState(false);
   const [blobSearchFilter, setBlobSearchFilter] = useState('');
@@ -208,6 +211,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [unifiedAutoUpdateWhatsNew, setUnifiedAutoUpdateWhatsNew] = useState(true);
   const [unifiedAutoSaveBlob, setUnifiedAutoSaveBlob] = useState(true);
   const [isUnifiedPublishing, setIsUnifiedPublishing] = useState(false);
+  const [diagnosticModalOpen, setDiagnosticModalOpen] = useState(false);
   const [unifiedPublishResult, setUnifiedPublishResult] = useState<{
     success: boolean;
     message?: string;
@@ -756,6 +760,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
 
     setIsUploadingBinary(true);
+    setUploadProgress(0);
     setUploadFeedback(null);
     try {
       const platformArg = targetPlatform !== 'generic' ? targetPlatform : undefined;
@@ -763,7 +768,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         selectedUploadFile, 
         customBlobPath.trim() || undefined, 
         platformArg, 
-        'public'
+        'public',
+        (pct) => setUploadProgress(pct)
       );
 
       if (res.success && res.blob) {
@@ -1497,7 +1503,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 <input
                                   type="text"
                                   readOnly
-                                  value={unifiedPublishResult.url}
+                                  value={unifiedPublishResult.url || ''}
                                   className="flex-grow px-2 py-1 bg-white rounded-lg border border-slate-300 text-[11px] font-mono text-blue-700 select-all"
                                 />
                                 <button
@@ -1992,7 +1998,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        value={tempTgConfig.contactUsername}
+                        value={tempTgConfig.contactUsername || ''}
                         onChange={(e) => setTempTgConfig({ ...tempTgConfig, contactUsername: e.target.value })}
                         placeholder="@genmusic_admin"
                         required
@@ -2006,7 +2012,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </label>
                       <input
                         type="url"
-                        value={tempTgConfig.contactUrl}
+                        value={tempTgConfig.contactUrl || ''}
                         onChange={(e) => setTempTgConfig({ ...tempTgConfig, contactUrl: e.target.value })}
                         placeholder="https://t.me/genmusic_admin"
                         required
@@ -2020,7 +2026,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        value={tempTgConfig.supportHours}
+                        value={tempTgConfig.supportHours || ''}
                         onChange={(e) => setTempTgConfig({ ...tempTgConfig, supportHours: e.target.value })}
                         placeholder="Admin Direct Support • Available 24/7"
                         className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-sm focus:bg-white focus:ring-2 focus:ring-blue-500"
@@ -2344,8 +2350,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Latest Version</label>
                         <input
                           type="text"
-                          value={versionManifest.android.latestVersion}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.android.latestVersion || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             android: { ...prev.android, latestVersion: e.target.value }
                           }))}
@@ -2357,8 +2363,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Minimum Version (Force Update)</label>
                         <input
                           type="text"
-                          value={versionManifest.android.minimumVersion}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.android.minimumVersion || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             android: { ...prev.android, minimumVersion: e.target.value }
                           }))}
@@ -2370,8 +2376,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Download URL</label>
                         <input
                           type="text"
-                          value={versionManifest.android.downloadUrl}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.android.downloadUrl || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             android: { ...prev.android, downloadUrl: e.target.value }
                           }))}
@@ -2396,8 +2402,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Latest Version</label>
                         <input
                           type="text"
-                          value={versionManifest.windows.latestVersion}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.windows.latestVersion || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             windows: { ...prev.windows, latestVersion: e.target.value }
                           }))}
@@ -2409,8 +2415,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Minimum Version (Force Update)</label>
                         <input
                           type="text"
-                          value={versionManifest.windows.minimumVersion}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.windows.minimumVersion || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             windows: { ...prev.windows, minimumVersion: e.target.value }
                           }))}
@@ -2422,8 +2428,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Download URL</label>
                         <input
                           type="text"
-                          value={versionManifest.windows.downloadUrl}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.windows.downloadUrl || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             windows: { ...prev.windows, downloadUrl: e.target.value }
                           }))}
@@ -2448,8 +2454,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Latest Version</label>
                         <input
                           type="text"
-                          value={versionManifest.macos.latestVersion}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.macos.latestVersion || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             macos: { ...prev.macos, latestVersion: e.target.value }
                           }))}
@@ -2461,8 +2467,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Minimum Version (Force Update)</label>
                         <input
                           type="text"
-                          value={versionManifest.macos.minimumVersion}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.macos.minimumVersion || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             macos: { ...prev.macos, minimumVersion: e.target.value }
                           }))}
@@ -2474,8 +2480,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Download URL</label>
                         <input
                           type="text"
-                          value={versionManifest.macos.downloadUrl}
-                          onChange={(e) => setVersionManifest(prev => ({
+                          value={versionManifest.macos.downloadUrl || ''}
+                          onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
                             macos: { ...prev.macos, downloadUrl: e.target.value }
                           }))}
@@ -2574,6 +2580,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <UploadCloud className="w-4 h-4" />
                         <span>{isSyncingAllBackend ? 'Syncing...' : 'Sync All Backend Data'}</span>
                       </button>
+
+                      <button
+                        onClick={() => setDiagnosticModalOpen(true)}
+                        className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+                      >
+                        <Activity className="w-4 h-4 text-blue-400" />
+                        <span>Run Diagnostics</span>
+                      </button>
                     </div>
                   </div>
 
@@ -2659,6 +2673,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           />
                         </div>
                       </div>
+
+                      {isUploadingBinary && (
+                        <div className="space-y-2 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                          <div className="flex items-center justify-between text-xs font-bold text-blue-900">
+                            <span>Uploading to Vercel Blob...</span>
+                            <span>{uploadProgress}%</span>
+                          </div>
+                          <div className="w-full h-2.5 rounded-full bg-blue-200 overflow-hidden">
+                            <div 
+                              className="h-full bg-blue-600 transition-all duration-300 rounded-full"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       {uploadFeedback && (
                         <div className={`p-3.5 rounded-xl text-xs flex items-start gap-2.5 ${
@@ -2960,6 +2989,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Blob Live Diagnostic Modal */}
+      <BlobDiagnosticModal
+        isOpen={diagnosticModalOpen}
+        onClose={() => setDiagnosticModalOpen(false)}
+      />
     </div>
   );
 };

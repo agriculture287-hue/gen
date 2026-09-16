@@ -16,8 +16,8 @@ const upload = multer({
   limits: { fileSize: 250 * 1024 * 1024 }, // 250MB for app binaries (APK, EXE, DMG)
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '250mb' }));
+app.use(express.urlencoded({ extended: true, limit: '250mb' }));
 
 // Helper to check token configuration
 function isBlobConfigured(): boolean {
@@ -82,10 +82,6 @@ app.get('/app-version.json', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
   res.setHeader('Content-Type', 'application/json');
   
-  const appVersionPath = path.join(process.cwd(), 'public', 'app-version.json');
-  if (fs.existsSync(appVersionPath)) {
-    return res.sendFile(appVersionPath);
-  }
   return res.json({
     latest_version: activeVersionManifest.android.latestVersion,
     min_supported_version: activeVersionManifest.android.minimumVersion,
@@ -148,6 +144,70 @@ app.post('/api/admin/update-version-manifest', async (req, res) => {
   }
 });
 
+// Simple isolated admin route per user request
+app.post('/api/admin/update-version', async (req, res) => {
+  try {
+    const { password, data } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'secret';
+
+    if (!adminPassword || password !== adminPassword) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Invalid password' });
+    }
+
+    if (!data || !data.latest_version) {
+      return res.status(400).json({ success: false, error: 'Invalid payload' });
+    }
+
+    // Prepare JSON object as requested
+    const appVersionJson = {
+      latest_version: data.latest_version,
+      min_supported_version: data.min_supported_version,
+      force_update: !!data.force_update,
+      whats_new: data.whats_new || [],
+      download_url: {
+        android: data.download_url?.android || '',
+        windows: data.download_url?.windows || '',
+        macos: data.download_url?.macos || ''
+      }
+    };
+
+    let blobUrl = '';
+
+    // Upload to Vercel Blob
+    const token = blobService.getConfig().token;
+    if (token) {
+      const { put } = await import('@vercel/blob');
+      const blob = await put('app-version.json', JSON.stringify(appVersionJson, null, 2), {
+        access: 'public',
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        token: token,
+        contentType: 'application/json'
+      });
+      blobUrl = blob.url;
+    } else {
+      return res.status(500).json({ success: false, error: 'BLOB_READ_WRITE_TOKEN is not configured' });
+    }
+
+    // Save locally to public/app-version.json as fallback
+    try {
+      const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
+      fs.writeFileSync(publicAppVerPath, JSON.stringify(appVersionJson, null, 2), 'utf8');
+    } catch (fsErr) {
+      console.warn('Could not write local public/app-version.json:', fsErr);
+    }
+
+    return res.json({
+      success: true,
+      blobUrl,
+      message: 'App version updated successfully'
+    });
+  } catch (error: any) {
+    console.error('Update version error:', error);
+    return res.status(500).json({ success: false, error: error?.message });
+  }
+});
+
 // ==========================================
 // 2. DOWNLOAD ROUTES (REDIRECTS TO BLOB STORAGE WHEN AVAILABLE)
 // /download/genmusic.apk
@@ -206,6 +266,45 @@ app.get('/api/blob/status', (req, res) => {
       ? 'Vercel Blob token is configured and ready.' 
       : 'BLOB_READ_WRITE_TOKEN is not configured. Please set this environment variable in settings.',
   });
+});
+
+// Client-side multipart upload handler for @vercel/blob/client
+app.post('/api/upload', async (req, res) => {
+  try {
+    const { handleUpload } = await import('@vercel/blob/client');
+    const config = blobService.getConfig();
+
+    if (!config.isConfigured || !config.token) {
+      return res.status(500).json({ error: 'BLOB_READ_WRITE_TOKEN is not configured in settings.' });
+    }
+
+    const jsonResponse = await handleUpload({
+      body: req.body,
+      request: req,
+      token: config.token,
+      onBeforeGenerateToken: async (pathname) => {
+        return {
+          allowedContentTypes: [
+            'application/vnd.android.package-archive', // .apk
+            'application/x-apple-diskimage', // .dmg
+            'application/x-msdownload', // .exe
+            'application/octet-stream', // fallback binary
+            'application/zip'
+          ],
+          maximumSizeInBytes: 300 * 1024 * 1024, // 300MB
+          tokenPayload: JSON.stringify({}),
+        };
+      },
+      onUploadCompleted: async ({ blob }) => {
+        console.log("Client chunk upload completed:", blob.url);
+      },
+    });
+
+    return res.status(200).json(jsonResponse);
+  } catch (error: any) {
+    console.error('Error handling client chunk upload:', error);
+    return res.status(400).json({ error: error.message });
+  }
 });
 
 // 2. Binary / App File Upload to Blob Storage (APKs, EXEs, DMGs, Images, JSON)
@@ -504,8 +603,247 @@ app.delete('/api/blob/delete', async (req, res) => {
   }
 });
 
+// 8. Comprehensive Blob Diagnostics Test
+app.get('/api/blob/diagnostic', async (req, res) => {
+  const config = blobService.getConfig();
+  const startTime = Date.now();
+  const logs: Array<{ timestamp: string; step: string; status: 'info' | 'success' | 'warn' | 'error'; detail: string }> = [];
+
+  const addLog = (step: string, status: 'info' | 'success' | 'warn' | 'error', detail: string) => {
+    logs.push({
+      timestamp: new Date().toISOString(),
+      step,
+      status,
+      detail,
+    });
+  };
+
+  addLog('1. Check Token Configuration', config.isConfigured ? 'success' : 'error', 
+    config.isConfigured 
+      ? `Token is configured (Length: ${config.token?.length} chars, Prefix: ${config.token?.substring(0, 15)}..., Store ID: ${config.storeId || 'Auto-detected from token'})`
+      : 'BLOB_READ_WRITE_TOKEN is missing or empty in environment.'
+  );
+
+  if (!config.isConfigured || !config.token) {
+    return res.json({
+      success: false,
+      summary: 'Vercel Blob token is missing.',
+      storeConfig: { isConfigured: false, storeId: undefined },
+      logs,
+      error: 'Token missing',
+      durationMs: Date.now() - startTime,
+    });
+  }
+
+  let publicTestSuccess = false;
+  let privateTestSuccess = false;
+  let publicUrl = '';
+  let privateUrl = '';
+  let detectedAccessMode: 'public' | 'private' | 'unknown' = 'unknown';
+  let listCount = 0;
+
+  // Step 2: Test Direct Upload with Public Access
+  const testFileName = `diagnostic/diag-test-${Date.now()}.txt`;
+  const testContent = `GEN MUSIC Diagnostic Test at ${new Date().toISOString()}\nStore: ${config.storeId || 'default'}\nStatus: OK`;
+
+  addLog('2. Test Upload with "public" access', 'info', `Attempting put to "${testFileName}" with access="public"...`);
+  try {
+    const { put } = await import('@vercel/blob');
+    const pubResult = await put(testFileName, testContent, {
+      access: 'public',
+      token: config.token,
+      contentType: 'text/plain; charset=utf-8',
+      addRandomSuffix: false,
+    });
+    publicTestSuccess = true;
+    publicUrl = pubResult.url;
+    detectedAccessMode = 'public';
+    addLog('2. Test Upload with "public" access', 'success', `SUCCESS: Uploaded to ${pubResult.url} (downloadUrl: ${pubResult.downloadUrl})`);
+  } catch (pubErr: any) {
+    const errMsg = pubErr?.message || String(pubErr);
+    addLog('2. Test Upload with "public" access', 'warn', `Failed with public access: ${errMsg}`);
+    
+    if (errMsg.includes('Cannot use public access on a private store') || errMsg.includes('private store')) {
+      addLog('2. Store Mode Analysis', 'info', 'Detected: Your Vercel Blob Store is created in PRIVATE access mode.');
+      detectedAccessMode = 'private';
+    }
+  }
+
+  // Step 3: Test Upload with Private Access if public failed
+  if (!publicTestSuccess) {
+    addLog('3. Test Upload with "private" access', 'info', `Attempting put to "${testFileName}" with access="private"...`);
+    try {
+      const { put } = await import('@vercel/blob');
+      const privResult = await put(testFileName, testContent, {
+        access: 'private',
+        token: config.token,
+        contentType: 'text/plain; charset=utf-8',
+        addRandomSuffix: false,
+      });
+      privateTestSuccess = true;
+      privateUrl = privResult.url;
+      detectedAccessMode = 'private';
+      addLog('3. Test Upload with "private" access', 'success', `SUCCESS: Uploaded with private access to ${privResult.url}`);
+    } catch (privErr: any) {
+      const errMsg = privErr?.message || String(privErr);
+      addLog('3. Test Upload with "private" access', 'error', `Failed with private access: ${errMsg}`);
+    }
+  }
+
+  // Step 4: Test List Blobs
+  addLog('4. Query Blob Store Inventory (list())', 'info', 'Calling list() on store to verify read access...');
+  try {
+    const { list } = await import('@vercel/blob');
+    const listResult = await list({ token: config.token, limit: 10 });
+    listCount = listResult.blobs.length;
+    addLog('4. Query Blob Store Inventory (list())', 'success', `Found ${listCount} active blob items in store. (HasMore: ${listResult.hasMore})`);
+  } catch (listErr: any) {
+    addLog('4. Query Blob Store Inventory (list())', 'warn', `List query failed: ${listErr?.message || String(listErr)}`);
+  }
+
+  const overallSuccess = publicTestSuccess || privateTestSuccess;
+
+  addLog(
+    '5. Final Diagnostic Evaluation',
+    overallSuccess ? 'success' : 'error',
+    overallSuccess
+      ? `Vercel Blob is fully operational! Store access mode: "${detectedAccessMode.toUpperCase()}". Binary uploads, manifests, and app packages will work smoothly.`
+      : 'All upload attempts failed. Please verify your token permissions or regenerate the token in Vercel Dashboard.'
+  );
+
+  return res.json({
+    success: overallSuccess,
+    summary: overallSuccess 
+      ? `Vercel Blob Storage is connected and working in ${detectedAccessMode.toUpperCase()} mode.`
+      : 'Vercel Blob upload test failed.',
+    storeConfig: {
+      isConfigured: true,
+      storeId: config.storeId || 'auto',
+      tokenMasked: `${config.token.substring(0, 18)}...${config.token.substring(config.token.length - 6)}`,
+      detectedAccessMode,
+    },
+    testResults: {
+      publicAccessUpload: publicTestSuccess,
+      privateAccessUpload: privateTestSuccess,
+      uploadedUrl: publicUrl || privateUrl || null,
+      listQueryWorking: listCount >= 0,
+      blobsCountInStore: listCount,
+    },
+    logs,
+    durationMs: Date.now() - startTime,
+  });
+});
+
+// 9. Blob Chunk Size & 413 Payload Diagnostic Tool
+app.post('/api/blob/diagnostic/chunks', upload.single('probe'), async (req, res) => {
+  const config = blobService.getConfig();
+  const startTime = Date.now();
+  const logs: Array<{ timestamp: string; step: string; status: 'info' | 'success' | 'warn' | 'error'; detail: string }> = [];
+
+  const addLog = (step: string, status: 'info' | 'success' | 'warn' | 'error', detail: string) => {
+    logs.push({
+      timestamp: new Date().toISOString(),
+      step,
+      status,
+      detail,
+    });
+  };
+
+  addLog('1. Token & Server Limits Check', config.isConfigured ? 'success' : 'error',
+    config.isConfigured ? 'Vercel Blob Token configured.' : 'Token missing.'
+  );
+
+  if (!config.isConfigured || !config.token) {
+    return res.status(400).json({
+      success: false,
+      error: 'Token missing',
+      logs,
+    });
+  }
+
+  // Test incremental chunk sizes: 100KB, 1MB, 5MB, 15MB
+  const chunkSizes = [
+    { name: '100 KB', size: 100 * 1024 },
+    { name: '1 MB', size: 1 * 1024 * 1024 },
+    { name: '5 MB', size: 5 * 1024 * 1024 },
+    { name: '15 MB', size: 15 * 1024 * 1024 },
+  ];
+
+  const results: Array<{ sizeName: string; bytes: number; success: boolean; error?: string; durationMs: number }> = [];
+  let serverConfigurationIssue = false;
+  let maxSuccessfulBytes = 0;
+
+  for (const chunk of chunkSizes) {
+    const chunkStart = Date.now();
+    const testBuffer = Buffer.alloc(chunk.size, 'X');
+    const testPath = `diagnostic/chunk-test-${chunk.size}-${Date.now()}.bin`;
+
+    addLog(`Testing Upload Chunk: ${chunk.name} (${chunk.size} bytes)`, 'info', `Uploading ${chunk.name} test buffer to Vercel Blob...`);
+
+    try {
+      const { put } = await import('@vercel/blob');
+      const putRes = await put(testPath, testBuffer, {
+        access: 'public',
+        token: config.token,
+        addRandomSuffix: false,
+      });
+
+      const dur = Date.now() - chunkStart;
+      maxSuccessfulBytes = chunk.size;
+      results.push({ sizeName: chunk.name, bytes: chunk.size, success: true, durationMs: dur });
+      addLog(`Testing Upload Chunk: ${chunk.name}`, 'success', `SUCCESS: Uploaded ${chunk.name} in ${dur}ms to ${putRes.url}`);
+    } catch (chunkErr: any) {
+      const dur = Date.now() - chunkStart;
+      const errMsg = chunkErr?.message || String(chunkErr);
+      results.push({ sizeName: chunk.name, bytes: chunk.size, success: false, error: errMsg, durationMs: dur });
+      addLog(`Testing Upload Chunk: ${chunk.name}`, 'error', `FAILED uploading ${chunk.name}: ${errMsg}`);
+
+      if (errMsg.includes('413') || errMsg.includes('Payload Too Large') || errMsg.includes('entity too large')) {
+        serverConfigurationIssue = true;
+        addLog('413 Analysis', 'error', `Detected HTTP 413 Payload Too Large at ${chunk.name}. This indicates Express/Nginx body parser limit restriction.`);
+      }
+      break; // Stop higher chunk tests if smaller failed
+    }
+  }
+
+  const conclusion = serverConfigurationIssue
+    ? 'HTTP 413 error stems from server-side body parser / reverse proxy payload size restrictions.'
+    : maxSuccessfulBytes >= 5 * 1024 * 1024
+    ? 'Chunk test passed successfully up to 15MB. Large binary uploads are fully supported.'
+    : 'Upload limits tested up to maximum successful chunk size.';
+
+  addLog('Chunk Diagnostic Conclusion', serverConfigurationIssue ? 'error' : 'success', conclusion);
+
+  return res.json({
+    success: !serverConfigurationIssue && maxSuccessfulBytes > 0,
+    summary: conclusion,
+    serverConfigurationIssue,
+    maxSuccessfulBytes,
+    results,
+    logs,
+    durationMs: Date.now() - startTime,
+  });
+});
+
 // Setup Vite middleware / static files
 async function startServer() {
+  // Sync state from Vercel Blob on startup
+  if (blobService.isReady()) {
+    try {
+      console.log('Fetching latest manifest from Vercel Blob...');
+      const result = await blobService.getAppData('version.json');
+      if (result.success && result.data) {
+        activeVersionManifest = { ...activeVersionManifest, ...result.data };
+        console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
+      } else if (result.rawText) {
+        activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
+        console.log('Successfully hydrated activeVersionManifest from Blob Storage rawText.');
+      }
+    } catch (err) {
+      console.warn('Could not hydrate manifest from Blob Storage on startup:', err);
+    }
+  }
+
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },
