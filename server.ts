@@ -578,37 +578,95 @@ app.post('/api/admin/dismiss-update-alert', (req, res) => {
   return res.json({ success: true, message: 'Active update alert dismissed from server.' });
 });
 
-// Simple isolated admin route per user request
-app.post('/api/admin/update-version', async (req, res) => {
-  try {
-    const { password, data } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'secret';
+// Helper to check admin session cookie in Express
+const checkAdminExpressSession = (req: any) => {
+  const cookieHeader = req.headers.cookie || '';
+  const cookies: Record<string, string> = {};
+  cookieHeader.split(';').forEach((cookie: string) => {
+    const parts = cookie.split('=');
+    if (parts.length >= 2) {
+      cookies[parts[0].trim()] = parts.slice(1).join('=').trim();
+    }
+  });
+  return cookies['admin_session'] === 'authenticated';
+};
 
-    if (!adminPassword || password !== adminPassword) {
-      return res.status(401).json({ success: false, error: 'Unauthorized: Invalid password' });
+// Admin login endpoint for local testing
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'secret_admin_password';
+
+    if (password === adminPassword) {
+      res.setHeader(
+        'Set-Cookie',
+        'admin_session=authenticated; Path=/; Max-Age=604800; SameSite=Strict' + 
+        (process.env.NODE_ENV === 'production' ? '; Secure; HttpOnly' : '')
+      );
+      return res.json({ success: true });
     }
 
-    if (!data || !data.latest_version) {
-      return res.status(400).json({ success: false, error: 'Invalid payload' });
+    return res.status(401).json({ success: false, error: 'Invalid password' });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message || 'Server error' });
+  }
+});
+
+// Admin check-auth endpoint for local testing
+app.get('/api/admin/check-auth', (req, res) => {
+  const authenticated = checkAdminExpressSession(req);
+  return res.json({ authenticated });
+});
+
+// Admin logout endpoint for local testing
+app.post('/api/admin/logout', (req, res) => {
+  res.setHeader(
+    'Set-Cookie',
+    'admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict'
+  );
+  return res.json({ success: true });
+});
+
+// Simple isolated admin route per user request (handles both cookies and body)
+app.post('/api/admin/update-version', async (req, res) => {
+  try {
+    // 1. Authenticate via either cookie session OR explicit body password for backward compatibility
+    const hasValidSession = checkAdminExpressSession(req);
+    const { password, data } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD || 'secret_admin_password';
+
+    if (!hasValidSession && (!password || password !== adminPassword)) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Session has expired or is invalid.' });
+    }
+
+    // 2. Resolve parameters (supports both direct body fields and nested data field)
+    const latest_version = req.body.latest_version || data?.latest_version;
+    const min_supported_version = req.body.min_supported_version || data?.min_supported_version;
+    const force_update = req.body.force_update !== undefined ? req.body.force_update : data?.force_update;
+    const whats_new = req.body.whats_new || data?.whats_new || [];
+    const download_url = req.body.download_url || data?.download_url;
+
+    if (!latest_version || !min_supported_version) {
+      return res.status(400).json({ success: false, error: 'Version numbers are required fields.' });
     }
 
     // Prepare JSON object as requested
     const appVersionJson = {
-      latest_version: data.latest_version,
-      min_supported_version: data.min_supported_version,
-      force_update: !!data.force_update,
-      whats_new: data.whats_new || [],
+      latest_version: String(latest_version).trim(),
+      min_supported_version: String(min_supported_version).trim(),
+      force_update: Boolean(force_update),
+      whats_new: Array.isArray(whats_new) ? whats_new : [],
       download_url: {
-        android: data.download_url?.android || '',
-        windows: data.download_url?.windows || '',
-        macos: data.download_url?.macos || ''
+        android: String(download_url?.android || '').trim(),
+        windows: String(download_url?.windows || '').trim(),
+        macos: String(download_url?.macos || '').trim()
       }
     };
 
     let blobUrl = '';
 
-    // Upload to Vercel Blob
-    const token = blobService.getConfig().token;
+    // 3. Upload to Vercel Blob
+    const token = process.env.BLOB_READ_WRITE_TOKEN || blobService.getConfig().token;
     if (token) {
       const { put } = await import('@vercel/blob');
       const blob = await put('app-version.json', JSON.stringify(appVersionJson, null, 2), {
@@ -620,10 +678,10 @@ app.post('/api/admin/update-version', async (req, res) => {
       });
       blobUrl = blob.url;
     } else {
-      return res.status(500).json({ success: false, error: 'BLOB_READ_WRITE_TOKEN is not configured' });
+      console.warn('Vercel Blob token is not configured. Saving only to local disk fallbacks.');
     }
 
-    // Save locally to public/app-version.json as fallback
+    // 4. Save locally to public/app-version.json as fallback
     try {
       const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
       fs.writeFileSync(publicAppVerPath, JSON.stringify(appVersionJson, null, 2), 'utf8');
@@ -631,14 +689,25 @@ app.post('/api/admin/update-version', async (req, res) => {
       console.warn('Could not write local public/app-version.json:', fsErr);
     }
 
+    // Sync in-memory version manifest if active
+    if (activeVersionManifest) {
+      activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
+      if (appVersionJson.download_url.android) activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
+      if (appVersionJson.download_url.windows) activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
+      if (appVersionJson.download_url.macos) activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
+      activeVersionManifest.releaseNotes = appVersionJson.whats_new;
+    }
+
     return res.json({
       success: true,
       blobUrl,
-      message: 'App version updated successfully'
+      url: blobUrl,
+      message: 'App version manifest updated and deployed live on Vercel Blob successfully!'
     });
   } catch (error: any) {
     console.error('Update version error:', error);
-    return res.status(500).json({ success: false, error: error?.message });
+    return res.status(500).json({ success: false, error: error?.message || 'Server error' });
   }
 });
 

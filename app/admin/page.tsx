@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { 
   Lock, 
@@ -13,7 +15,7 @@ import {
   FileText
 } from 'lucide-react';
 
-export const AdminPage: React.FC = () => {
+export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [password, setPassword] = useState<string>('');
   const [loginError, setLoginError] = useState<string>('');
@@ -35,6 +37,7 @@ export const AdminPage: React.FC = () => {
 
   // Get authorization header fallback for iframe testing
   const getAuthHeaders = (baseHeaders: Record<string, string> = {}): Record<string, string> => {
+    if (typeof window === 'undefined') return baseHeaders;
     const token = localStorage.getItem('admin_session_token');
     const headers = { ...baseHeaders };
     if (token) {
@@ -43,7 +46,7 @@ export const AdminPage: React.FC = () => {
     return headers;
   };
 
-  // Check auth session on mount
+  // Check auth cookie on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -334,11 +337,11 @@ export const AdminPage: React.FC = () => {
               {/* Force Update Checkbox */}
               <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
                 <div>
-                  <label htmlFor="force_update_admin" className="text-xs font-bold text-slate-800 cursor-pointer">Enforce Immediate Update</label>
+                  <label htmlFor="force_update" className="text-xs font-bold text-slate-800 cursor-pointer">Enforce Immediate Update</label>
                   <p className="text-[10px] text-slate-400 mt-0.5">Blocks user interface until the user installs the latest build.</p>
                 </div>
                 <input
-                  id="force_update_admin"
+                  id="force_update"
                   type="checkbox"
                   checked={forceUpdate}
                   onChange={(e) => setForceUpdate(e.target.checked)}
@@ -439,4 +442,4 @@ export const AdminPage: React.FC = () => {
       </main>
     </div>
   );
-};
+}
