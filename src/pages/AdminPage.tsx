@@ -47,16 +47,21 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('admin_session_token');
         const res = await fetch('/api/admin/check-auth', {
           headers: getAuthHeaders()
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.authenticated || token === 'authenticated') {
+          if (data.authenticated) {
             setIsAuthenticated(true);
             await fetchCurrentVersion();
+          } else {
+            // Remove stale session token if server check says unauthorized
+            localStorage.removeItem('admin_session_token');
           }
+        } else {
+          // Remove stale session token
+          localStorage.removeItem('admin_session_token');
         }
       } catch (err) {
         console.error('Failed to verify session:', err);
@@ -92,7 +97,7 @@ export const AdminPage: React.FC = () => {
       } else if (typeof data.whats_new === 'string') {
         setWhatsNew(data.whats_new);
       }
-
+  
       if (data.download_url) {
         setAndroidUrl(data.download_url.android || '');
         setWindowsUrl(data.download_url.windows || '');
@@ -114,8 +119,8 @@ export const AdminPage: React.FC = () => {
       });
 
       const data = await res.json();
-      if (res.ok && data.success) {
-        localStorage.setItem('admin_session_token', 'authenticated');
+      if (res.ok && data.success && data.token) {
+        localStorage.setItem('admin_session_token', data.token);
         setIsAuthenticated(true);
         await fetchCurrentVersion();
       } else {

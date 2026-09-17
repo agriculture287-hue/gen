@@ -80,18 +80,18 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
 };
 
 export const DEFAULT_AD_SETTINGS: AdSettings = {
-  directSponsorLink: 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe',
-  adsterraScriptHost: 'https://www.highrevenueformat.com',
+  directSponsorLink: 'https://repeattelegraph.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe',
+  adsterraScriptHost: 'https://repeattelegraph.com',
   key728x90: '4110737d8166f053b733fff6f7e13d06',
   key468x60: '37b0c7570a229c52933ce00a9e5ef8b9',
   key320x50: 'aa73750d369623688925d762a277e45f',
   key300x250: '36019750f2238adf794264fc6b435242',
   key160x300: 'ac7ea038a8b23ddb95125cadfe3d8acd',
   key160x600: '9a699eb9dc590e52d49a7e067d74b972',
-  nativeScriptUrl: 'https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js',
+  nativeScriptUrl: 'https://repeattelegraph.com/3617a4c3f56c896f818969f4fb731195/invoke.js',
   nativeContainerId: 'container-3617a4c3f56c896f818969f4fb731195',
-  popunderScriptUrl1: 'https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js',
-  popunderScriptUrl2: 'https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js',
+  popunderScriptUrl1: 'https://repeattelegraph.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js',
+  popunderScriptUrl2: 'https://repeattelegraph.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js',
   enableAds: true,
 };
 
@@ -246,6 +246,11 @@ export function getStoredAdSettings(): AdSettings {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.directSponsorLink) {
+        // Upgrade migration: If using old networks/domains, overwrite with new repeattelegraph.com units
+        if (!parsed.directSponsorLink.includes('repeattelegraph.com')) {
+          localStorage.setItem(STORAGE_KEYS.AD_SETTINGS, JSON.stringify(DEFAULT_AD_SETTINGS));
+          return DEFAULT_AD_SETTINGS;
+        }
         return parsed;
       }
     }

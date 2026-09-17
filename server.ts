@@ -64,6 +64,25 @@ async function hydrateBackendState() {
           activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
         }
       }
+
+      // 3. Hydrate state specifically from app-version.json (crucial for admin updates persistence across cold starts)
+      try {
+        const appVersionResult = await blobService.getAppData('app-version.json');
+        if (appVersionResult.success && appVersionResult.data) {
+          const appVer = appVersionResult.data;
+          if (appVer.latest_version) {
+            activeVersionManifest.android.latestVersion = appVer.latest_version;
+            activeVersionManifest.android.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+            if (appVer.download_url?.android) activeVersionManifest.android.downloadUrl = appVer.download_url.android;
+            if (appVer.download_url?.windows) activeVersionManifest.windows.downloadUrl = appVer.download_url.windows;
+            if (appVer.download_url?.macos) activeVersionManifest.macos.downloadUrl = appVer.download_url.macos;
+            if (Array.isArray(appVer.whats_new)) activeVersionManifest.releaseNotes = appVer.whats_new;
+            console.log('Successfully hydrated activeVersionManifest from app-version.json Blob.');
+          }
+        }
+      } catch (appVerErr) {
+        console.warn('Notice: Could not hydrate from app-version.json Blob on startup:', appVerErr);
+      }
     } catch (err) {
       console.warn('Notice: Could not hydrate data from Blob Storage on startup:', err);
     }
@@ -342,7 +361,7 @@ app.get('/welcome', (req, res) => {
 // ==========================================
 app.get('/api/sponsor-click', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
-  let link = activeAppConfig.adSettings?.directSponsorLink || 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe';
+  let link = activeAppConfig.adSettings?.directSponsorLink || 'https://repeattelegraph.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe';
   link = link.trim();
   if (link && !link.startsWith('http://') && !link.startsWith('https://') && !link.startsWith('//')) {
     link = 'https://' + link;
@@ -400,21 +419,31 @@ app.post('/api/avatar/upload', express.raw({ type: '*/*', limit: '50mb' }), asyn
 // 1. VERSION ENDPOINT (/version.json & /app-version.json)
 // https://genmugic.vercel.app/app-version.json
 // ==========================================
-app.get('/version.json', (req, res) => {
+app.get('/version.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.setHeader('Content-Type', 'application/json');
+
+  try {
+    const result = await blobService.getAppData('version.json');
+    if (result.success && result.data) {
+      return res.json(result.data);
+    }
+  } catch (err) {
+    console.warn('Failed to fetch live version.json from Vercel Blob:', err);
+  }
+
   return res.json(activeVersionManifest);
 });
 
-app.get('/app-version.json', (req, res) => {
+app.get('/app-version.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.setHeader('Content-Type', 'application/json');
   
-  return res.json({
+  const fallback = {
     latest_version: activeVersionManifest.android.latestVersion,
     min_supported_version: activeVersionManifest.android.minimumVersion,
     force_update: false,
@@ -424,7 +453,18 @@ app.get('/app-version.json', (req, res) => {
       windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
       macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
     },
-  });
+  };
+
+  try {
+    const result = await blobService.getAppData('app-version.json');
+    if (result.success && result.data) {
+      return res.json(result.data);
+    }
+  } catch (err) {
+    console.warn('Failed to fetch live app-version.json from Vercel Blob:', err);
+  }
+
+  return res.json(fallback);
 });
 
 // Update version manifest via API
@@ -580,6 +620,7 @@ app.post('/api/admin/dismiss-update-alert', (req, res) => {
 
 // Helper to check admin session cookie in Express
 const checkAdminExpressSession = (req: any) => {
+  // Check cookie-based session
   const cookieHeader = req.headers.cookie || '';
   const cookies: Record<string, string> = {};
   cookieHeader.split(';').forEach((cookie: string) => {
@@ -588,7 +629,20 @@ const checkAdminExpressSession = (req: any) => {
       cookies[parts[0].trim()] = parts.slice(1).join('=').trim();
     }
   });
-  return cookies['admin_session'] === 'authenticated';
+  if (cookies['admin_session'] === 'authenticated') {
+    return true;
+  }
+
+  // Check Bearer token authorization header (very robust for cross-site iframe previews)
+  const authHeader = req.headers.authorization || '';
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (token === 'authenticated') {
+      return true;
+    }
+  }
+
+  return false;
 };
 
 // Admin login endpoint for local testing
@@ -603,7 +657,7 @@ app.post('/api/admin/login', (req, res) => {
         'admin_session=authenticated; Path=/; Max-Age=604800; SameSite=Strict' + 
         (process.env.NODE_ENV === 'production' ? '; Secure; HttpOnly' : '')
       );
-      return res.json({ success: true });
+      return res.json({ success: true, token: 'authenticated' });
     }
 
     return res.status(401).json({ success: false, error: 'Invalid password' });
@@ -667,7 +721,14 @@ app.post('/api/admin/update-version', async (req, res) => {
 
     // 3. Upload to Vercel Blob
     const token = process.env.BLOB_READ_WRITE_TOKEN || blobService.getConfig().token;
-    if (token) {
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        error: 'Vercel Blob token (BLOB_READ_WRITE_TOKEN) is not configured.'
+      });
+    }
+
+    try {
       const { put } = await import('@vercel/blob');
       const blob = await put('app-version.json', JSON.stringify(appVersionJson, null, 2), {
         access: 'public',
@@ -677,8 +738,31 @@ app.post('/api/admin/update-version', async (req, res) => {
         contentType: 'application/json'
       });
       blobUrl = blob.url;
-    } else {
-      console.warn('Vercel Blob token is not configured. Saving only to local disk fallbacks.');
+
+      // Sync in-memory version manifest if active
+      if (activeVersionManifest) {
+        activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
+        activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
+        if (appVersionJson.download_url.android) activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
+        if (appVersionJson.download_url.windows) activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
+        if (appVersionJson.download_url.macos) activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
+        activeVersionManifest.releaseNotes = appVersionJson.whats_new;
+      }
+
+      // Also upload version.json to Vercel Blob to keep them fully synced!
+      await put('version.json', JSON.stringify(activeVersionManifest, null, 2), {
+        access: 'public',
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        token: token,
+        contentType: 'application/json'
+      });
+    } catch (putErr: any) {
+      console.error('Vercel Blob put failed:', putErr);
+      return res.status(500).json({
+        success: false,
+        error: `Vercel Blob upload failed: ${putErr?.message || putErr}`
+      });
     }
 
     // 4. Save locally to public/app-version.json as fallback
@@ -687,16 +771,6 @@ app.post('/api/admin/update-version', async (req, res) => {
       fs.writeFileSync(publicAppVerPath, JSON.stringify(appVersionJson, null, 2), 'utf8');
     } catch (fsErr) {
       console.warn('Could not write local public/app-version.json:', fsErr);
-    }
-
-    // Sync in-memory version manifest if active
-    if (activeVersionManifest) {
-      activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
-      activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
-      if (appVersionJson.download_url.android) activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
-      if (appVersionJson.download_url.windows) activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
-      if (appVersionJson.download_url.macos) activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
-      activeVersionManifest.releaseNotes = appVersionJson.whats_new;
     }
 
     return res.json({

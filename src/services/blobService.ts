@@ -678,10 +678,30 @@ export class UnifiedBlobStorageEngine {
    * Universal get: checks local first, then Vercel if needed
    */
   public async get(pathnameOrUrl: string): Promise<{ success: boolean; data?: any; text?: string; buffer?: Buffer; error?: string }> {
-    // If it's a Vercel URL
-    if (pathnameOrUrl.startsWith('http://') || pathnameOrUrl.startsWith('https://')) {
+    let resolvedUrl = pathnameOrUrl;
+
+    // If it's a pathname and Vercel is ready, resolve it to a Vercel Blob URL first
+    if (!pathnameOrUrl.startsWith('http://') && !pathnameOrUrl.startsWith('https://')) {
       if (this.vercel.isReady()) {
-        const vRes = await this.vercel.get(pathnameOrUrl);
+        try {
+          const listRes = await this.vercel.list({ prefix: pathnameOrUrl });
+          if (listRes.success && listRes.blobs && listRes.blobs.length > 0) {
+            // Find an exact pathname match
+            const matchedBlob = listRes.blobs.find(b => b.pathname === pathnameOrUrl);
+            if (matchedBlob) {
+              resolvedUrl = matchedBlob.url;
+            }
+          }
+        } catch (err) {
+          console.warn('[UnifiedBlobStorageEngine.get] Failed resolving pathname via Vercel list:', err);
+        }
+      }
+    }
+
+    // If it's a Vercel URL
+    if (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://')) {
+      if (this.vercel.isReady()) {
+        const vRes = await this.vercel.get(resolvedUrl);
         if (vRes.success) return vRes;
       }
     }
