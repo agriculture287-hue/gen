@@ -9,13 +9,25 @@ import { TelegramChannelsSection } from './components/TelegramChannelsSection';
 import { DownloadAppSection } from './components/DownloadAppSection';
 import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
+import { Footer } from './components/Footer';
 import { BetaModal } from './components/BetaModal';
 import { AdminModal } from './components/AdminModal';
 import { InAppUpdateModal } from './components/InAppUpdateModal';
+import { AddUpdateByLinkModal } from './components/AddUpdateByLinkModal';
 import { 
   AdLeaderboard728x90, 
   AdBanner468x60, 
-  AdNativeContainer 
+  AdNativeContainer,
+  AdBanner300x250,
+  AdBanner320x50,
+  AdBanner160x300,
+  AdBanner160x600,
+  AdSideSkyscrapers,
+  AdStickyBottomBar,
+  AdResponsiveLeaderboard,
+  AdShowcaseSection,
+  AdMultiplyMatrix10x,
+  AdDirectSponsorLink
 } from './components/AdBanners';
 import { getLocalVersionManifest, saveLocalVersionManifest, DEFAULT_VERSION_MANIFEST } from './data/versionManifest';
 import { 
@@ -40,6 +52,7 @@ export const App: React.FC = () => {
   const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [addUpdateByLinkModalOpen, setAddUpdateByLinkModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Admin dynamic state persisted in localStorage
@@ -125,6 +138,13 @@ export const App: React.FC = () => {
     const hash = window.location.hash.toLowerCase();
     if (path.includes('chutiya') || hash.includes('chutiya')) {
       window.history.replaceState({}, '', '/');
+    }
+  };
+
+  const handleOpenLegalModal = (type: 'privacy' | 'terms' | 'support' | 'contact') => {
+    showToast(`Opening ${type.toUpperCase()} policy document...`);
+    if (type === 'contact' || type === 'support') {
+      window.open(telegramConfig.contactUrl, '_blank');
     }
   };
 
@@ -255,8 +275,11 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
       
+      {/* Fixed Side Gutters Skyscraper Ads (160x600 Left & Right on Desktop) */}
+      <AdSideSkyscrapers />
+
       {/* 1. Top Announcement Bar */}
       <TopBanner 
         onDownloadClick={scrollToDownload} 
@@ -272,7 +295,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Content Sections */}
-      <main className="flex-grow">
+      <main className="flex-grow pb-28">
         
         {/* 3. Hero Section */}
         <HeroSection 
@@ -284,6 +307,9 @@ export const App: React.FC = () => {
           telegramUrl={telegramConfig.contactUrl}
         />
 
+        {/* Top Responsive Leaderboard (728x90 on desktop / 320x50 on mobile) */}
+        <AdResponsiveLeaderboard className="my-6" />
+
         {/* 4. Unified Multi-Platform Download & Release Hub */}
         <DownloadAppSection 
           platforms={platforms}
@@ -292,9 +318,6 @@ export const App: React.FC = () => {
           isAdminLoggedIn={isAdminLoggedIn}
           onOpenBetaModal={() => setBetaModalOpen(true)}
         />
-
-        {/* Sponsored Leaderboard Banner (728x90) */}
-        <AdLeaderboard728x90 />
 
         {/* Sponsored Native In-Feed Container */}
         <AdNativeContainer />
@@ -305,6 +328,15 @@ export const App: React.FC = () => {
           channels={channels}
         />
 
+        {/* Sponsored Medium Rectangle (300x250) & Vertical Banner (160x300) Cluster */}
+        <div className="w-full max-w-6xl mx-auto px-4 my-8">
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <AdBanner300x250 />
+            <AdBanner160x300 />
+            <AdBanner300x250 />
+          </div>
+        </div>
+
         {/* 6. Why Choose GEN MUSIC Section */}
         <WhyChooseSection 
           onDownloadClick={scrollToDownload}
@@ -313,24 +345,63 @@ export const App: React.FC = () => {
         {/* Sponsored Compact Banner (468x60) */}
         <AdBanner468x60 />
 
+        {/* All-In-One Dedicated Sponsored Media & Partner Ad Units Showcase */}
+        <AdShowcaseSection />
+
         {/* 7. Complete Features Section */}
         <PremiumFeaturesSection 
           onDownloadClick={scrollToDownload}
         />
 
+        {/* Mid-Page Responsive Leaderboard (728x90 / 320x50) */}
+        <AdResponsiveLeaderboard className="my-8" />
+
         {/* 8. App Interface Screenshots */}
         <ScreenshotsSection />
+
+        {/* High-Impact Skyscraper (160x600), Medium Rectangle (300x250), and Mobile Banner (320x50) Grid */}
+        <div className="w-full max-w-6xl mx-auto px-4 my-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8">
+          <AdBanner160x600 />
+          <div className="flex flex-col items-center justify-center gap-4">
+            <AdBanner300x250 />
+            <AdBanner320x50 />
+            <AdBanner468x60 />
+          </div>
+          <AdBanner160x600 />
+        </div>
 
         {/* 9. Updates & Announcements (dynamic What's New from admin) */}
         <UpdatesSection 
           updates={updates}
           onDownloadClick={scrollToDownload}
+          onOpenAddUpdateByLink={() => setAddUpdateByLinkModalOpen(true)}
         />
+
+        {/* Second Sponsored Native In-Feed Unit */}
+        <AdNativeContainer />
 
         {/* 10. Frequently Asked Questions */}
         <FAQSection />
 
+        {/* Pre-Footer Responsive Leaderboard Ad */}
+        <AdResponsiveLeaderboard className="my-10" />
+
+        {/* 10x Ad Multiplier Matrix Block (End of Page Content) */}
+        <AdMultiplyMatrix10x />
+
       </main>
+
+      {/* Main App Footer */}
+      <Footer 
+        onOpenLegalModal={handleOpenLegalModal}
+        onDownloadClick={scrollToDownload}
+        onOpenAdmin={() => setAdminModalOpen(true)}
+        isAdminLoggedIn={isAdminLoggedIn}
+        telegramUrl={telegramConfig.contactUrl}
+      />
+
+      {/* Persistent Floating Sticky Bottom Ad Banner (Always visible while scrolling) */}
+      <AdStickyBottomBar />
 
       {/* Admin Management Modal (Accessible via /chutiya) */}
       <AdminModal
@@ -366,6 +437,19 @@ export const App: React.FC = () => {
       {/* In-App Update Trigger & Notification Modal */}
       <InAppUpdateModal
         telegramUrl={telegramConfig.contactUrl}
+      />
+
+      {/* Add App Update by Link Modal */}
+      <AddUpdateByLinkModal
+        isOpen={addUpdateByLinkModalOpen}
+        onClose={() => setAddUpdateByLinkModalOpen(false)}
+        onShowToast={showToast}
+        onSuccess={(newVer, plat) => {
+          showToast(`Published v${newVer} (${plat}) update by link!`);
+          // Refresh local releases & manifest
+          setPlatforms(getStoredReleases());
+          setUpdates(getStoredUpdates());
+        }}
       />
 
       {/* Floating Toast Notification */}

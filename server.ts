@@ -19,6 +19,10 @@ const upload = multer({
 app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ extended: true, limit: '250mb' }));
 
+// Static local storage file serving
+app.use('/storage/blobs', express.static(path.join(process.cwd(), 'public', 'storage', 'blobs')));
+app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
+
 // Helper to check token configuration
 function isBlobConfigured(): boolean {
   return blobService.isReady();
@@ -243,6 +247,62 @@ let activeAppConfig: any = {
   lastUpdated: new Date().toISOString(),
   updatedBy: 'Admin (Varanasi)'
 };
+
+// ==========================================
+// WELCOME ENDPOINT (/welcome)
+// ==========================================
+app.get('/welcome', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  const greeting = process.env.GREETING || 'hello world';
+  return res.json({ greeting });
+});
+
+// ==========================================
+// AVATAR UPLOAD ENDPOINT (/api/avatar/upload)
+// ==========================================
+app.post('/api/avatar/upload', express.raw({ type: '*/*', limit: '50mb' }), async (req, res) => {
+  const filename = (req.query.filename as string) || `avatar-${Date.now()}.png`;
+  const token = process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
+  
+  if (token) {
+    try {
+      const { put } = await import('@vercel/blob');
+      const blob = await put(filename, req.body, {
+        access: 'public',
+        token,
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      });
+      return res.json(blob);
+    } catch (err: any) {
+      console.warn('Vercel Blob upload failed, utilizing local upload fallback:', err.message);
+    }
+  }
+
+  // Local fallback storage implementation
+  try {
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, req.body);
+    const host = req.headers.host || 'localhost:3000';
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const url = `${protocol}://${host}/uploads/${filename}`;
+    return res.json({
+      url,
+      downloadUrl: url,
+      pathname: filename,
+      contentType: 'image/png',
+      contentDisposition: `inline; filename="${filename}"`
+    });
+  } catch (err: any) {
+    console.error('Avatar upload error:', err);
+    return res.status(500).json({ error: err.message || 'Avatar upload failed' });
+  }
+});
 
 // ==========================================
 // 1. VERSION ENDPOINT (/version.json & /app-version.json)
@@ -535,19 +595,44 @@ app.get('/download/:file', (req, res) => {
 });
 
 // ==========================================
-// 3. BLOB STORAGE API ENDPOINTS
+// 3. REIMPLEMENTED BLOB STORAGE API ENDPOINTS
 // ==========================================
 
-// 1. Blob Status Check
+// 1. System Status Check (Local vs Hybrid Vercel)
 app.get('/api/blob/status', (req, res) => {
-  const config = blobService.getConfig();
-  res.json({
-    configured: config.isConfigured,
-    storeId: config.storeId ? `${config.storeId.substring(0, 6)}...` : undefined,
-    message: config.isConfigured 
-      ? 'Vercel Blob token is configured and ready.' 
-      : 'BLOB_READ_WRITE_TOKEN is not configured. Please set this environment variable in settings.',
-  });
+  try {
+    const status = blobService.getStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.json({
+      configured: true,
+      activeProvider: 'local',
+      vercelConfigured: false,
+      localBlobsCount: 0,
+      message: err?.message || 'Local storage operational',
+    });
+  }
+});
+
+// 2. Direct Raw Blob File Stream (with caching & mime headers)
+app.get(['/api/blob/raw/*', '/api/blob/file/*'], async (req, res) => {
+  try {
+    const relPath = req.params[0] || '';
+    const result = await blobService.get(relPath);
+
+    if (!result.success || !result.buffer) {
+      return res.status(404).json({ success: false, error: 'Blob not found' });
+    }
+
+    const { getMimeType } = await import('./src/services/blobService');
+    const mime = getMimeType(relPath);
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Length', result.buffer.length);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    return res.send(result.buffer);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message });
+  }
 });
 
 // Client-side multipart upload handler for @vercel/blob/client
@@ -564,16 +649,16 @@ app.post('/api/upload', async (req, res) => {
       body: req.body,
       request: req,
       token: config.token,
-      onBeforeGenerateToken: async (pathname) => {
+      onBeforeGenerateToken: async () => {
         return {
           allowedContentTypes: [
-            'application/vnd.android.package-archive', // .apk
-            'application/x-apple-diskimage', // .dmg
-            'application/x-msdownload', // .exe
-            'application/octet-stream', // fallback binary
+            'application/vnd.android.package-archive',
+            'application/x-apple-diskimage',
+            'application/x-msdownload',
+            'application/octet-stream',
             'application/zip'
           ],
-          maximumSizeInBytes: 300 * 1024 * 1024, // 300MB
+          maximumSizeInBytes: 300 * 1024 * 1024,
           tokenPayload: JSON.stringify({}),
         };
       },
@@ -589,7 +674,7 @@ app.post('/api/upload', async (req, res) => {
   }
 });
 
-// 2. Binary / App File Upload to Blob Storage (APKs, EXEs, DMGs, Images, JSON)
+// 3. Binary / App File Upload (APK, EXE, DMG, images, logs, packages)
 app.post('/api/blob/upload-file', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
@@ -598,78 +683,45 @@ app.post('/api/blob/upload-file', upload.single('file'), async (req, res) => {
 
     const customPath = req.body.pathname;
     const access = req.body.access === 'private' ? 'private' : 'public';
-    const platform = req.body.platform; // 'android' | 'windows' | 'macos'
+    const platform = req.body.platform || 'generic';
 
-    let publicUrl = '';
-    let sha256Checksum = '';
-    let savedToVercelBlob = false;
-    let blobItem: any = null;
+    const uploadResult = await blobService.uploadAppInstaller({
+      filename: req.file.originalname,
+      buffer: req.file.buffer,
+      platform,
+      access,
+      customPath,
+    });
 
-    // Try Vercel Blob if configured
-    if (blobService.isReady()) {
-      try {
-        const result = await blobService.uploadAppInstaller({
-          filename: req.file.originalname,
-          buffer: req.file.buffer,
-          platform: platform || 'generic',
-          access,
-          customPath,
-        });
-
-        if (result.success && result.blob) {
-          savedToVercelBlob = true;
-          blobItem = result.blob;
-          publicUrl = result.blob.url;
-          sha256Checksum = result.sha256 || '';
-        }
-      } catch (blobErr: any) {
-        console.warn('Vercel blob upload attempt failed, falling back to local server disk storage:', blobErr?.message);
-      }
+    if (!uploadResult.success && !uploadResult.blob) {
+      return res.status(500).json({
+        success: false,
+        error: uploadResult.error || 'Failed to upload binary file',
+      });
     }
 
-    // If Vercel Blob failed or not configured, store locally on server disk
-    if (!publicUrl) {
-      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadsDir)) {
-        fs.mkdirSync(uploadsDir, { recursive: true });
-      }
+    const publicUrl = uploadResult.publicUrl || uploadResult.blob?.url || '';
 
-      const safeBase = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
-      const uniqueName = `${Date.now()}_${safeBase}`;
-      const localFilePath = path.join(uploadsDir, uniqueName);
-      fs.writeFileSync(localFilePath, req.file.buffer);
-
-      publicUrl = `/uploads/${uniqueName}`;
-      blobItem = {
-        url: publicUrl,
-        downloadUrl: publicUrl,
-        pathname: `uploads/${uniqueName}`,
-        contentType: req.file.mimetype || 'application/octet-stream',
-        contentDisposition: `attachment; filename="${req.file.originalname}"`,
-        size: req.file.size,
-        uploadedAt: new Date(),
-      };
-    }
-
-    // Update active manifest and activeAppConfig platforms automatically!
-    if (platform === 'android' || (customPath && customPath.endsWith('.apk')) || req.file.originalname.endsWith('.apk')) {
+    // Auto-update active manifests and activeAppConfig platforms
+    const lowerName = req.file.originalname.toLowerCase();
+    if (platform === 'android' || lowerName.endsWith('.apk')) {
       activeVersionManifest.android.blobUrl = publicUrl;
       activeVersionManifest.android.downloadUrl = publicUrl;
       const androidP = activeAppConfig.platforms?.find((p: any) => p.platform === 'android');
       if (androidP) androidP.downloadUrl = publicUrl;
-    } else if (platform === 'windows' || (customPath && customPath.endsWith('.exe')) || req.file.originalname.endsWith('.exe')) {
+    } else if (platform === 'windows' || lowerName.endsWith('.exe')) {
       activeVersionManifest.windows.blobUrl = publicUrl;
       activeVersionManifest.windows.downloadUrl = publicUrl;
       const windowsP = activeAppConfig.platforms?.find((p: any) => p.platform === 'windows');
       if (windowsP) windowsP.downloadUrl = publicUrl;
-    } else if (platform === 'macos' || (customPath && customPath.endsWith('.dmg')) || req.file.originalname.endsWith('.dmg')) {
+    } else if (platform === 'macos' || lowerName.endsWith('.dmg')) {
       activeVersionManifest.macos.blobUrl = publicUrl;
       activeVersionManifest.macos.downloadUrl = publicUrl;
       const macP = activeAppConfig.platforms?.find((p: any) => p.platform === 'mac' || p.platform === 'macos');
       if (macP) macP.downloadUrl = publicUrl;
     }
 
-    // Also update public/app-version.json & public/version.json
+    // Persist manifests to public disk
     try {
       const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
       const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
@@ -682,65 +734,71 @@ app.post('/api/blob/upload-file', upload.single('file'), async (req, res) => {
           android: activeVersionManifest.android.downloadUrl,
           windows: activeVersionManifest.windows.downloadUrl,
           macos: activeVersionManifest.macos.downloadUrl,
-        }
+        },
       };
       fs.writeFileSync(publicAppVerPath, JSON.stringify(current, null, 2), 'utf8');
       fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
     } catch (fsErr) {
-      console.warn('Failed updating public/app-version.json with new blob URL:', fsErr);
+      console.warn('Notice: Could not write public app-version.json:', fsErr);
     }
 
     return res.json({
       success: true,
-      blob: blobItem,
-      sha256: sha256Checksum,
-      savedToVercelBlob,
-      message: `File ${req.file.originalname} (${(req.file.size / (1024 * 1024)).toFixed(2)} MB) successfully saved to ${savedToVercelBlob ? 'Vercel Blob Storage' : 'Backend Server Storage'}!`,
+      blob: uploadResult.blob,
+      sha256: uploadResult.sha256,
       publicUrl,
+      savedLocally: uploadResult.savedLocally ?? true,
+      provider: uploadResult.provider || 'local',
+      message: uploadResult.message || `Uploaded ${req.file.originalname} successfully!`,
     });
   } catch (error: any) {
-    console.error('Error uploading file to blob:', error);
+    console.error('Error in /api/blob/upload-file:', error);
     return res.status(500).json({
       success: false,
-      error: error?.message || 'Failed to upload binary file to storage',
+      error: error?.message || 'Failed uploading file to blob storage',
     });
   }
 });
 
-// 3. Put Text / JSON Blob Endpoint
+// 4. Universal Put Blob (Text, JSON, Base64)
 app.post('/api/blob/put', async (req, res) => {
   try {
-    if (!blobService.isReady()) {
-      return res.status(400).json({
-        success: false,
-        error: 'BLOB_READ_WRITE_TOKEN is not configured in environment variables.',
-      });
-    }
-
-    const { pathname, content, access = 'public', contentType } = req.body;
+    const { pathname, content, access = 'public', contentType, addRandomSuffix, platform } = req.body;
 
     if (!pathname) {
       return res.status(400).json({ success: false, error: 'Pathname is required' });
     }
 
-    const result = await blobService.uploadAppData(pathname, content, {
+    const result = await blobService.put(pathname, content, {
       access: access === 'private' ? 'private' : 'public',
       contentType,
+      addRandomSuffix,
+      platform,
     });
 
-    if (!result.success) {
-      return res.status(500).json({ success: false, error: result.error });
-    }
-
-    return res.json({
-      success: true,
-      blob: result.blob,
-    });
+    return res.json(result);
   } catch (error: any) {
     console.error('Error in /api/blob/put:', error);
     return res.status(500).json({
       success: false,
-      error: error?.message || 'Failed to put blob to Vercel Blob store',
+      error: error?.message || 'Failed putting blob to storage',
+    });
+  }
+});
+
+// 5. Direct Test Article Blob Put - put('articles/blob.txt', 'Hello World!', { access: 'private' })
+app.post('/api/blob/test-article', async (req, res) => {
+  try {
+    const { text = 'Hello World!', pathname = 'articles/blob.txt', access = 'private' } = req.body;
+    const result = await blobService.put(pathname, text, {
+      access: access === 'public' ? 'public' : 'private',
+      contentType: 'text/plain; charset=utf-8',
+    });
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      error: error?.message || 'Failed testing article put',
     });
   }
 });
@@ -805,62 +863,28 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app', '/api/admin/s
       console.warn('Could not write local public version & config files:', fsErr);
     }
 
-    // 2. Sync to Vercel Blob if token configured
-    if (!blobService.isReady()) {
-      return res.json({
-        success: true,
-        savedLocally: true,
-        blobConfigured: false,
-        data: activeAppConfig,
-        message: 'All admin changes, platforms, channels, and releases saved successfully to backend storage!',
-      });
-    }
+    // 2. Sync to Blob Storage (Dual local disk + Vercel Blob)
+    const unifiedRes = await blobService.uploadAppData('app/genmusic-data.json', {
+      timestamp,
+      version: '2.5',
+      data: activeAppConfig,
+    });
 
-    try {
-      // Upload unified backend configuration package to Blob
-      const unifiedRes = await blobService.uploadAppData('app/genmusic-data.json', {
-        timestamp,
-        version: '2.5',
-        data: activeAppConfig,
-      });
+    const appVersionRes = await blobService.uploadAppData('app-version.json', publicAppVersion);
+    const versionManifestRes = await blobService.uploadAppData('version.json', activeVersionManifest);
 
-      // Upload latest app-version.json & version.json for external clients to Blob
-      const appVersionRes = await blobService.uploadAppData('app-version.json', publicAppVersion);
-      const versionManifestRes = await blobService.uploadAppData('version.json', activeVersionManifest);
-
-      if (!unifiedRes.success) {
-        return res.json({
-          success: true,
-          savedLocally: true,
-          blobConfigured: true,
-          blobError: unifiedRes.error,
-          data: activeAppConfig,
-          message: `Saved locally on backend disk. Vercel Blob sync status: ${unifiedRes.error}`,
-        });
-      }
-
-      return res.json({
-        success: true,
-        savedLocally: true,
-        blobConfigured: true,
-        data: activeAppConfig,
-        message: 'All admin changes, platforms, channels, updates, and releases saved successfully to Backend & Vercel Blob Storage!',
-        blobs: {
-          backendData: unifiedRes.blob?.url,
-          appVersion: appVersionRes.blob?.url,
-          versionManifest: versionManifestRes.blob?.url,
-        },
-      });
-    } catch (blobUploadErr: any) {
-      return res.json({
-        success: true,
-        savedLocally: true,
-        blobConfigured: true,
-        blobError: blobUploadErr?.message,
-        data: activeAppConfig,
-        message: `Saved locally on backend. Note: ${blobUploadErr?.message || 'Blob sync notice.'}`,
-      });
-    }
+    return res.json({
+      success: true,
+      savedLocally: true,
+      blobProvider: unifiedRes.provider || 'local',
+      data: activeAppConfig,
+      message: unifiedRes.message || 'All changes saved to backend storage and blob storage!',
+      blobs: {
+        backendData: unifiedRes.blob?.url,
+        appVersion: appVersionRes.blob?.url,
+        versionManifest: versionManifestRes.blob?.url,
+      },
+    });
   } catch (error: any) {
     return res.status(200).json({
       success: false,
@@ -881,17 +905,15 @@ app.get(['/api/admin/data', '/api/app-data'], (req, res) => {
   });
 });
 
-// 5. Load synced app store data from Vercel Blob (with disk fallback)
+// 6. Load synced app store data from Blob or disk fallback
 app.get('/api/blob/load-app', async (req, res) => {
   try {
-    if (blobService.isReady()) {
-      const result = await blobService.getAppData('app/genmusic-data.json');
-      if (result.success && (result.data || result.rawText)) {
-        const payload = result.data || JSON.parse(result.rawText);
-        const resolvedData = payload?.data || payload;
-        activeAppConfig = { ...activeAppConfig, ...resolvedData };
-        return res.json({ success: true, payload: resolvedData, source: 'vercel-blob' });
-      }
+    const result = await blobService.getAppData('app/genmusic-data.json');
+    if (result.success && (result.data || result.rawText)) {
+      const payload = result.data || JSON.parse(result.rawText!);
+      const resolvedData = payload?.data || payload;
+      activeAppConfig = { ...activeAppConfig, ...resolvedData };
+      return res.json({ success: true, payload: resolvedData, source: 'blob-storage' });
     }
 
     // Fallback to local server disk storage
@@ -902,7 +924,7 @@ app.get('/api/blob/load-app', async (req, res) => {
         activeAppConfig = { ...activeAppConfig, ...diskData };
         return res.json({ success: true, payload: diskData, source: 'local-disk' });
       } catch (parseErr) {
-        console.warn('Failed parsing local genmusic-data.json:', parseErr);
+        console.warn('Notice: reading local genmusic-data.json:', parseErr);
       }
     }
 
@@ -917,27 +939,29 @@ app.get('/api/blob/load-app', async (req, res) => {
   }
 });
 
-// 6. List blobs in store
+// 7. Universal Get Blob
+app.get('/api/blob/get', async (req, res) => {
+  try {
+    const target = (req.query.pathname || req.query.url) as string;
+    if (!target) {
+      return res.status(400).json({ success: false, error: 'pathname or url parameter required' });
+    }
+    const result = await blobService.get(target);
+    return res.json(result);
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message });
+  }
+});
+
+// 8. Universal List Blobs (Local + Vercel)
 app.get('/api/blob/list', async (req, res) => {
   try {
-    if (!blobService.isReady()) {
-      return res.json({
-        success: false,
-        error: 'BLOB_READ_WRITE_TOKEN is not configured.',
-        blobs: [],
-      });
-    }
-
     const prefix = typeof req.query.prefix === 'string' ? req.query.prefix : undefined;
-    const result = await blobService.listFiles({ prefix });
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+    const provider = req.query.provider as any;
 
-    return res.json({
-      success: result.success,
-      blobs: result.blobs || [],
-      hasMore: result.hasMore,
-      cursor: result.cursor,
-      error: result.error,
-    });
+    const result = await blobService.list({ prefix, limit, provider });
+    return res.json(result);
   } catch (error: any) {
     return res.json({
       success: false,
@@ -947,158 +971,44 @@ app.get('/api/blob/list', async (req, res) => {
   }
 });
 
-// 7. Delete blob
+// 9. Universal Delete Blob
 app.delete('/api/blob/delete', async (req, res) => {
   try {
-    if (!blobService.isReady()) {
-      return res.status(400).json({ success: false, error: 'BLOB_READ_WRITE_TOKEN is not configured.' });
+    const target = req.body.url || req.body.pathname;
+    if (!target) {
+      return res.status(400).json({ success: false, error: 'url or pathname is required in body' });
     }
 
-    const { url } = req.body;
-    if (!url) {
-      return res.status(400).json({ success: false, error: 'Blob URL is required' });
-    }
-
-    const result = await blobService.deleteFile(url);
-    if (!result.success) {
-      return res.status(500).json({ success: false, error: result.error });
-    }
-    return res.json({ success: true, message: 'Blob deleted successfully' });
+    const result = await blobService.del(target);
+    return res.json(result);
   } catch (error: any) {
-    console.error('Error deleting blob:', error);
-    return res.status(500).json({ success: false, error: error?.message || 'Failed to delete blob' });
+    return res.status(500).json({ success: false, error: error?.message || 'Failed deleting blob' });
   }
 });
 
-// 8. Comprehensive Blob Diagnostics Test
+// 10. Comprehensive Unified Blob Diagnostics Test
 app.get('/api/blob/diagnostic', async (req, res) => {
-  const config = blobService.getConfig();
-  const startTime = Date.now();
-  const logs: Array<{ timestamp: string; step: string; status: 'info' | 'success' | 'warn' | 'error'; detail: string }> = [];
-
-  const addLog = (step: string, status: 'info' | 'success' | 'warn' | 'error', detail: string) => {
-    logs.push({
-      timestamp: new Date().toISOString(),
-      step,
-      status,
-      detail,
-    });
-  };
-
-  addLog('1. Check Token Configuration', config.isConfigured ? 'success' : 'error', 
-    config.isConfigured 
-      ? `Token is configured (Length: ${config.token?.length} chars, Prefix: ${config.token?.substring(0, 15)}..., Store ID: ${config.storeId || 'Auto-detected from token'})`
-      : 'BLOB_READ_WRITE_TOKEN is missing or empty in environment.'
-  );
-
-  if (!config.isConfigured || !config.token) {
+  try {
+    const result = await blobService.runDiagnostic();
+    return res.json(result);
+  } catch (err: any) {
     return res.json({
       success: false,
-      summary: 'Vercel Blob token is missing.',
-      storeConfig: { isConfigured: false, storeId: undefined },
-      logs,
-      error: 'Token missing',
-      durationMs: Date.now() - startTime,
+      summary: err?.message || 'Diagnostic failed',
+      activeProvider: 'local',
+      storeConfig: { isConfigured: false },
+      testResults: {
+        localDiskReady: false,
+        publicAccessUpload: false,
+        privateAccessUpload: false,
+        uploadedUrl: null,
+        listQueryWorking: false,
+        blobsCountInStore: 0,
+      },
+      logs: [],
+      durationMs: 0,
     });
   }
-
-  let publicTestSuccess = false;
-  let privateTestSuccess = false;
-  let publicUrl = '';
-  let privateUrl = '';
-  let detectedAccessMode: 'public' | 'private' | 'unknown' = 'unknown';
-  let listCount = 0;
-
-  // Step 2: Test Direct Upload with Public Access
-  const testFileName = `diagnostic/diag-test-${Date.now()}.txt`;
-  const testContent = `GEN MUSIC Diagnostic Test at ${new Date().toISOString()}\nStore: ${config.storeId || 'default'}\nStatus: OK`;
-
-  addLog('2. Test Upload with "public" access', 'info', `Attempting put to "${testFileName}" with access="public"...`);
-  try {
-    const { put } = await import('@vercel/blob');
-    const pubResult = await put(testFileName, testContent, {
-      access: 'public',
-      token: config.token,
-      contentType: 'text/plain; charset=utf-8',
-      addRandomSuffix: false,
-    });
-    publicTestSuccess = true;
-    publicUrl = pubResult.url;
-    detectedAccessMode = 'public';
-    addLog('2. Test Upload with "public" access', 'success', `SUCCESS: Uploaded to ${pubResult.url} (downloadUrl: ${pubResult.downloadUrl})`);
-  } catch (pubErr: any) {
-    const errMsg = pubErr?.message || String(pubErr);
-    addLog('2. Test Upload with "public" access', 'warn', `Failed with public access: ${errMsg}`);
-    
-    if (errMsg.includes('Cannot use public access on a private store') || errMsg.includes('private store')) {
-      addLog('2. Store Mode Analysis', 'info', 'Detected: Your Vercel Blob Store is created in PRIVATE access mode.');
-      detectedAccessMode = 'private';
-    }
-  }
-
-  // Step 3: Test Upload with Private Access if public failed
-  if (!publicTestSuccess) {
-    addLog('3. Test Upload with "private" access', 'info', `Attempting put to "${testFileName}" with access="private"...`);
-    try {
-      const { put } = await import('@vercel/blob');
-      const privResult = await put(testFileName, testContent, {
-        access: 'private',
-        token: config.token,
-        contentType: 'text/plain; charset=utf-8',
-        addRandomSuffix: false,
-      });
-      privateTestSuccess = true;
-      privateUrl = privResult.url;
-      detectedAccessMode = 'private';
-      addLog('3. Test Upload with "private" access', 'success', `SUCCESS: Uploaded with private access to ${privResult.url}`);
-    } catch (privErr: any) {
-      const errMsg = privErr?.message || String(privErr);
-      addLog('3. Test Upload with "private" access', 'error', `Failed with private access: ${errMsg}`);
-    }
-  }
-
-  // Step 4: Test List Blobs
-  addLog('4. Query Blob Store Inventory (list())', 'info', 'Calling list() on store to verify read access...');
-  try {
-    const { list } = await import('@vercel/blob');
-    const listResult = await list({ token: config.token, limit: 10 });
-    listCount = listResult.blobs.length;
-    addLog('4. Query Blob Store Inventory (list())', 'success', `Found ${listCount} active blob items in store. (HasMore: ${listResult.hasMore})`);
-  } catch (listErr: any) {
-    addLog('4. Query Blob Store Inventory (list())', 'warn', `List query failed: ${listErr?.message || String(listErr)}`);
-  }
-
-  const overallSuccess = publicTestSuccess || privateTestSuccess;
-
-  addLog(
-    '5. Final Diagnostic Evaluation',
-    overallSuccess ? 'success' : 'error',
-    overallSuccess
-      ? `Vercel Blob is fully operational! Store access mode: "${detectedAccessMode.toUpperCase()}". Binary uploads, manifests, and app packages will work smoothly.`
-      : 'All upload attempts failed. Please verify your token permissions or regenerate the token in Vercel Dashboard.'
-  );
-
-  return res.json({
-    success: overallSuccess,
-    summary: overallSuccess 
-      ? `Vercel Blob Storage is connected and working in ${detectedAccessMode.toUpperCase()} mode.`
-      : 'Vercel Blob upload test failed.',
-    storeConfig: {
-      isConfigured: true,
-      storeId: config.storeId || 'auto',
-      tokenMasked: `${config.token.substring(0, 18)}...${config.token.substring(config.token.length - 6)}`,
-      detectedAccessMode,
-    },
-    testResults: {
-      publicAccessUpload: publicTestSuccess,
-      privateAccessUpload: privateTestSuccess,
-      uploadedUrl: publicUrl || privateUrl || null,
-      listQueryWorking: listCount >= 0,
-      blobsCountInStore: listCount,
-    },
-    logs,
-    durationMs: Date.now() - startTime,
-  });
 });
 
 // 9. Blob Chunk Size & 413 Payload Diagnostic Tool
@@ -1153,6 +1063,7 @@ app.post('/api/blob/diagnostic/chunks', upload.single('probe'), async (req, res)
         access: 'public',
         token: config.token,
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
 
       const dur = Date.now() - chunkStart;
@@ -1209,31 +1120,28 @@ async function startServer() {
     console.warn('Could not hydrate activeAppConfig from disk on startup:', diskErr);
   }
 
-  // 2. Hydrate state from Vercel Blob if available
-  if (blobService.isReady()) {
-    try {
-      console.log('Checking for latest app data from Vercel Blob...');
-      const appDataResult = await blobService.getAppData('app/genmusic-data.json');
-      if (appDataResult.success && (appDataResult.data || appDataResult.rawText)) {
-        const payload = appDataResult.data || JSON.parse(appDataResult.rawText);
-        const resolvedData = payload?.data || payload;
-        activeAppConfig = { ...activeAppConfig, ...resolvedData };
-        if (resolvedData.manifest) {
-          activeVersionManifest = { ...activeVersionManifest, ...resolvedData.manifest };
-        }
-        console.log('Successfully hydrated activeAppConfig from Vercel Blob.');
-      } else {
-        const result = await blobService.getAppData('version.json');
-        if (result.success && result.data) {
-          activeVersionManifest = { ...activeVersionManifest, ...result.data };
-          console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
-        } else if (result.rawText) {
-          activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
-        }
+  // 2. Hydrate state from Blob Storage (Local Provider or Vercel Mirror)
+  try {
+    const appDataResult = await blobService.getAppData('app/genmusic-data.json');
+    if (appDataResult.success && (appDataResult.data || appDataResult.rawText)) {
+      const payload = appDataResult.data || JSON.parse(appDataResult.rawText!);
+      const resolvedData = payload?.data || payload;
+      activeAppConfig = { ...activeAppConfig, ...resolvedData };
+      if (resolvedData.manifest) {
+        activeVersionManifest = { ...activeVersionManifest, ...resolvedData.manifest };
       }
-    } catch (err) {
-      console.warn('Could not hydrate data from Blob Storage on startup:', err);
+      console.log('Successfully hydrated activeAppConfig from Blob Storage.');
+    } else {
+      const result = await blobService.getAppData('version.json');
+      if (result.success && result.data) {
+        activeVersionManifest = { ...activeVersionManifest, ...result.data };
+        console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
+      } else if (result.rawText) {
+        activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
+      }
     }
+  } catch (err) {
+    console.warn('Notice: Could not hydrate data from Blob Storage on startup:', err);
   }
 
   if (process.env.NODE_ENV !== 'production') {

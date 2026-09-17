@@ -82,21 +82,9 @@
       });
     </script>
 
-    <!-- Monetization Network (Isolated sandboxed frame) -->
-    <script>
-      window.addEventListener('load', function() {
-        try {
-          var frame = document.createElement('iframe');
-          frame.style.display = 'none';
-          frame.style.width = '0px';
-          frame.style.height = '0px';
-          frame.style.border = 'none';
-          frame.title = 'Partner Network';
-          frame.srcdoc = '<!DOCTYPE html><html><head><script>window.onerror=function(){return true;};<\/script><\/head><body><script src="https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js"><\/script><script src="https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js"><\/script><\/body><\/html>';
-          document.body.appendChild(frame);
-        } catch (e) {}
-      });
-    </script>
+    <!-- Monetization Network (Social Bar & In-Page Push Notifications) -->
+    <script type="text/javascript" src="https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js" async></script>
+    <script type="text/javascript" src="https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js" async></script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white min-h-screen overflow-x-hidden font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root"></div>

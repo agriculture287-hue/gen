@@ -1,16 +1,18 @@
 import React from 'react';
-import { Sparkles, Calendar, Tag, CheckCircle, Bell, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Calendar, Tag, CheckCircle, Bell, ArrowRight, ShieldCheck, Link, Plus } from 'lucide-react';
 import { ANNOUNCEMENT_UPDATES } from '../data/landingData';
 import { UpdateItem } from '../types';
 
 interface UpdatesSectionProps {
   onDownloadClick: () => void;
   updates?: UpdateItem[];
+  onOpenAddUpdateByLink?: () => void;
 }
 
 export const UpdatesSection: React.FC<UpdatesSectionProps> = ({ 
   onDownloadClick,
-  updates = ANNOUNCEMENT_UPDATES
+  updates = ANNOUNCEMENT_UPDATES,
+  onOpenAddUpdateByLink
 }) => {
   const displayUpdates = updates && updates.length > 0 ? updates : ANNOUNCEMENT_UPDATES;
   return (
@@ -21,9 +23,11 @@ export const UpdatesSection: React.FC<UpdatesSectionProps> = ({
     >
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
-          <Bell className="w-3.5 h-3.5" />
-          <span>Release Log</span>
+        <div className="flex items-center justify-center gap-2">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
+            <Bell className="w-3.5 h-3.5" />
+            <span>Release Log</span>
+          </div>
         </div>
 
         <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight font-heading">
@@ -36,6 +40,20 @@ export const UpdatesSection: React.FC<UpdatesSectionProps> = ({
         <p className="text-base sm:text-lg text-slate-600">
           Regular builds, audio engine improvements, and community-driven features.
         </p>
+
+        {/* Quick Action: Add App Update by Link */}
+        {onOpenAddUpdateByLink && (
+          <div className="pt-3">
+            <button
+              onClick={onOpenAddUpdateByLink}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition shadow-sm hover:shadow cursor-pointer"
+            >
+              <Link className="w-3.5 h-3.5 text-blue-400" />
+              <span>Add App Update by Link</span>
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Updates Timeline Cards */}

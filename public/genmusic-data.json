@@ -113,7 +113,7 @@
       "id": "ch-1",
       "title": "GEN MUSIC Official Channel",
       "description": "The primary broadcast channel for release notes, stable APK updates, and platform announcements.",
-      "link": "https://t.me/genmusic_official",
+      "link": "https://t.me/GenMusicApp",
       "badge": "Main Updates",
       "memberCount": "15,400+ members"
     },
@@ -121,7 +121,7 @@
       "id": "ch-2",
       "title": "APK Downloads & Mirrors",
       "description": "Fast direct APK download mirrors, nightly beta builds, and instant installation guides.",
-      "link": "https://t.me/genmusic_apk",
+      "link": "https://t.me/GenMusicApp",
       "badge": "Direct APK",
       "memberCount": "8,900+ members"
     },
@@ -129,12 +129,32 @@
       "id": "ch-3",
       "title": "VIP Community & Discussion",
       "description": "Community chat for music requests, feature suggestions, bug reports, and audio lovers.",
-      "link": "https://t.me/genmusic_community",
+      "link": "https://t.me/GenMusicApp",
       "badge": "Community Chat",
       "memberCount": "6,200+ members"
     }
   ],
   "updates": [
+    {
+      "id": "up-1789631112110",
+      "version": "v2.5.1",
+      "releaseDate": "September 2026",
+      "tag": "New Release",
+      "highlights": [
+        "Audio performance improvement",
+        "Bug fixes"
+      ]
+    },
+    {
+      "id": "up-1789631110227",
+      "version": "v2.5.1",
+      "releaseDate": "September 2026",
+      "tag": "New Release",
+      "highlights": [
+        "Audio performance improvement",
+        "Bug fixes"
+      ]
+    },
     {
       "id": "up-1",
       "version": "v2.5.0",
@@ -216,6 +236,6 @@
     "heroBadge": "New Release: v2.5.0 Available Now",
     "announcement": "Direct APK download links, beta builds & 24/7 technical help."
   },
-  "lastUpdated": "2026-09-17T07:09:57.172Z",
-  "updatedBy": "Admin (Varanasi)"
+  "lastUpdated": "2026-09-17T08:24:08.684Z",
+  "updatedBy": "Admin Test"
 }

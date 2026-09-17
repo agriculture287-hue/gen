@@ -24,7 +24,8 @@ import {
   Activity,
   LogOut,
   Save,
-  Check
+  Check,
+  Info
 } from 'lucide-react';
 import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem } from '../types';
 import { ADMIN_CREDENTIALS, verifyAdminCredentials } from '../data/adminStore';
@@ -59,7 +60,11 @@ export const AdminPage: React.FC = () => {
   const [blobConfigured, setBlobConfigured] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [saveStatus, setSaveStatus] = useState<{ success: boolean; message: string; isWarning?: boolean } | null>(null);
+
+  // Blob Diagnostic State
+  const [diagRunning, setDiagRunning] = useState(false);
+  const [diagResult, setDiagResult] = useState<any>(null);
 
   // File Upload State
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -139,13 +144,15 @@ export const AdminPage: React.FC = () => {
 
       const result = await res.json();
       if (result.success) {
+        const hasWarning = Boolean(result.blobSyncSuccess === false || result.blobError);
         setSaveStatus({
           success: true,
-          message: result.message || 'Saved to backend storage & Vercel Blob successfully!'
+          isWarning: hasWarning,
+          message: result.message || 'Saved to backend storage successfully!'
         });
         setLastUpdated(new Date().toLocaleTimeString());
         if (result.blobConfigured !== undefined) {
-          setBlobConfigured(result.blobConfigured);
+          setBlobConfigured(result.blobConfigured && result.blobSyncSuccess !== false);
         }
       } else {
         setSaveStatus({
@@ -160,7 +167,27 @@ export const AdminPage: React.FC = () => {
       });
     } finally {
       setIsSaving(false);
-      setTimeout(() => setSaveStatus(null), 5000);
+      setTimeout(() => setSaveStatus(null), 8000);
+    }
+  };
+
+  // Run Vercel Blob Diagnostic Test
+  const handleRunDiagnostic = async () => {
+    setDiagRunning(true);
+    setDiagResult(null);
+    try {
+      const res = await fetch('/api/blob/diagnostic');
+      const data = await res.json();
+      setDiagResult(data);
+      if (data.testResults?.publicAccessUpload || data.testResults?.privateAccessUpload) {
+        setBlobConfigured(true);
+      } else {
+        setBlobConfigured(false);
+      }
+    } catch (e: any) {
+      setDiagResult({ success: false, summary: e?.message || 'Failed connecting to diagnostic endpoint' });
+    } finally {
+      setDiagRunning(false);
     }
   };
 
@@ -410,11 +437,19 @@ export const AdminPage: React.FC = () => {
       {saveStatus && (
         <div className="px-4 sm:px-8 py-2 bg-slate-900/50">
           <div className={`p-3 rounded-xl flex items-center gap-2 text-xs font-medium border ${
-            saveStatus.success 
-              ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/60' 
-              : 'bg-rose-950/40 text-rose-300 border-rose-800/60'
+            !saveStatus.success 
+              ? 'bg-rose-950/40 text-rose-300 border-rose-800/60' 
+              : saveStatus.isWarning
+                ? 'bg-amber-950/40 text-amber-300 border-amber-800/60'
+                : 'bg-emerald-950/40 text-emerald-300 border-emerald-800/60'
           }`}>
-            {saveStatus.success ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />}
+            {!saveStatus.success ? (
+              <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+            ) : saveStatus.isWarning ? (
+              <Info className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            )}
             <span>{saveStatus.message}</span>
           </div>
         </div>
@@ -437,10 +472,10 @@ export const AdminPage: React.FC = () => {
             <div>
               <p className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Vercel Blob Status</p>
               <p className="text-sm font-bold text-white mt-0.5">
-                {blobConfigured ? 'Connected & Ready' : 'Configured on Server'}
+                {blobConfigured ? 'Connected & Live' : 'Local Storage Mode'}
               </p>
             </div>
-            <Cloud className="w-5 h-5 text-blue-400" />
+            <Cloud className={`w-5 h-5 ${blobConfigured ? 'text-blue-400' : 'text-slate-500'}`} />
           </div>
 
           <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 flex items-center justify-between">
@@ -1009,45 +1044,138 @@ export const AdminPage: React.FC = () => {
         {/* TAB 6: BLOB PERSISTENCE INSPECTOR */}
         {activeTab === 'blob' && (
           <div className="space-y-6">
-            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-base font-bold text-white">Live Backend Payload Preview</h2>
-                  <p className="text-xs text-slate-400">
-                    This unified JSON configuration package is synced across server memory, disk (public/genmusic-data.json), and Vercel Blob (app/genmusic-data.json).
-                  </p>
+            {/* Storage Architecture Overview Card */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5" />
+                  <h3 className="text-sm font-bold text-white">Tier 1: Local Backend Storage (Disk)</h3>
                 </div>
-                <button
-                  onClick={handleSaveAll}
-                  disabled={isSaving}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/30"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
-                  <span>Sync to Blob Now</span>
-                </button>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Active & Primary. Every time you click &quot;Save Changes&quot;, all platforms, channels, updates, and versions are written directly to the server disk (<code className="text-emerald-400 font-mono">public/genmusic-data.json</code>, <code className="text-emerald-400 font-mono">public/app-version.json</code>).
+                </p>
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400">
+                  Status: <span className="text-emerald-400 font-bold">100% Operational</span>. All user downloads and update checks work immediately from this server.
+                </div>
               </div>
 
-              <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-96">
-                {JSON.stringify(
-                  {
-                    timestamp: lastUpdated || new Date().toISOString(),
-                    platformsCount: platforms.length,
-                    channelsCount: channels.length,
-                    updatesCount: updates.length,
-                    manifest,
-                    platforms: platforms.map(p => ({
-                      id: p.id,
-                      name: p.name,
-                      version: p.version,
-                      downloadUrl: p.downloadUrl,
-                      fileSize: p.fileSize
-                    })),
-                    telegramConfig
-                  },
-                  null,
-                  2
-                )}
-              </pre>
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                <div className="flex items-center gap-2 text-blue-400">
+                  <Cloud className="w-5 h-5" />
+                  <h3 className="text-sm font-bold text-white">Tier 2: Vercel Blob Cloud Mirror (CDN)</h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Optional global CDN sync. Mirrors installer binaries and JSON payloads worldwide via Vercel&apos;s edge network. Requires a valid read/write token from your Vercel team dashboard.
+                </p>
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-400">
+                  Status: <span className={blobConfigured ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                    {blobConfigured ? 'Connected & Verified' : 'Access Denied / Unconfigured'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Diagnostic & Configuration Guidance */}
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-bold text-white flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-400" />
+                    <span>Vercel Blob Connection & Diagnostic Tester</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Test whether your <code className="text-blue-300 font-mono">BLOB_READ_WRITE_TOKEN</code> has valid permissions to upload and read from Vercel Blob.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRunDiagnostic}
+                    disabled={diagRunning}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-slate-700"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${diagRunning ? 'animate-spin' : ''}`} />
+                    <span>{diagRunning ? 'Testing Connection...' : 'Run Token Diagnostic'}</span>
+                  </button>
+                  <button
+                    onClick={handleSaveAll}
+                    disabled={isSaving}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-600/30"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
+                    <span>Save & Sync All</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Diagnostic Results Display */}
+              {diagResult && (
+                <div className={`p-4 rounded-2xl border text-xs space-y-3 ${
+                  diagResult.success 
+                    ? 'bg-emerald-950/20 border-emerald-800/40 text-emerald-300' 
+                    : 'bg-amber-950/20 border-amber-800/40 text-amber-200'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-bold">
+                      {diagResult.success ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-amber-400" />}
+                      <span>{diagResult.summary}</span>
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400">{diagResult.durationMs}ms</span>
+                  </div>
+
+                  {diagResult.logs && (
+                    <div className="space-y-1 font-mono text-[11px] bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+                      {diagResult.logs.map((log: any, i: number) => (
+                        <div key={i} className={`flex items-start gap-2 ${
+                          log.status === 'error' ? 'text-rose-400' :
+                          log.status === 'warn' ? 'text-amber-400' :
+                          log.status === 'success' ? 'text-emerald-400' : 'text-slate-400'
+                        }`}>
+                          <span className="font-bold flex-shrink-0">[{log.step}]</span>
+                          <span>{log.detail}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {!diagResult.success && (
+                    <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-[11px] space-y-1.5">
+                      <p className="font-bold text-white">How to fix Vercel Blob Access Denied:</p>
+                      <ol className="list-decimal list-inside space-y-1 text-slate-400">
+                        <li>Go to <strong className="text-white">Vercel Dashboard</strong> &rarr; <strong className="text-white">Storage</strong> &rarr; your Blob Store.</li>
+                        <li>Under <strong className="text-white">Quickstart / Settings</strong>, generate or copy a fresh <code className="text-blue-300">BLOB_READ_WRITE_TOKEN</code>.</li>
+                        <li>Update the token in your AI Studio project <strong className="text-white">Settings</strong> (under Environment Secrets).</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* JSON Inspector */}
+              <div className="pt-2">
+                <h3 className="text-xs font-bold text-slate-300 mb-2">Live Backend Payload Preview</h3>
+                <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-[11px] overflow-x-auto max-h-96">
+                  {JSON.stringify(
+                    {
+                      timestamp: lastUpdated || new Date().toISOString(),
+                      platformsCount: platforms.length,
+                      channelsCount: channels.length,
+                      updatesCount: updates.length,
+                      manifest,
+                      platforms: platforms.map(p => ({
+                        id: p.id,
+                        name: p.name,
+                        version: p.version,
+                        downloadUrl: p.downloadUrl,
+                        fileSize: p.fileSize
+                      })),
+                      telegramConfig
+                    },
+                    null,
+                    2
+                  )}
+                </pre>
+              </div>
             </div>
           </div>
         )}
