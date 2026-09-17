@@ -1,13 +1,31 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { ExternalLink, Sparkles } from 'lucide-react';
 
 export const DIRECT_SPONSOR_LINK = 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe';
 
 /**
- * Leaderboard Ad Unit (728x90)
+ * Custom hook to trigger auto-refresh every 60 seconds (1 minute)
+ */
+function useAutoRefreshKey(intervalMs: number = 60000) {
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRefreshKey((prev) => prev + 1);
+    }, intervalMs);
+    return () => clearInterval(timer);
+  }, [intervalMs]);
+
+  return refreshKey;
+}
+
+/**
+ * Leaderboard Ad Unit (728x90) - Auto-refreshes every 1 min
  * key: 4110737d8166f053b733fff6f7e13d06
  */
 export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const refreshKey = useAutoRefreshKey(60000);
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -34,11 +52,13 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
 
   return (
     <div className={`w-full flex flex-col items-center justify-center my-6 overflow-hidden ${className}`}>
-      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1.5 select-none">
-        Advertisement
+      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400 mb-1.5 select-none flex items-center gap-1">
+        <span>Advertisement</span>
+        <span className="text-[9px] text-slate-400 font-normal opacity-75">(Auto-refreshes 1m)</span>
       </span>
       <div className="w-full max-w-[728px] h-[90px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
         <iframe
+          key={refreshKey}
           title="Sponsored Ad 728x90"
           srcDoc={iframeHtml}
           width="728"
@@ -52,10 +72,12 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
 };
 
 /**
- * Compact Banner Ad Unit (468x60)
+ * Compact Banner Ad Unit (468x60) - Auto-refreshes every 1 min
  * key: 37b0c7570a229c52933ce00a9e5ef8b9
  */
 export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const refreshKey = useAutoRefreshKey(60000);
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -87,6 +109,7 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
       </span>
       <div className="w-full max-w-[468px] h-[60px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
         <iframe
+          key={refreshKey}
           title="Sponsored Ad 468x60"
           srcDoc={iframeHtml}
           width="468"
@@ -100,32 +123,41 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
 };
 
 /**
- * Native Ad Container Unit
+ * Native Ad Container Unit - Auto-refreshes every 1 min
  * ID: container-3617a4c3f56c896f818969f4fb731195
  * Script: https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js
  */
 export const AdNativeContainer: React.FC<{ className?: string }> = ({ className = '' }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const refreshKey = useAutoRefreshKey(60000);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Dynamically mount script if not already initialized
+    // Dynamically mount or re-trigger script every 60s
     const scriptId = 'script-ad-native-3617a4c3f56c896f818969f4fb731195';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.async = true;
-      script.setAttribute('data-cfasync', 'false');
-      script.src = 'https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js';
-      document.body.appendChild(script);
+    const existing = document.getElementById(scriptId);
+    if (existing) {
+      existing.remove();
     }
-  }, []);
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.async = true;
+    script.setAttribute('data-cfasync', 'false');
+    script.src = `https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js?ts=${Date.now()}`;
+    document.body.appendChild(script);
+  }, [refreshKey]);
 
   return (
     <div className={`w-full flex flex-col items-center justify-center my-6 ${className}`}>
       <div className="w-full max-w-4xl px-4">
-        <div id="container-3617a4c3f56c896f818969f4fb731195" ref={containerRef} className="w-full min-h-[50px]" />
+        <div 
+          key={refreshKey} 
+          id="container-3617a4c3f56c896f818969f4fb731195" 
+          ref={containerRef} 
+          className="w-full min-h-[50px]" 
+        />
       </div>
     </div>
   );
@@ -153,10 +185,12 @@ export const AdDirectSponsorLink: React.FC<{ label?: string; className?: string 
 };
 
 /**
- * Mobile Banner Ad Unit (320x50)
+ * Mobile Banner Ad Unit (320x50) - Auto-refreshes every 1 min
  * key: aa73750d369623688925d762a277e45f
  */
 export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const refreshKey = useAutoRefreshKey(60000);
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -188,6 +222,7 @@ export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '
       </span>
       <div className="w-[320px] h-[50px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
         <iframe
+          key={refreshKey}
           title="Sponsored Ad 320x50"
           srcDoc={iframeHtml}
           width="320"
@@ -201,10 +236,12 @@ export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '
 };
 
 /**
- * Medium Rectangle Ad Unit (300x250)
+ * Medium Rectangle Ad Unit (300x250) - Auto-refreshes every 1 min
  * key: 36019750f2238adf794264fc6b435242
  */
 export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const refreshKey = useAutoRefreshKey(60000);
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -236,6 +273,7 @@ export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = 
       </span>
       <div className="w-[300px] h-[250px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
         <iframe
+          key={refreshKey}
           title="Sponsored Ad 300x250"
           srcDoc={iframeHtml}
           width="300"
@@ -249,10 +287,12 @@ export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = 
 };
 
 /**
- * Vertical Banner Ad Unit (160x300)
+ * Vertical Banner Ad Unit (160x300) - Auto-refreshes every 1 min
  * key: ac7ea038a8b23ddb95125cadfe3d8acd
  */
 export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const refreshKey = useAutoRefreshKey(60000);
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -284,6 +324,7 @@ export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = 
       </span>
       <div className="w-[160px] h-[300px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
         <iframe
+          key={refreshKey}
           title="Sponsored Ad 160x300"
           srcDoc={iframeHtml}
           width="160"
@@ -297,10 +338,12 @@ export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = 
 };
 
 /**
- * Skyscraper Ad Unit (160x600)
+ * Skyscraper Ad Unit (160x600) - Auto-refreshes every 1 min
  * key: 9a699eb9dc590e52d49a7e067d74b972
  */
 export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const refreshKey = useAutoRefreshKey(60000);
+
   const iframeHtml = `
     <!DOCTYPE html>
     <html>
@@ -332,6 +375,7 @@ export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = 
       </span>
       <div className="w-[160px] h-[600px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
         <iframe
+          key={refreshKey}
           title="Sponsored Skyscraper Ad 160x600"
           srcDoc={iframeHtml}
           width="160"

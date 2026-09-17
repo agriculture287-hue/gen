@@ -280,6 +280,7 @@ export const App: React.FC = () => {
             manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
             onOpenBetaModal={() => setBetaModalOpen(true)}
             telegramContactUrl={telegramConfig.contactUrl}
+            isAdminLoggedIn={isAdminLoggedIn}
           />
         </div>
 

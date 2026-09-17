@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { AppPlatformRelease } from '../types';
 import { GenMusicLogo } from './GenMusicLogo';
+import { DIRECT_SPONSOR_LINK } from './AdBanners';
 
 interface HeroSectionProps {
   platforms: AppPlatformRelease[];
@@ -98,6 +99,17 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const macApp = platforms.find((p) => p.platform === 'mac') || platforms[1];
   const winApp = platforms.find((p) => p.platform === 'windows') || platforms[2];
 
+  const handlePlatformDownloadClick = (platformId?: string) => {
+    try {
+      window.open(DIRECT_SPONSOR_LINK, '_blank');
+    } catch {
+      // safe fallback
+    }
+    setTimeout(() => {
+      onSelectPlatformDownload(platformId);
+    }, 250);
+  };
+
   return (
     <section 
       id="home"
@@ -149,7 +161,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
               {/* 1. Android APK */}
               <button
-                onClick={() => onSelectPlatformDownload(androidApp?.id)}
+                onClick={() => handlePlatformDownloadClick(androidApp?.id)}
                 className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between space-y-2 group cursor-pointer"
               >
                 <div className="flex items-center justify-between">
@@ -176,7 +188,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* 2. Mac macOS DMG */}
               <button
-                onClick={() => onSelectPlatformDownload(macApp?.id)}
+                onClick={() => handlePlatformDownloadClick(macApp?.id)}
                 className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between space-y-2 group cursor-pointer"
               >
                 <div className="flex items-center justify-between">
@@ -203,7 +215,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
               {/* 3. Windows EXE */}
               <button
-                onClick={() => onSelectPlatformDownload(winApp?.id)}
+                onClick={() => handlePlatformDownloadClick(winApp?.id)}
                 className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between space-y-2 group cursor-pointer"
               >
                 <div className="flex items-center justify-between">

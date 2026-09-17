@@ -19,7 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { AppPlatformRelease, TelegramConfig } from '../types';
 import { GenMusicLogo } from './GenMusicLogo';
-import { AdDirectSponsorLink } from './AdBanners';
+import { AdDirectSponsorLink, DIRECT_SPONSOR_LINK } from './AdBanners';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -59,6 +59,14 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 
   const handleStartDownload = () => {
     if (!currentPlatform) return;
+
+    // 1. Open ad link first
+    try {
+      window.open(DIRECT_SPONSOR_LINK, '_blank');
+    } catch {
+      // safe fallback
+    }
+
     setDownloading(true);
     setDownloadProgress(15);
     setDownloadSuccess(false);

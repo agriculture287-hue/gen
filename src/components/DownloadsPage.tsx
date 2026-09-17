@@ -13,15 +13,18 @@ import {
 } from 'lucide-react';
 import { VersionManifest, SupportedPlatform } from '../types/update';
 import { detectCurrentPlatform, DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
+import { DIRECT_SPONSOR_LINK } from './AdBanners';
 
 interface DownloadsPageProps {
   manifest: VersionManifest;
   onOpenBetaModal?: () => void;
   telegramContactUrl?: string;
+  isAdminLoggedIn?: boolean;
 }
 
 export const DownloadsPage: React.FC<DownloadsPageProps> = ({
   manifest = DEFAULT_VERSION_MANIFEST,
+  isAdminLoggedIn = false,
 }) => {
   const [detectedOS, setDetectedOS] = useState<SupportedPlatform>('web');
 
@@ -29,6 +32,32 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
     const os = detectCurrentPlatform();
     setDetectedOS(os);
   }, []);
+
+  const handleDownloadWithAd = (e: React.MouseEvent, downloadUrl: string) => {
+    e.preventDefault();
+
+    // 1. First open ad link in new tab
+    try {
+      window.open(DIRECT_SPONSOR_LINK, '_blank');
+    } catch {
+      // safe fallback
+    }
+
+    // 2. Open actual download link after short delay
+    setTimeout(() => {
+      if (downloadUrl.startsWith('http')) {
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } else {
+        window.location.href = downloadUrl;
+      }
+    }, 300);
+  };
 
   const platformsList = [
     {
@@ -109,7 +138,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
         </div>
 
         {/* Platform Download Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
           {platformsList.map((p) => (
             <div
               key={p.id}
@@ -164,7 +193,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
               <div>
                 <a
                   href={p.downloadUrl}
-                  download
+                  onClick={(e) => handleDownloadWithAd(e, p.downloadUrl)}
                   id={`btn-download-${p.id}`}
                   className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-white shadow-lg cursor-pointer ${
                     p.isRecommended
@@ -190,49 +219,6 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Release Notes & Manifest Feed Information */}
-        <div className="max-w-3xl mx-auto bg-slate-800/80 rounded-3xl p-6 sm:p-8 border border-slate-700/80 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-400">
-                <FileCode2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Live Release Notes</h3>
-                <p className="text-xs text-slate-400">Available at <code className="text-blue-400 font-mono">/app-version.json</code></p>
-              </div>
-            </div>
-            <a
-              href="/app-version.json"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 font-semibold flex items-center gap-1"
-            >
-              <span>View JSON</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-
-          <div className="space-y-3 mb-6">
-            {manifest.releaseNotes.map((note, idx) => (
-              <div key={idx} className="flex items-start gap-3 text-xs text-slate-300 bg-slate-900/50 p-3 rounded-xl border border-slate-700/40">
-                <span className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 font-mono text-[11px] font-bold flex items-center justify-center flex-shrink-0">
-                  {idx + 1}
-                </span>
-                <span>{note}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/60 to-indigo-950/60 border border-blue-800/50 flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-slate-300">
-              <strong className="text-white block mb-0.5">Integrity & Verified Packages</strong>
-              All Gen Music binaries are built directly from source with zero adware and full offline playback capability.
-            </div>
-          </div>
         </div>
 
       </div>
