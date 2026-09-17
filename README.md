@@ -12,10 +12,6 @@ An AI-powered cross-platform music streaming and downloading ecosystem built wit
   - Integrated 60-second auto-refreshing ad banners (Leaderboard 728x90, Banner 468x60, Mobile 320x50, Rectangle 300x250, Vertical 160x300, Skyscraper 160x600, and Native containers).
   - High-revenue direct sponsor link integration on download actions.
 - **Interactive Downloads Hub**: Clear user guidelines, mirror download links, checksum verification, and "close ad to complete download" notifications.
-- **Admin Management Console (`/admin` or `/chutiya`)**:
-  - Manage app releases, platform binaries, version manifests, and "What's New" announcements.
-  - One-click cloud synchronization to Vercel Blob.
-  - Integrated Telegram community channel management.
 
 ---
 
@@ -73,7 +69,7 @@ An AI-powered cross-platform music streaming and downloading ecosystem built wit
 │   ├── App.tsx                 # Main application controller & router
 │   ├── components/             # React UI components
 │   │   ├── AdBanners.tsx       # Auto-refreshing 60s ad banners & sponsor link helper
-│   │   ├── AdminModal.tsx      # Admin management console (/admin)
+│   │   ├── AdminModal.tsx      # App release & version management console
 │   │   ├── DownloadAppSection.tsx # Primary download modal & platform cards
 │   │   ├── DownloadsPage.tsx   # Full downloads page hub
 │   │   ├── HeroSection.tsx     # Hero banner with scroll to download triggers
@@ -88,15 +84,6 @@ An AI-powered cross-platform music streaming and downloading ecosystem built wit
 ├── .gitignore                  # Git ignore specifications
 └── package.json                # Node.js dependencies & scripts
 ```
-
----
-
-## ☁️ Admin & Cloud Data Sync
-
-1. Access the Admin Panel at `/admin` (or `/chutiya`).
-2. Log in with admin credentials.
-3. Update version numbers, upload app binaries, or post new "What's New" highlight bullet points.
-4. Click **Sync to Blob** to push live updates to Vercel Blob cloud storage (`app/genmusic-data.json` and `app-version.json`).
 
 ---
 
