@@ -64,6 +64,186 @@ let activeVersionManifest = {
   ],
 };
 
+// Full backend unified app configuration (persisted to server disk and Vercel Blob)
+let activeAppConfig: any = {
+  platforms: [
+    {
+      id: 'app-android',
+      name: 'GEN MUSIC for Android',
+      platform: 'android',
+      version: 'v2.5.0',
+      fileFormat: '.apk',
+      fileSize: '24.8 MB',
+      releaseDate: 'September 2026',
+      minSystem: 'Android 8.0 or later (Oreo to 15)',
+      downloadUrl: '/download/genmusic.apk',
+      mirrorUrl: 'https://t.me/genmusic_apk',
+      architecture: 'ARM64-v8a & Universal',
+      badge: 'Direct APK',
+      changelog: [
+        'Dolby Audio 3D spatial surround sound engine',
+        'Batch offline MP3 downloader up to 320kbps',
+        'Unified YouTube Music and Spotify catalogs',
+        'Zero audio advertising interruptions'
+      ],
+      isFeatured: true,
+    },
+    {
+      id: 'app-mac',
+      name: 'GEN MUSIC for macOS',
+      platform: 'mac',
+      version: 'v2.5.0',
+      fileFormat: '.dmg',
+      fileSize: '68.4 MB',
+      releaseDate: 'September 2026',
+      minSystem: 'macOS 12.0 Monterey or later (Apple Silicon & Intel)',
+      downloadUrl: '/download/genmusic.dmg',
+      mirrorUrl: 'https://t.me/genmusic_official',
+      architecture: 'Universal (Apple Silicon + Intel)',
+      badge: 'macOS DMG',
+      changelog: [
+        'Native Apple Silicon high efficiency decoding',
+        'Menu bar mini player and keyboard media keys',
+        'Lossless Hi-Fi streaming virtualizer',
+        'System-wide lyrics overlay widget'
+      ],
+      isFeatured: true,
+    },
+    {
+      id: 'app-windows',
+      name: 'GEN MUSIC for Windows',
+      platform: 'windows',
+      version: 'v2.5.0',
+      fileFormat: '.exe',
+      fileSize: '56.2 MB',
+      releaseDate: 'September 2026',
+      minSystem: 'Windows 10 / 11 (64-bit)',
+      downloadUrl: '/download/genmusic-setup.exe',
+      mirrorUrl: 'https://t.me/genmusic_official',
+      architecture: 'x64 / AMD64',
+      badge: 'Windows Installer',
+      changelog: [
+        'Direct hardware audio acceleration (WASAPI exclusive mode)',
+        'Tray minimize and background audio service',
+        'Offline MP3 batch download manager',
+        'Custom local music folder scanning and tag editor'
+      ],
+      isFeatured: true,
+    },
+    {
+      id: 'app-linux',
+      name: 'GEN MUSIC for Linux',
+      platform: 'linux',
+      version: 'v2.5.0',
+      fileFormat: '.AppImage',
+      fileSize: '62.1 MB',
+      releaseDate: 'September 2026',
+      minSystem: 'Ubuntu 20.04+, Fedora 36+, Debian 11+',
+      downloadUrl: 'https://t.me/genmusic_official',
+      mirrorUrl: 'https://t.me/genmusic_official',
+      architecture: 'x86_64 / AppImage',
+      badge: 'AppImage',
+      changelog: ['PulseAudio & PipeWire direct stream virtualizer', 'MPRIS2 media keys support'],
+      isFeatured: false,
+    },
+    {
+      id: 'app-web',
+      name: 'GEN MUSIC Web App (PWA)',
+      platform: 'web',
+      version: 'v2.5.0',
+      fileFormat: 'PWA',
+      fileSize: 'Cloud Stream',
+      releaseDate: 'September 2026',
+      minSystem: 'Any modern browser (Chrome, Safari, Edge, Firefox)',
+      downloadUrl: '#',
+      mirrorUrl: 'https://t.me/genmusic_official',
+      architecture: 'WebAssembly & PWA',
+      badge: 'Instant Play',
+      changelog: ['Zero-install instant audio streaming', 'OLED theme with dark mode'],
+      isFeatured: false,
+    }
+  ],
+  telegramConfig: {
+    contactUsername: '@genmusic_admin',
+    contactUrl: 'https://t.me/genmusic_admin',
+    announcementText: 'Direct APK download links, beta builds & 24/7 technical help.',
+    supportHours: 'Admin Online 24/7'
+  },
+  channels: [
+    {
+      id: 'ch-1',
+      title: 'GEN MUSIC Official Channel',
+      description: 'The primary broadcast channel for release notes, stable APK updates, and platform announcements.',
+      link: 'https://t.me/genmusic_official',
+      badge: 'Main Updates',
+      memberCount: '15,400+ members'
+    },
+    {
+      id: 'ch-2',
+      title: 'APK Downloads & Mirrors',
+      description: 'Fast direct APK download mirrors, nightly beta builds, and instant installation guides.',
+      link: 'https://t.me/genmusic_apk',
+      badge: 'Direct APK',
+      memberCount: '8,900+ members'
+    },
+    {
+      id: 'ch-3',
+      title: 'VIP Community & Discussion',
+      description: 'Community chat for music requests, feature suggestions, bug reports, and audio lovers.',
+      link: 'https://t.me/genmusic_community',
+      badge: 'Community Chat',
+      memberCount: '6,200+ members'
+    }
+  ],
+  updates: [
+    {
+      id: 'up-1',
+      version: 'v2.5.0',
+      releaseDate: 'September 2026',
+      tag: 'Latest Release',
+      highlights: [
+        'Added Dolby Audio 3D spatial surround sound engine',
+        'Batch offline MP3 downloader up to 320kbps with album art',
+        'Unified YouTube Music and Spotify catalog search',
+        'Zero audio commercials and uninterrupted playback'
+      ]
+    },
+    {
+      id: 'up-2',
+      version: 'v2.4.2',
+      releaseDate: 'August 2026',
+      tag: 'Performance',
+      highlights: [
+        '50% reduction in audio buffering latency on 4G/5G',
+        'Custom 10-band equalizer presets (Bass Boost, Vocal, Club)',
+        'Sleep timer with gradual audio fade-out',
+        'Fixed background playback stopping on Android 14+'
+      ]
+    },
+    {
+      id: 'up-3',
+      version: 'v2.4.0',
+      releaseDate: 'July 2026',
+      tag: 'Major Update',
+      highlights: [
+        'Complete OLED dark mode redesign with smooth neon accents',
+        'Real-time synchronized floating lyrics support',
+        'Lossless FLAC and Hi-Res 24-bit audio playback support',
+        'Added Telegram cloud backup for favorite playlists'
+      ]
+    }
+  ],
+  manifest: activeVersionManifest,
+  siteSettings: {
+    heroTitle: 'Music For Every Mood',
+    heroSubtitle: 'Stream unlimited songs, listen offline with 320kbps quality, and enjoy ad-free music across all your devices without any monthly subscriptions.',
+    heroBadge: 'New Release: v2.5.0 Available Now',
+    announcement: 'Direct APK download links, beta builds & 24/7 technical help.'
+  },
+  lastUpdated: new Date().toISOString(),
+  updatedBy: 'Admin (Varanasi)'
+};
+
 // ==========================================
 // 1. VERSION ENDPOINT (/version.json & /app-version.json)
 // https://genmugic.vercel.app/app-version.json
@@ -142,6 +322,108 @@ app.post('/api/admin/update-version-manifest', async (req, res) => {
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message });
   }
+});
+
+// ==========================================
+// IN-APP UPDATE ALERT BROADCAST ENGINE
+// ==========================================
+let activeInAppUpdateAlert: {
+  id: string;
+  version: string;
+  title?: string;
+  releaseNotes: string[];
+  platform?: string;
+  isMandatory?: boolean;
+  minSupportedVersion?: string;
+  downloadUrls?: {
+    android?: string;
+    windows?: string;
+    macos?: string;
+    linux?: string;
+  };
+  triggeredAt: number;
+} | null = {
+  id: 'update-init',
+  version: '2.5.0',
+  title: 'GEN MUSIC v2.5.0 Official Release',
+  releaseNotes: [
+    'Lossless 320kbps MP3 offline saver & audio cache',
+    'Integrated 3D Dolby Surround & 10-Band EQ virtualizer',
+    'Zero audio commercials and unlimited song skips',
+    'Background audio playback with lockscreen media controls',
+  ],
+  platform: 'all',
+  isMandatory: false,
+  minSupportedVersion: '1.0.0',
+  downloadUrls: {
+    android: 'https://genmugic.vercel.app/download/genmusic.apk',
+    windows: 'https://genmugic.vercel.app/download/genmusic-setup.exe',
+    macos: 'https://genmugic.vercel.app/download/genmusic.dmg',
+  },
+  triggeredAt: Date.now(),
+};
+
+app.get('/api/app-update-alert', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.json({
+    success: true,
+    alert: activeInAppUpdateAlert,
+  });
+});
+
+app.post('/api/admin/trigger-update-alert', (req, res) => {
+  try {
+    const data = req.body;
+    if (!data || !data.version) {
+      return res.status(400).json({ success: false, error: 'Version is required to trigger update alert' });
+    }
+
+    activeInAppUpdateAlert = {
+      id: `update-${Date.now()}`,
+      version: data.version,
+      title: data.title || `GEN MUSIC ${data.version} Update Available!`,
+      releaseNotes: Array.isArray(data.releaseNotes) && data.releaseNotes.length > 0 
+        ? data.releaseNotes 
+        : ['Enhanced audio playback engine', 'Performance optimizations & stability improvements'],
+      platform: data.platform || 'all',
+      isMandatory: !!data.isMandatory,
+      minSupportedVersion: data.minSupportedVersion || '1.0.0',
+      downloadUrls: data.downloadUrls || {
+        android: activeVersionManifest.android.downloadUrl,
+        windows: activeVersionManifest.windows.downloadUrl,
+        macos: activeVersionManifest.macos.downloadUrl,
+      },
+      triggeredAt: Date.now(),
+    };
+
+    // Also sync latest version into manifest
+    if (data.downloadUrls?.android) activeVersionManifest.android.downloadUrl = data.downloadUrls.android;
+    if (data.downloadUrls?.windows) activeVersionManifest.windows.downloadUrl = data.downloadUrls.windows;
+    if (data.downloadUrls?.macos) activeVersionManifest.macos.downloadUrl = data.downloadUrls.macos;
+    
+    if (data.version) {
+      activeVersionManifest.android.latestVersion = data.version;
+      activeVersionManifest.windows.latestVersion = data.version;
+      activeVersionManifest.macos.latestVersion = data.version;
+    }
+    if (data.releaseNotes && Array.isArray(data.releaseNotes)) {
+      activeVersionManifest.releaseNotes = data.releaseNotes;
+    }
+
+    return res.json({
+      success: true,
+      message: 'In-app update alert triggered and broadcasted successfully!',
+      alert: activeInAppUpdateAlert,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, error: error?.message });
+  }
+});
+
+app.post('/api/admin/dismiss-update-alert', (req, res) => {
+  activeInAppUpdateAlert = null;
+  return res.json({ success: true, message: 'Active update alert dismissed from server.' });
 });
 
 // Simple isolated admin route per user request
@@ -310,13 +592,6 @@ app.post('/api/upload', async (req, res) => {
 // 2. Binary / App File Upload to Blob Storage (APKs, EXEs, DMGs, Images, JSON)
 app.post('/api/blob/upload-file', upload.single('file'), async (req, res) => {
   try {
-    if (!blobService.isReady()) {
-      return res.status(400).json({
-        success: false,
-        error: 'BLOB_READ_WRITE_TOKEN is not configured. Please configure your Vercel Blob token.',
-      });
-    }
-
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file provided in form-data' });
     }
@@ -325,61 +600,109 @@ app.post('/api/blob/upload-file', upload.single('file'), async (req, res) => {
     const access = req.body.access === 'private' ? 'private' : 'public';
     const platform = req.body.platform; // 'android' | 'windows' | 'macos'
 
-    const result = await blobService.uploadAppInstaller({
-      filename: req.file.originalname,
-      buffer: req.file.buffer,
-      platform: platform || 'generic',
-      access,
-      customPath,
-    });
+    let publicUrl = '';
+    let sha256Checksum = '';
+    let savedToVercelBlob = false;
+    let blobItem: any = null;
 
-    if (!result.success || !result.blob) {
-      return res.status(500).json({
-        success: false,
-        error: result.error || 'Failed to upload binary file to Blob storage',
-      });
+    // Try Vercel Blob if configured
+    if (blobService.isReady()) {
+      try {
+        const result = await blobService.uploadAppInstaller({
+          filename: req.file.originalname,
+          buffer: req.file.buffer,
+          platform: platform || 'generic',
+          access,
+          customPath,
+        });
+
+        if (result.success && result.blob) {
+          savedToVercelBlob = true;
+          blobItem = result.blob;
+          publicUrl = result.blob.url;
+          sha256Checksum = result.sha256 || '';
+        }
+      } catch (blobErr: any) {
+        console.warn('Vercel blob upload attempt failed, falling back to local server disk storage:', blobErr?.message);
+      }
     }
 
-    const blob = result.blob;
+    // If Vercel Blob failed or not configured, store locally on server disk
+    if (!publicUrl) {
+      const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
 
-    // If this is an app release binary, update the active manifest and public/app-version.json automatically!
+      const safeBase = req.file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const uniqueName = `${Date.now()}_${safeBase}`;
+      const localFilePath = path.join(uploadsDir, uniqueName);
+      fs.writeFileSync(localFilePath, req.file.buffer);
+
+      publicUrl = `/uploads/${uniqueName}`;
+      blobItem = {
+        url: publicUrl,
+        downloadUrl: publicUrl,
+        pathname: `uploads/${uniqueName}`,
+        contentType: req.file.mimetype || 'application/octet-stream',
+        contentDisposition: `attachment; filename="${req.file.originalname}"`,
+        size: req.file.size,
+        uploadedAt: new Date(),
+      };
+    }
+
+    // Update active manifest and activeAppConfig platforms automatically!
     if (platform === 'android' || (customPath && customPath.endsWith('.apk')) || req.file.originalname.endsWith('.apk')) {
-      activeVersionManifest.android.blobUrl = blob.url;
-      if (result.sha256) activeVersionManifest.android.sha256 = result.sha256;
+      activeVersionManifest.android.blobUrl = publicUrl;
+      activeVersionManifest.android.downloadUrl = publicUrl;
+      const androidP = activeAppConfig.platforms?.find((p: any) => p.platform === 'android');
+      if (androidP) androidP.downloadUrl = publicUrl;
     } else if (platform === 'windows' || (customPath && customPath.endsWith('.exe')) || req.file.originalname.endsWith('.exe')) {
-      activeVersionManifest.windows.blobUrl = blob.url;
-      if (result.sha256) activeVersionManifest.windows.sha256 = result.sha256;
+      activeVersionManifest.windows.blobUrl = publicUrl;
+      activeVersionManifest.windows.downloadUrl = publicUrl;
+      const windowsP = activeAppConfig.platforms?.find((p: any) => p.platform === 'windows');
+      if (windowsP) windowsP.downloadUrl = publicUrl;
     } else if (platform === 'macos' || (customPath && customPath.endsWith('.dmg')) || req.file.originalname.endsWith('.dmg')) {
-      activeVersionManifest.macos.blobUrl = blob.url;
-      if (result.sha256) activeVersionManifest.macos.sha256 = result.sha256;
+      activeVersionManifest.macos.blobUrl = publicUrl;
+      activeVersionManifest.macos.downloadUrl = publicUrl;
+      const macP = activeAppConfig.platforms?.find((p: any) => p.platform === 'mac' || p.platform === 'macos');
+      if (macP) macP.downloadUrl = publicUrl;
     }
 
-    // Also update public/app-version.json file with new URL
+    // Also update public/app-version.json & public/version.json
     try {
       const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
-      if (fs.existsSync(publicAppVerPath)) {
-        const current = JSON.parse(fs.readFileSync(publicAppVerPath, 'utf8'));
-        if (platform === 'android' || req.file.originalname.endsWith('.apk')) current.download_url.android = blob.url;
-        if (platform === 'windows' || req.file.originalname.endsWith('.exe')) current.download_url.windows = blob.url;
-        if (platform === 'macos' || req.file.originalname.endsWith('.dmg')) current.download_url.macos = blob.url;
-        fs.writeFileSync(publicAppVerPath, JSON.stringify(current, null, 2), 'utf8');
-      }
+      const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
+      const current = {
+        latest_version: activeVersionManifest.android.latestVersion,
+        min_supported_version: activeVersionManifest.android.minimumVersion,
+        force_update: false,
+        whats_new: activeVersionManifest.releaseNotes,
+        download_url: {
+          android: activeVersionManifest.android.downloadUrl,
+          windows: activeVersionManifest.windows.downloadUrl,
+          macos: activeVersionManifest.macos.downloadUrl,
+        }
+      };
+      fs.writeFileSync(publicAppVerPath, JSON.stringify(current, null, 2), 'utf8');
+      fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
     } catch (fsErr) {
       console.warn('Failed updating public/app-version.json with new blob URL:', fsErr);
     }
 
     return res.json({
       success: true,
-      blob,
-      sha256: result.sha256,
-      message: `File ${req.file.originalname} (${(req.file.size / (1024 * 1024)).toFixed(2)} MB) successfully uploaded to Blob Storage!`,
-      publicUrl: blob.url,
+      blob: blobItem,
+      sha256: sha256Checksum,
+      savedToVercelBlob,
+      message: `File ${req.file.originalname} (${(req.file.size / (1024 * 1024)).toFixed(2)} MB) successfully saved to ${savedToVercelBlob ? 'Vercel Blob Storage' : 'Backend Server Storage'}!`,
+      publicUrl,
     });
   } catch (error: any) {
     console.error('Error uploading file to blob:', error);
     return res.status(500).json({
       success: false,
-      error: error?.message || 'Failed to upload binary file to Blob storage',
+      error: error?.message || 'Failed to upload binary file to storage',
     });
   }
 });
@@ -422,11 +745,19 @@ app.post('/api/blob/put', async (req, res) => {
   }
 });
 
-// 4. Sync All Backend Data (App Manifests, Channels, Releases) to Blob Storage
-app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app'], async (req, res) => {
+// 4. Sync All Backend Data (App Manifests, Channels, Releases, Site Settings) to Backend Disk & Blob Storage
+app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app', '/api/admin/save-data'], async (req, res) => {
   try {
     const backendPayload = req.body || {};
     const timestamp = new Date().toISOString();
+
+    // Deep merge into in-memory activeAppConfig
+    activeAppConfig = {
+      ...activeAppConfig,
+      ...backendPayload,
+      lastUpdated: timestamp,
+      updatedBy: backendPayload.updatedBy || 'Admin (Varanasi)',
+    };
 
     // Update in-memory manifest if provided in payload
     if (backendPayload.manifest) {
@@ -445,6 +776,8 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app'], async (req, 
       if (macPlatform?.downloadUrl) activeVersionManifest.macos.downloadUrl = macPlatform.downloadUrl;
     }
 
+    activeAppConfig.manifest = activeVersionManifest;
+
     // Format public/app-version.json
     const publicAppVersion = {
       latest_version: backendPayload?.manifest?.android?.latestVersion || activeVersionManifest.android.latestVersion,
@@ -458,34 +791,40 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app'], async (req, 
       },
     };
 
-    // Update local public static files
+    // 1. Write to local server disk (public/genmusic-data.json, public/app-version.json, public/version.json)
     try {
+      const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
+      fs.writeFileSync(publicGenDataPath, JSON.stringify(activeAppConfig, null, 2), 'utf8');
+
       const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
       fs.writeFileSync(publicAppVerPath, JSON.stringify(publicAppVersion, null, 2), 'utf8');
+
       const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
       fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
     } catch (fsErr) {
-      console.warn('Could not write local public version files:', fsErr);
+      console.warn('Could not write local public version & config files:', fsErr);
     }
 
+    // 2. Sync to Vercel Blob if token configured
     if (!blobService.isReady()) {
       return res.json({
         success: true,
         savedLocally: true,
         blobConfigured: false,
-        message: 'Admin data saved locally. Provide a valid BLOB_READ_WRITE_TOKEN in Settings to enable Vercel Blob cloud persistence.',
+        data: activeAppConfig,
+        message: 'All admin changes, platforms, channels, and releases saved successfully to backend storage!',
       });
     }
 
     try {
-      // 1. Upload unified backend configuration package to Blob
+      // Upload unified backend configuration package to Blob
       const unifiedRes = await blobService.uploadAppData('app/genmusic-data.json', {
         timestamp,
-        version: '1.0',
-        data: backendPayload,
+        version: '2.5',
+        data: activeAppConfig,
       });
 
-      // 2. Upload latest app-version.json & version.json for external clients to Blob
+      // Upload latest app-version.json & version.json for external clients to Blob
       const appVersionRes = await blobService.uploadAppData('app-version.json', publicAppVersion);
       const versionManifestRes = await blobService.uploadAppData('version.json', activeVersionManifest);
 
@@ -495,14 +834,17 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app'], async (req, 
           savedLocally: true,
           blobConfigured: true,
           blobError: unifiedRes.error,
-          message: `Saved locally. Blob notice: ${unifiedRes.error}`,
+          data: activeAppConfig,
+          message: `Saved locally on backend disk. Vercel Blob sync status: ${unifiedRes.error}`,
         });
       }
 
       return res.json({
         success: true,
+        savedLocally: true,
         blobConfigured: true,
-        message: 'All admin changes, platforms, channels, updates, and release manifests saved to Vercel Blob Storage!',
+        data: activeAppConfig,
+        message: 'All admin changes, platforms, channels, updates, and releases saved successfully to Backend & Vercel Blob Storage!',
         blobs: {
           backendData: unifiedRes.blob?.url,
           appVersion: appVersionRes.blob?.url,
@@ -515,37 +857,62 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app'], async (req, 
         savedLocally: true,
         blobConfigured: true,
         blobError: blobUploadErr?.message,
-        message: `Saved locally in browser and server. Note: ${blobUploadErr?.message || 'Blob sync failed.'}`,
+        data: activeAppConfig,
+        message: `Saved locally on backend. Note: ${blobUploadErr?.message || 'Blob sync notice.'}`,
       });
     }
   } catch (error: any) {
     return res.status(200).json({
       success: false,
-      error: error?.message || 'Failed to sync backend data to Blob Storage',
+      error: error?.message || 'Failed to sync backend data to storage',
     });
   }
 });
 
-// 5. Load synced app store data from Vercel Blob
+// GET endpoints for current backend state
+app.get(['/api/admin/data', '/api/app-data'], (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-cache');
+  return res.json({
+    success: true,
+    data: activeAppConfig,
+    blobConfigured: isBlobConfigured(),
+    lastUpdated: activeAppConfig.lastUpdated,
+  });
+});
+
+// 5. Load synced app store data from Vercel Blob (with disk fallback)
 app.get('/api/blob/load-app', async (req, res) => {
   try {
-    if (!blobService.isReady()) {
-      return res.json({
-        success: false,
-        error: 'BLOB_READ_WRITE_TOKEN is not configured.',
-      });
+    if (blobService.isReady()) {
+      const result = await blobService.getAppData('app/genmusic-data.json');
+      if (result.success && (result.data || result.rawText)) {
+        const payload = result.data || JSON.parse(result.rawText);
+        const resolvedData = payload?.data || payload;
+        activeAppConfig = { ...activeAppConfig, ...resolvedData };
+        return res.json({ success: true, payload: resolvedData, source: 'vercel-blob' });
+      }
     }
 
-    const result = await blobService.getAppData('app/genmusic-data.json');
-    if (!result.success || (!result.data && !result.rawText)) {
-      return res.json({ success: false, error: result.error || 'App data not found in Vercel Blob' });
+    // Fallback to local server disk storage
+    const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
+    if (fs.existsSync(publicGenDataPath)) {
+      try {
+        const diskData = JSON.parse(fs.readFileSync(publicGenDataPath, 'utf8'));
+        activeAppConfig = { ...activeAppConfig, ...diskData };
+        return res.json({ success: true, payload: diskData, source: 'local-disk' });
+      } catch (parseErr) {
+        console.warn('Failed parsing local genmusic-data.json:', parseErr);
+      }
     }
 
-    return res.json({ success: true, payload: result.data || result.rawText });
+    return res.json({ success: true, payload: activeAppConfig, source: 'in-memory' });
   } catch (error: any) {
     return res.json({
-      success: false,
-      error: error?.message || 'Failed to load app data from Vercel Blob',
+      success: true,
+      payload: activeAppConfig,
+      source: 'in-memory-fallback',
+      warning: error?.message,
     });
   }
 });
@@ -827,26 +1194,54 @@ app.post('/api/blob/diagnostic/chunks', upload.single('probe'), async (req, res)
 
 // Setup Vite middleware / static files
 async function startServer() {
-  // Sync state from Vercel Blob on startup
+  // 1. Hydrate state from local disk if available
+  try {
+    const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
+    if (fs.existsSync(publicGenDataPath)) {
+      const diskData = JSON.parse(fs.readFileSync(publicGenDataPath, 'utf8'));
+      activeAppConfig = { ...activeAppConfig, ...diskData };
+      if (diskData.manifest) {
+        activeVersionManifest = { ...activeVersionManifest, ...diskData.manifest };
+      }
+      console.log('Successfully hydrated activeAppConfig from local disk public/genmusic-data.json.');
+    }
+  } catch (diskErr) {
+    console.warn('Could not hydrate activeAppConfig from disk on startup:', diskErr);
+  }
+
+  // 2. Hydrate state from Vercel Blob if available
   if (blobService.isReady()) {
     try {
-      console.log('Fetching latest manifest from Vercel Blob...');
-      const result = await blobService.getAppData('version.json');
-      if (result.success && result.data) {
-        activeVersionManifest = { ...activeVersionManifest, ...result.data };
-        console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
-      } else if (result.rawText) {
-        activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
-        console.log('Successfully hydrated activeVersionManifest from Blob Storage rawText.');
+      console.log('Checking for latest app data from Vercel Blob...');
+      const appDataResult = await blobService.getAppData('app/genmusic-data.json');
+      if (appDataResult.success && (appDataResult.data || appDataResult.rawText)) {
+        const payload = appDataResult.data || JSON.parse(appDataResult.rawText);
+        const resolvedData = payload?.data || payload;
+        activeAppConfig = { ...activeAppConfig, ...resolvedData };
+        if (resolvedData.manifest) {
+          activeVersionManifest = { ...activeVersionManifest, ...resolvedData.manifest };
+        }
+        console.log('Successfully hydrated activeAppConfig from Vercel Blob.');
+      } else {
+        const result = await blobService.getAppData('version.json');
+        if (result.success && result.data) {
+          activeVersionManifest = { ...activeVersionManifest, ...result.data };
+          console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
+        } else if (result.rawText) {
+          activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
+        }
       }
     } catch (err) {
-      console.warn('Could not hydrate manifest from Blob Storage on startup:', err);
+      console.warn('Could not hydrate data from Blob Storage on startup:', err);
     }
   }
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: process.env.DISABLE_HMR === 'true' ? false : undefined,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

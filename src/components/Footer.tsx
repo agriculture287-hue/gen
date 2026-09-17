@@ -167,30 +167,19 @@ export const Footer: React.FC<FooterProps> = ({
               </a>
             </div>
 
-            {/* Admin Access Button in Footer */}
-            <div className="pt-2 border-t border-slate-200">
-              <button
-                onClick={onOpenAdmin}
-                id="footer-admin-btn"
-                className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                  isAdminLoggedIn
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {isAdminLoggedIn ? (
-                  <>
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Admin Panel (Logged In)</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Admin Direct Access</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Admin shortcut if logged in */}
+            {isAdminLoggedIn && (
+              <div className="pt-2 border-t border-slate-200">
+                <a
+                  href="/chutiya"
+                  id="footer-admin-btn"
+                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer border bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Control Console</span>
+                </a>
+              </div>
+            )}
           </div>
 
         </div>

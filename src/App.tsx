@@ -11,6 +11,7 @@ import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
 import { BetaModal } from './components/BetaModal';
 import { AdminModal } from './components/AdminModal';
+import { InAppUpdateModal } from './components/InAppUpdateModal';
 import { 
   AdLeaderboard728x90, 
   AdBanner468x60, 
@@ -102,7 +103,7 @@ export const App: React.FC = () => {
       
       setCurrentPath(path);
 
-      if (path.includes('chutiya') || hash.includes('chutiya') || search.includes('chutiya')) {
+      if (hash.includes('chutiya') || search.includes('chutiya')) {
         setAdminModalOpen(true);
       }
     };
@@ -230,6 +231,26 @@ export const App: React.FC = () => {
   };
 
   if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="max-w-md w-full p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl">
+          <h1 className="text-6xl font-black text-slate-700 mb-3">404</h1>
+          <h2 className="text-xl font-bold text-white mb-2">Page Not Found</h2>
+          <p className="text-sm text-slate-400 mb-6">
+            The directory or page you are looking for does not exist.
+          </p>
+          <a
+            href="/"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition shadow-lg shadow-blue-600/20"
+          >
+            Back to GEN MUSIC
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (currentPath === '/chutiya' || currentPath.startsWith('/chutiya/')) {
     return <AdminPage />;
   }
 
@@ -340,6 +361,11 @@ export const App: React.FC = () => {
         isOpen={betaModalOpen}
         onClose={() => setBetaModalOpen(false)}
         onShowToast={showToast}
+      />
+
+      {/* In-App Update Trigger & Notification Modal */}
+      <InAppUpdateModal
+        telegramUrl={telegramConfig.contactUrl}
       />
 
       {/* Floating Toast Notification */}

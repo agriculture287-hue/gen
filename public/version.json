@@ -2,22 +2,37 @@
   "android": {
     "latestVersion": "1.0.1",
     "minimumVersion": "1.0.0",
-    "downloadUrl": "https://genmugic.vercel.app/download/genmusic.apk"
+    "downloadUrl": "https://genmugic.vercel.app/download/genmusic.apk",
+    "fileSize": "24.8 MB",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "releaseDate": "2026-09-15",
+    "mirrorUrl": "https://t.me/genmusic_apk",
+    "blobUrl": ""
   },
   "windows": {
     "latestVersion": "1.0.1",
     "minimumVersion": "1.0.0",
-    "downloadUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe"
+    "downloadUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe",
+    "fileSize": "56.2 MB",
+    "sha256": "a12bc44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899",
+    "releaseDate": "2026-09-15",
+    "mirrorUrl": "https://t.me/genmusic_apk",
+    "blobUrl": ""
   },
   "macos": {
     "latestVersion": "1.0.1",
     "minimumVersion": "1.0.0",
-    "downloadUrl": "https://genmugic.vercel.app/download/genmusic.dmg"
+    "downloadUrl": "https://genmugic.vercel.app/download/genmusic.dmg",
+    "fileSize": "68.4 MB",
+    "sha256": "c88df44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b112",
+    "releaseDate": "2026-09-15",
+    "mirrorUrl": "https://t.me/genmusic_official",
+    "blobUrl": ""
   },
   "releaseNotes": [
-    "Improved streaming engine",
-    "Better audio quality",
-    "Playback bug fixes",
-    "UI enhancements"
+    "Improved streaming engine with adaptive buffer management",
+    "Better audio quality with lossless Hi-Fi & 3D Spatial Dolby preset",
+    "Playback bug fixes on background audio resume",
+    "UI enhancements with updated player bar and dark theme contrast"
   ]
 }

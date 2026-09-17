@@ -22,6 +22,7 @@ export interface FAQItem {
 }
 
 export interface UpdateItem {
+  id?: string;
   version: string;
   releaseDate: string;
   tag: string;

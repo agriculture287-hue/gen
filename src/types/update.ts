@@ -52,3 +52,22 @@ export interface UpdateCacheItem {
   manifest: VersionManifest;
   cachedAt: number;
 }
+
+export interface InAppUpdateAlert {
+  id: string;
+  version: string;
+  title?: string;
+  releaseNotes: string[];
+  platform?: SupportedPlatform | 'all' | string;
+  downloadUrl?: string;
+  downloadUrls?: {
+    android?: string;
+    windows?: string;
+    macos?: string;
+    linux?: string;
+  };
+  fileSize?: string;
+  isMandatory?: boolean;
+  minSupportedVersion?: string;
+  triggeredAt: number;
+}

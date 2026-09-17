@@ -33,13 +33,21 @@ import {
   Package,
   FolderOpen,
   FileCheck,
-  Activity
+  Activity,
+  Megaphone,
+  Bell,
+  Radio
 } from 'lucide-react';
 import { BlobDiagnosticModal } from './BlobDiagnosticModal';
 import { AppPlatformRelease, PlatformType, TelegramChannel, TelegramConfig, UpdateItem } from '../types';
 import { ADMIN_CREDENTIALS, verifyAdminCredentials } from '../data/adminStore';
 import { VersionManifest } from '../types/update';
-import { getLocalVersionManifest, saveLocalVersionManifest, DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
+import { 
+  getLocalVersionManifest, 
+  saveLocalVersionManifest, 
+  DEFAULT_VERSION_MANIFEST,
+  triggerLocalInAppUpdateAlert 
+} from '../data/versionManifest';
 import { 
   checkBlobStatus, 
   putBlob, 
@@ -141,9 +149,38 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [blobSearchFilter, setBlobSearchFilter] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Safe empty form initializers to prevent uncontrolled input switching
+  const EMPTY_APP_FORM: Partial<AppPlatformRelease> = {
+    name: '',
+    version: '',
+    fileFormat: '.apk',
+    fileSize: '',
+    releaseDate: '',
+    minSystem: '',
+    downloadUrl: '',
+    mirrorUrl: '',
+    architecture: '',
+    badge: '',
+  };
+
+  const EMPTY_UPDATE_FORM: Partial<UpdateItem> = {
+    version: '',
+    releaseDate: '',
+    tag: '',
+    highlights: [],
+  };
+
+  const EMPTY_CHANNEL_FORM: Partial<TelegramChannel> = {
+    title: '',
+    description: '',
+    link: '',
+    badge: '',
+    memberCount: '',
+  };
+
   // Editing state for apps
   const [editingPlatformId, setEditingPlatformId] = useState<string | null>(null);
-  const [editAppForm, setEditAppForm] = useState<Partial<AppPlatformRelease>>({});
+  const [editAppForm, setEditAppForm] = useState<Partial<AppPlatformRelease>>(EMPTY_APP_FORM);
 
   // Adding new app state
   const [isAddingApp, setIsAddingApp] = useState(false);
@@ -163,7 +200,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   // Editing state for updates / what's new
   const [editingUpdateIndex, setEditingUpdateIndex] = useState<number | null>(null);
-  const [editUpdateForm, setEditUpdateForm] = useState<Partial<UpdateItem>>({});
+  const [editUpdateForm, setEditUpdateForm] = useState<Partial<UpdateItem>>(EMPTY_UPDATE_FORM);
   const [editHighlightsInput, setEditHighlightsInput] = useState('');
   const [isAddingUpdate, setIsAddingUpdate] = useState(false);
   const [newUpdateForm, setNewUpdateForm] = useState<Partial<UpdateItem>>({
@@ -181,7 +218,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   // Editing state for channels
   const [editingChannelId, setEditingChannelId] = useState<string | null>(null);
-  const [editChannelForm, setEditChannelForm] = useState<Partial<TelegramChannel>>({});
+  const [editChannelForm, setEditChannelForm] = useState<Partial<TelegramChannel>>(EMPTY_CHANNEL_FORM);
   const [isAddingChannel, setIsAddingChannel] = useState(false);
   const [newChannelForm, setNewChannelForm] = useState<Partial<TelegramChannel>>({
     title: '',
@@ -238,14 +275,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Platform actions
   const handleStartEditApp = (platform: AppPlatformRelease) => {
     setEditingPlatformId(platform.id);
-    setEditAppForm({ ...platform });
+    setEditAppForm({ ...EMPTY_APP_FORM, ...platform });
   };
 
   const handleSaveEditApp = (id: string) => {
     const updated = platforms.map((p) => (p.id === id ? ({ ...p, ...editAppForm } as AppPlatformRelease) : p));
     triggerUpdatePlatforms(updated);
     setEditingPlatformId(null);
-    setEditAppForm({});
+    setEditAppForm(EMPTY_APP_FORM);
     onShowToast('App details and download link updated successfully!');
   };
 
@@ -526,14 +563,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Channel actions
   const handleStartEditChannel = (ch: TelegramChannel) => {
     setEditingChannelId(ch.id);
-    setEditChannelForm({ ...ch });
+    setEditChannelForm({ ...EMPTY_CHANNEL_FORM, ...ch });
   };
 
   const handleSaveEditChannel = (id: string) => {
     const updated = channels.map((c) => (c.id === id ? ({ ...c, ...editChannelForm } as TelegramChannel) : c));
     triggerUpdateChannels(updated);
     setEditingChannelId(null);
-    setEditChannelForm({});
+    setEditChannelForm(EMPTY_CHANNEL_FORM);
     onShowToast('Telegram channel updated!');
   };
 
@@ -575,13 +612,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // What's New / Updates Handlers
   const handleStartEditUpdate = (update: UpdateItem, index: number) => {
     setEditingUpdateIndex(index);
-    setEditUpdateForm({ ...update });
+    setEditUpdateForm({ ...EMPTY_UPDATE_FORM, ...update });
     setEditHighlightsInput((update.highlights || []).join('\n'));
   };
 
   const handleCancelEditUpdate = () => {
     setEditingUpdateIndex(null);
-    setEditUpdateForm({});
+    setEditUpdateForm(EMPTY_UPDATE_FORM);
     setEditHighlightsInput('');
   };
 
@@ -609,7 +646,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
     triggerUpdateUpdates(updatedList);
     setEditingUpdateIndex(null);
-    setEditUpdateForm({});
+    setEditUpdateForm(EMPTY_UPDATE_FORM);
     setEditHighlightsInput('');
     onShowToast(`Updated What's New for ${updatedList[editingUpdateIndex].version}!`);
   };
@@ -855,6 +892,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     try {
       saveLocalVersionManifest(versionManifest);
 
+      // Sync into platforms state for download hub
+      const updatedPlatforms = platforms.map(p => {
+        if (p.platform === 'android' && versionManifest.android.downloadUrl) {
+          return { ...p, version: versionManifest.android.latestVersion, downloadUrl: versionManifest.android.downloadUrl };
+        }
+        if (p.platform === 'windows' && versionManifest.windows.downloadUrl) {
+          return { ...p, version: versionManifest.windows.latestVersion, downloadUrl: versionManifest.windows.downloadUrl };
+        }
+        if (p.platform === 'mac' && versionManifest.macos.downloadUrl) {
+          return { ...p, version: versionManifest.macos.latestVersion, downloadUrl: versionManifest.macos.downloadUrl };
+        }
+        return p;
+      });
+      triggerUpdatePlatforms(updatedPlatforms);
+
       // 1. Push to backend /api/admin/update-version-manifest
       await fetch('/api/admin/update-version-manifest', {
         method: 'POST',
@@ -864,14 +916,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
       // 2. Persist full state to Vercel Blob
       await syncAllBackendDataToBlob({
-        platforms,
+        platforms: updatedPlatforms,
         telegramConfig,
         channels,
         updates,
         manifest: versionManifest,
       });
 
-      onShowToast('Version manifest saved & synchronized to Vercel Blob & /version.json!');
+      onShowToast('Version manifest & download links saved and synchronized everywhere!');
     } catch (e: any) {
       saveLocalVersionManifest(versionManifest);
       onShowToast('Saved version manifest locally.');
@@ -895,6 +947,94 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       ...prev,
       releaseNotes: prev.releaseNotes.filter((_, i) => i !== idx),
     }));
+  };
+
+  const [isTriggeringAlert, setIsTriggeringAlert] = useState(false);
+  const [alertTargetPlatform, setAlertTargetPlatform] = useState<string>('all');
+  const [alertIsMandatory, setAlertIsMandatory] = useState<boolean>(false);
+
+  const handleBroadcastInAppUpdate = async () => {
+    setIsTriggeringAlert(true);
+    try {
+      const version = versionManifest.android.latestVersion || '2.5.0';
+      const alertPayload = {
+        id: `alert-${Date.now()}`,
+        version,
+        title: `GEN MUSIC v${version} Update Available!`,
+        releaseNotes: versionManifest.releaseNotes.length > 0 
+          ? versionManifest.releaseNotes 
+          : [
+              'Lossless 320kbps MP3 offline saver & audio cache',
+              'Equalizer & 3D Dolby Surround enhancements',
+              'Zero audio commercials and uninterrupted playback'
+            ],
+        platform: alertTargetPlatform,
+        isMandatory: alertIsMandatory,
+        minSupportedVersion: versionManifest.android.minimumVersion || '1.0.0',
+        downloadUrls: {
+          android: versionManifest.android.downloadUrl,
+          windows: versionManifest.windows.downloadUrl,
+          macos: versionManifest.macos.downloadUrl,
+        },
+        triggeredAt: Date.now(),
+      };
+
+      // 1. Broadcast locally
+      triggerLocalInAppUpdateAlert(alertPayload);
+
+      // 2. Synchronize to server broadcast endpoint
+      try {
+        await fetch('/api/admin/trigger-update-alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(alertPayload),
+        });
+      } catch (srvErr) {
+        console.warn('Could not post to /api/admin/trigger-update-alert', srvErr);
+      }
+
+      // 3. Update active platform releases if matching
+      const updatedPlatforms = platforms.map(p => {
+        if (p.platform === 'android' && versionManifest.android.downloadUrl) {
+          return { ...p, version: versionManifest.android.latestVersion, downloadUrl: versionManifest.android.downloadUrl };
+        }
+        if (p.platform === 'windows' && versionManifest.windows.downloadUrl) {
+          return { ...p, version: versionManifest.windows.latestVersion, downloadUrl: versionManifest.windows.downloadUrl };
+        }
+        if (p.platform === 'mac' && versionManifest.macos.downloadUrl) {
+          return { ...p, version: versionManifest.macos.latestVersion, downloadUrl: versionManifest.macos.downloadUrl };
+        }
+        return p;
+      });
+      triggerUpdatePlatforms(updatedPlatforms);
+
+      onShowToast(`🚀 In-App Update Notice triggered for v${version}! Users will see the in-app update modal.`);
+    } catch (err: any) {
+      onShowToast('Error triggering in-app update: ' + err.message);
+    } finally {
+      setIsTriggeringAlert(false);
+    }
+  };
+
+  const handlePreviewInAppUpdate = () => {
+    const version = versionManifest.android.latestVersion || '2.5.0';
+    const alertPayload = {
+      id: `alert-preview-${Date.now()}`,
+      version,
+      title: `GEN MUSIC v${version} Update Available!`,
+      releaseNotes: versionManifest.releaseNotes,
+      platform: alertTargetPlatform,
+      isMandatory: alertIsMandatory,
+      minSupportedVersion: versionManifest.android.minimumVersion || '1.0.0',
+      downloadUrls: {
+        android: versionManifest.android.downloadUrl,
+        windows: versionManifest.windows.downloadUrl,
+        macos: versionManifest.macos.downloadUrl,
+      },
+      triggeredAt: Date.now(),
+    };
+    triggerLocalInAppUpdateAlert(alertPayload);
+    onShowToast('In-App Update Modal triggered for preview!');
   };
 
   if (!isOpen) return null;
@@ -1091,8 +1231,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  <FileCode className="w-4 h-4" />
-                  <span>Update Server (/version.json)</span>
+                  <Radio className="w-4 h-4" />
+                  <span>App Updates & In-App Alerts</span>
                 </button>
 
                 <button
@@ -1666,7 +1806,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="flex justify-end gap-2 pt-2">
                                 <button
                                   type="button"
-                                  onClick={() => setEditingPlatformId(null)}
+                                  onClick={() => {
+                                    setEditingPlatformId(null);
+                                    setEditAppForm(EMPTY_APP_FORM);
+                                  }}
                                   className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                                 >
                                   Cancel
@@ -2228,7 +2371,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                               <div className="flex justify-end gap-2 pt-1">
                                 <button
                                   type="button"
-                                  onClick={() => setEditingChannelId(null)}
+                                  onClick={() => {
+                                    setEditingChannelId(null);
+                                    setEditChannelForm(EMPTY_CHANNEL_FORM);
+                                  }}
                                   className="px-2.5 py-1 text-xs text-slate-600"
                                 >
                                   Cancel
@@ -2295,9 +2441,88 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
-              {/* TAB: VERSION MANIFEST (/version.json) */}
+              {/* TAB: APP UPDATES & IN-APP ALERTS (/version.json) */}
               {activeTab === 'version' && (
                 <div className="space-y-6">
+                  
+                  {/* IN-APP UPDATE ALERT BROADCAST CONSOLE */}
+                  <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white shadow-xl space-y-5 border border-blue-700/50">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/30 text-blue-200 text-xs font-bold border border-blue-400/30">
+                          <Radio className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+                          <span>Live In-App Broadcast Engine</span>
+                        </div>
+                        <h4 className="text-xl sm:text-2xl font-black tracking-tight font-heading text-white">
+                          Trigger In-App Update Notification
+                        </h4>
+                        <p className="text-xs text-blue-200/80 max-w-xl">
+                          Broadcast a pop-up update notification with release highlights and direct download buttons to all active visitors and app users immediately.
+                        </p>
+                      </div>
+
+                      {/* Quick Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={handlePreviewInAppUpdate}
+                          className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center gap-1.5 border border-white/20 transition cursor-pointer"
+                        >
+                          <span>👁️ Preview In-App Modal</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleBroadcastInAppUpdate}
+                          disabled={isTriggeringAlert}
+                          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-pink-500 hover:from-blue-600 hover:to-pink-600 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-pink-500/20 transition cursor-pointer disabled:opacity-60"
+                        >
+                          <Megaphone className="w-4 h-4" />
+                          <span>{isTriggeringAlert ? 'Broadcasting...' : '🚀 Trigger In-App Update Notice'}</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Broadcast Options */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs">
+                      <div>
+                        <span className="text-blue-300 block font-semibold mb-1">Target Version to Broadcast:</span>
+                        <span className="font-mono font-bold text-white bg-white/10 px-2.5 py-1 rounded-lg inline-block">
+                          v{versionManifest.android.latestVersion || '2.5.0'}
+                        </span>
+                      </div>
+
+                      <div>
+                        <label className="text-blue-300 block font-semibold mb-1">Platform Filter:</label>
+                        <select
+                          value={alertTargetPlatform}
+                          onChange={(e) => setAlertTargetPlatform(e.target.value)}
+                          className="w-full px-2.5 py-1 bg-slate-800 text-white rounded-lg border border-slate-700 text-xs focus:outline-none focus:border-blue-400 cursor-pointer"
+                        >
+                          <option value="all">All Platforms (Android, Windows, Mac)</option>
+                          <option value="android">Android Only</option>
+                          <option value="windows">Windows Only</option>
+                          <option value="macos">macOS Only</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center">
+                        <label className="flex items-center gap-2 text-xs text-white cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={alertIsMandatory}
+                            onChange={(e) => setAlertIsMandatory(e.target.checked)}
+                            className="w-4 h-4 text-pink-600 rounded cursor-pointer"
+                          />
+                          <span className="font-semibold text-blue-200">
+                            Mandatory (Force Update - Cannot Dismiss)
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Central Update Server Manifest & Save Bar */}
                   <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h4 className="text-sm font-bold text-blue-950 flex items-center gap-2">
@@ -2305,7 +2530,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <span>Central Update Server Manifest (/version.json)</span>
                       </h4>
                       <p className="text-xs text-blue-800 mt-1">
-                        Control auto-update checks and minimum required versions for Android (.apk), Windows (.exe), and macOS (.dmg).
+                        Control latest versions, minimum required versions, and direct download links for Android (.apk), Windows (.exe), and macOS (.dmg).
                       </p>
                     </div>
 
@@ -2326,7 +2551,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer disabled:opacity-60"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>{isSavingManifest ? 'Saving...' : 'Save & Sync Manifest'}</span>
+                        <span>{isSavingManifest ? 'Saving...' : 'Save & Sync Everywhere'}</span>
                       </button>
                     </div>
                   </div>
@@ -2342,7 +2567,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           Android APK
                         </span>
                         <span className="text-[11px] font-mono text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          v{versionManifest.android.latestVersion}
+                          v{versionManifest?.android?.latestVersion || '1.0.1'}
                         </span>
                       </div>
 
@@ -2350,10 +2575,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Latest Version</label>
                         <input
                           type="text"
-                          value={versionManifest.android.latestVersion || ''}
+                          value={versionManifest?.android?.latestVersion ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            android: { ...prev.android, latestVersion: e.target.value }
+                            android: { ...(prev?.android || {}), latestVersion: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2363,10 +2588,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Minimum Version (Force Update)</label>
                         <input
                           type="text"
-                          value={versionManifest.android.minimumVersion || ''}
+                          value={versionManifest?.android?.minimumVersion ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            android: { ...prev.android, minimumVersion: e.target.value }
+                            android: { ...(prev?.android || {}), minimumVersion: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2376,10 +2601,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Download URL</label>
                         <input
                           type="text"
-                          value={versionManifest.android.downloadUrl || ''}
+                          value={versionManifest?.android?.downloadUrl ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            android: { ...prev.android, downloadUrl: e.target.value }
+                            android: { ...(prev?.android || {}), downloadUrl: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2394,7 +2619,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           Windows EXE
                         </span>
                         <span className="text-[11px] font-mono text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
-                          v{versionManifest.windows.latestVersion}
+                          v{versionManifest?.windows?.latestVersion || '1.0.1'}
                         </span>
                       </div>
 
@@ -2402,10 +2627,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Latest Version</label>
                         <input
                           type="text"
-                          value={versionManifest.windows.latestVersion || ''}
+                          value={versionManifest?.windows?.latestVersion ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            windows: { ...prev.windows, latestVersion: e.target.value }
+                            windows: { ...(prev?.windows || {}), latestVersion: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2415,10 +2640,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Minimum Version (Force Update)</label>
                         <input
                           type="text"
-                          value={versionManifest.windows.minimumVersion || ''}
+                          value={versionManifest?.windows?.minimumVersion ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            windows: { ...prev.windows, minimumVersion: e.target.value }
+                            windows: { ...(prev?.windows || {}), minimumVersion: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2428,10 +2653,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Download URL</label>
                         <input
                           type="text"
-                          value={versionManifest.windows.downloadUrl || ''}
+                          value={versionManifest?.windows?.downloadUrl ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            windows: { ...prev.windows, downloadUrl: e.target.value }
+                            windows: { ...(prev?.windows || {}), downloadUrl: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2446,7 +2671,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           macOS DMG
                         </span>
                         <span className="text-[11px] font-mono text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
-                          v{versionManifest.macos.latestVersion}
+                          v{versionManifest?.macos?.latestVersion || '1.0.1'}
                         </span>
                       </div>
 
@@ -2454,10 +2679,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Latest Version</label>
                         <input
                           type="text"
-                          value={versionManifest.macos.latestVersion || ''}
+                          value={versionManifest?.macos?.latestVersion ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            macos: { ...prev.macos, latestVersion: e.target.value }
+                            macos: { ...(prev?.macos || {}), latestVersion: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2467,10 +2692,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Minimum Version (Force Update)</label>
                         <input
                           type="text"
-                          value={versionManifest.macos.minimumVersion || ''}
+                          value={versionManifest?.macos?.minimumVersion ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            macos: { ...prev.macos, minimumVersion: e.target.value }
+                            macos: { ...(prev?.macos || {}), minimumVersion: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />
@@ -2480,10 +2705,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">Download URL</label>
                         <input
                           type="text"
-                          value={versionManifest.macos.downloadUrl || ''}
+                          value={versionManifest?.macos?.downloadUrl ?? ''}
                           onChange={(e) => setVersionManifest((prev: any) => ({
                             ...prev,
-                            macos: { ...prev.macos, downloadUrl: e.target.value }
+                            macos: { ...(prev?.macos || {}), downloadUrl: e.target.value }
                           }))}
                           className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none"
                         />

@@ -52,10 +52,46 @@
     }
     </script>
 
-    <!-- Monetization Network Scripts -->
-    <script src="https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js"></script>
-    <script src="https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js"></script>
-    <script async="async" data-cfasync="false" src="https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js"></script>
+    <!-- Error Protection for External Scripts -->
+    <script>
+      // Catch and suppress unhandled third-party cross-origin script errors (e.g., ad networks blocked by tracking prevention or adblockers)
+      window.addEventListener('error', function (event) {
+        if (!event || event.message === 'Script error.' || (event.filename && !event.filename.includes(window.location.host))) {
+          if (event && event.preventDefault) event.preventDefault();
+          return true;
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (event) {
+        if (event && event.reason && event.reason.message && event.reason.message.includes('Script error')) {
+          if (event.preventDefault) event.preventDefault();
+        }
+      });
+    </script>
+
+    <!-- Monetization Network Scripts (Resilient async loading) -->
+    <script>
+      (function() {
+        const adScripts = [
+          "https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js",
+          "https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js",
+          "https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js"
+        ];
+        adScripts.forEach(function(src) {
+          try {
+            var s = document.createElement('script');
+            s.src = src;
+            s.async = true;
+            s.onerror = function() {
+              /* Gracefully ignore network or adblock blocks */
+            };
+            document.head.appendChild(s);
+          } catch (e) {
+            // Fail safely
+          }
+        });
+      })();
+    </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white min-h-screen overflow-x-hidden font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root"></div>

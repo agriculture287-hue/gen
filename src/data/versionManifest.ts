@@ -124,7 +124,24 @@ export function getLocalVersionManifest(): VersionManifest {
   try {
     const stored = localStorage.getItem(MANIFEST_LOCAL_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      return {
+        ...DEFAULT_VERSION_MANIFEST,
+        ...parsed,
+        android: {
+          ...DEFAULT_VERSION_MANIFEST.android,
+          ...(parsed?.android || {}),
+        },
+        windows: {
+          ...DEFAULT_VERSION_MANIFEST.windows,
+          ...(parsed?.windows || {}),
+        },
+        macos: {
+          ...DEFAULT_VERSION_MANIFEST.macos,
+          ...(parsed?.macos || {}),
+        },
+        releaseNotes: Array.isArray(parsed?.releaseNotes) ? parsed.releaseNotes : DEFAULT_VERSION_MANIFEST.releaseNotes,
+      };
     }
   } catch (e) {
     console.warn('Failed reading manifest from localStorage', e);
@@ -194,3 +211,46 @@ export function getDismissedVersion(): string | null {
     return null;
   }
 }
+
+export const TRIGGERED_UPDATE_ALERT_KEY = 'genmusic_triggered_update_alert_v1';
+export const IN_APP_UPDATE_EVENT = 'genmusic:in-app-update-alert';
+
+/**
+ * Trigger an in-app update alert locally across tabs and windows
+ */
+export function triggerLocalInAppUpdateAlert(alert: any): void {
+  try {
+    localStorage.setItem(TRIGGERED_UPDATE_ALERT_KEY, JSON.stringify(alert));
+    // Dispatch local custom event
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(IN_APP_UPDATE_EVENT, { detail: alert }));
+    }
+  } catch (e) {
+    console.warn('Error saving triggered update alert', e);
+  }
+}
+
+/**
+ * Retrieve current active triggered update alert
+ */
+export function getStoredInAppUpdateAlert(): any | null {
+  try {
+    const raw = localStorage.getItem(TRIGGERED_UPDATE_ALERT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clear or dismiss active in-app update alert
+ */
+export function clearStoredInAppUpdateAlert(): void {
+  try {
+    localStorage.removeItem(TRIGGERED_UPDATE_ALERT_KEY);
+  } catch {
+    // safe fallback
+  }
+}
+
