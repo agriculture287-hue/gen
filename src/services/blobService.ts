@@ -471,13 +471,21 @@ export class VercelBlobProvider {
       if (!res) return { success: false, error: 'Blob not found in Vercel store' };
 
       let text = '';
-      if (typeof (res as any).text === 'function') {
+      if (res && (res as any).stream) {
+        const chunks: any[] = [];
+        for await (const chunk of (res as any).stream) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        text = Buffer.concat(chunks).toString('utf8');
+      } else if (typeof (res as any).text === 'function') {
         text = await (res as any).text();
       }
 
       let data: any = undefined;
       try {
-        data = JSON.parse(text);
+        if (text) {
+          data = JSON.parse(text);
+        }
       } catch {
         // Not JSON
       }

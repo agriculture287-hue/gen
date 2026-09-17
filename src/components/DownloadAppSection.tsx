@@ -41,11 +41,40 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
   const [downloadingPlatformId, setDownloadingPlatformId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState(0);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
+  const [appVerData, setAppVerData] = useState<any>(null);
 
   useEffect(() => {
     const os = detectCurrentPlatform();
     setDetectedOS(os);
+
+    fetch('/app-version.json')
+      .then((res) => res.json())
+      .then((data) => {
+        setAppVerData(data);
+      })
+      .catch((err) => {
+        console.warn('Error fetching app-version.json:', err);
+      });
   }, []);
+
+  const mergedPlatforms = platforms.map((platform) => {
+    const overrideVersion = appVerData?.latest_version || platform.version;
+    let overrideDownloadUrl = platform.downloadUrl;
+    if (appVerData?.download_url) {
+      if (platform.platform === 'android') {
+        overrideDownloadUrl = appVerData.download_url.android || platform.downloadUrl;
+      } else if (platform.platform === 'windows') {
+        overrideDownloadUrl = appVerData.download_url.windows || platform.downloadUrl;
+      } else if (platform.platform === 'mac') {
+        overrideDownloadUrl = appVerData.download_url.macos || platform.downloadUrl;
+      }
+    }
+    return {
+      ...platform,
+      version: overrideVersion,
+      downloadUrl: overrideDownloadUrl,
+    };
+  });
 
   const triggerCelebration = () => {
     try {
@@ -214,7 +243,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 
           {/* Unified Platform Download Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            {platforms.map((platform) => {
+            {mergedPlatforms.map((platform) => {
               const isRecommended = (detectedOS === 'android' && platform.platform === 'android') ||
                 (detectedOS === 'windows' && platform.platform === 'windows') ||
                 (detectedOS === 'macos' && platform.platform === 'mac') ||

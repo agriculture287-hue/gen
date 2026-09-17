@@ -11,7 +11,7 @@ import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { BetaModal } from './components/BetaModal';
-import { AdminModal } from './components/AdminModal';
+import { DownloadsPage } from './components/DownloadsPage';
 import { InAppUpdateModal } from './components/InAppUpdateModal';
 import { AddUpdateByLinkModal } from './components/AddUpdateByLinkModal';
 import { 
@@ -53,7 +53,6 @@ export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
   const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [betaModalOpen, setBetaModalOpen] = useState(false);
-  const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [addUpdateByLinkModalOpen, setAddUpdateByLinkModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -120,14 +119,7 @@ export const App: React.FC = () => {
 
     const checkAdminRoute = () => {
       const path = window.location.pathname.toLowerCase();
-      const hash = window.location.hash.toLowerCase();
-      const search = window.location.search.toLowerCase();
-      
       setCurrentPath(path);
-
-      if (hash.includes('chutiya') || search.includes('chutiya')) {
-        setAdminModalOpen(true);
-      }
     };
 
     checkAdminRoute();
@@ -174,16 +166,6 @@ export const App: React.FC = () => {
       existing.forEach(el => el.remove());
     };
   }, [adSettings.enableAds, adSettings.popunderScriptUrl1, adSettings.popunderScriptUrl2]);
-
-  const handleCloseAdmin = () => {
-    setAdminModalOpen(false);
-    // If accessed via /chutiya URL path or hash, smoothly reset back to clean root
-    const path = window.location.pathname.toLowerCase();
-    const hash = window.location.hash.toLowerCase();
-    if (path.includes('chutiya') || hash.includes('chutiya')) {
-      window.history.replaceState({}, '', '/');
-    }
-  };
 
   const handleOpenLegalModal = (type: 'privacy' | 'terms' | 'support' | 'contact') => {
     showToast(`Opening ${type.toUpperCase()} policy document...`);
@@ -316,8 +298,23 @@ export const App: React.FC = () => {
     }
   };
 
-  if (currentPath === '/admin' || currentPath.startsWith('/admin/') || currentPath === '/chutiya' || currentPath.startsWith('/chutiya/')) {
+  if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
     return <AdminPage />;
+  }
+
+  if (currentPath === '/download' || currentPath === '/downloads') {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
+        <DownloadsPage isAdminLoggedIn={isAdminLoggedIn} />
+        <Footer 
+          onOpenLegalModal={handleOpenLegalModal}
+          onDownloadClick={() => {}}
+          onOpenAdmin={() => {}}
+          isAdminLoggedIn={isAdminLoggedIn}
+          telegramUrl={telegramConfig.contactUrl}
+        />
+      </div>
+    );
   }
 
   return (
@@ -441,39 +438,13 @@ export const App: React.FC = () => {
       <Footer 
         onOpenLegalModal={handleOpenLegalModal}
         onDownloadClick={scrollToDownload}
-        onOpenAdmin={() => setAdminModalOpen(true)}
+        onOpenAdmin={() => { window.location.pathname = '/admin'; }}
         isAdminLoggedIn={isAdminLoggedIn}
         telegramUrl={telegramConfig.contactUrl}
       />
 
       {/* Persistent Floating Sticky Bottom Ad Banner (Always visible while scrolling) */}
       <AdStickyBottomBar />
-
-      {/* Admin Management Modal (Accessible via /chutiya) */}
-      <AdminModal
-        isOpen={adminModalOpen}
-        onClose={handleCloseAdmin}
-        isAdminLoggedIn={isAdminLoggedIn}
-        onLogin={() => handleLoginStateChange(true)}
-        onLoginSuccess={() => handleLoginStateChange(true)}
-        onLogout={() => handleLoginStateChange(false)}
-        platforms={platforms}
-        onUpdatePlatforms={handleSavePlatforms}
-        onSavePlatforms={handleSavePlatforms}
-        telegramConfig={telegramConfig}
-        onUpdateTelegramConfig={handleSaveTelegram}
-        onSaveTelegramConfig={handleSaveTelegram}
-        channels={channels}
-        onUpdateChannels={handleSaveChannels}
-        onSaveChannels={handleSaveChannels}
-        updates={updates}
-        onUpdateUpdates={handleSaveUpdates}
-        onSaveUpdates={handleSaveUpdates}
-        adSettings={adSettings}
-        onUpdateAdSettings={handleSaveAdSettings}
-        onResetDefaults={handleResetDefaults}
-        onShowToast={showToast}
-      />
 
       {/* Beta Modal */}
       <BetaModal

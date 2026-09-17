@@ -16,7 +16,7 @@ import { detectCurrentPlatform, DEFAULT_VERSION_MANIFEST } from '../data/version
 import { DIRECT_SPONSOR_LINK } from './AdBanners';
 
 interface DownloadsPageProps {
-  manifest: VersionManifest;
+  manifest?: VersionManifest;
   onOpenBetaModal?: () => void;
   telegramContactUrl?: string;
   isAdminLoggedIn?: boolean;
@@ -27,10 +27,21 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
   isAdminLoggedIn = false,
 }) => {
   const [detectedOS, setDetectedOS] = useState<SupportedPlatform>('web');
+  const [appVerData, setAppVerData] = useState<any>(null);
 
   useEffect(() => {
     const os = detectCurrentPlatform();
     setDetectedOS(os);
+
+    // Fetch the live app-version.json directly from the server/CDN
+    fetch('/app-version.json')
+      .then((res) => res.json())
+      .then((data) => {
+        setAppVerData(data);
+      })
+      .catch((err) => {
+        console.warn('Error loading app-version.json:', err);
+      });
   }, []);
 
   const handleDownloadWithAd = (e: React.MouseEvent, downloadUrl: string) => {
@@ -65,8 +76,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'Android App',
       tagline: 'Direct APK Package for Phones & Tablets',
       fileFormat: '.apk',
-      version: manifest.android.latestVersion,
-      downloadUrl: '/download/genmusic.apk',
+      version: appVerData?.latest_version || manifest.android.latestVersion,
+      downloadUrl: appVerData?.download_url?.android || manifest.android.downloadUrl || '/download/genmusic.apk',
       mirrorUrl: 'https://t.me/genmusic_apk',
       fileSize: manifest.android.fileSize || '24.8 MB',
       sysReq: 'Android 8.0 Oreo or later (Android 8 - 15+)',
@@ -80,8 +91,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'Windows Desktop',
       tagline: 'Standard 64-bit Installer with Auto-Updates',
       fileFormat: '.exe',
-      version: manifest.windows.latestVersion,
-      downloadUrl: '/download/genmusic-setup.exe',
+      version: appVerData?.latest_version || manifest.windows.latestVersion,
+      downloadUrl: appVerData?.download_url?.windows || manifest.windows.downloadUrl || '/download/genmusic-setup.exe',
       mirrorUrl: 'https://t.me/genmusic_apk',
       fileSize: manifest.windows.fileSize || '56.2 MB',
       sysReq: 'Windows 10 / 11 (64-bit architecture)',
@@ -95,8 +106,8 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'macOS Desktop',
       tagline: 'Universal DMG for Apple Silicon & Intel Macs',
       fileFormat: '.dmg',
-      version: manifest.macos.latestVersion,
-      downloadUrl: '/download/genmusic.dmg',
+      version: appVerData?.latest_version || manifest.macos.latestVersion,
+      downloadUrl: appVerData?.download_url?.macos || manifest.macos.downloadUrl || '/download/genmusic.dmg',
       mirrorUrl: 'https://t.me/genmusic_official',
       fileSize: manifest.macos.fileSize || '68.4 MB',
       sysReq: 'macOS 12.0 Monterey or later (M1/M2/M3/M4 & Intel)',

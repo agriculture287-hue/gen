@@ -171,7 +171,7 @@ export const Footer: React.FC<FooterProps> = ({
             {isAdminLoggedIn && (
               <div className="pt-2 border-t border-slate-200">
                 <a
-                  href="/chutiya"
+                  href="/admin"
                   id="footer-admin-btn"
                   className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer border bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
                 >
