@@ -80,18 +80,18 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
 };
 
 export const DEFAULT_AD_SETTINGS: AdSettings = {
-  directSponsorLink: 'https://repeattelegraph.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe',
+  directSponsorLink: 'https://repeattelegraph.com/wvr8xjtukm?key=1247384491dae60d76f3cea2ff189af4',
   adsterraScriptHost: 'https://repeattelegraph.com',
-  key728x90: '4110737d8166f053b733fff6f7e13d06',
-  key468x60: '37b0c7570a229c52933ce00a9e5ef8b9',
-  key320x50: 'aa73750d369623688925d762a277e45f',
-  key300x250: '36019750f2238adf794264fc6b435242',
-  key160x300: 'ac7ea038a8b23ddb95125cadfe3d8acd',
-  key160x600: '9a699eb9dc590e52d49a7e067d74b972',
-  nativeScriptUrl: 'https://repeattelegraph.com/3617a4c3f56c896f818969f4fb731195/invoke.js',
-  nativeContainerId: 'container-3617a4c3f56c896f818969f4fb731195',
-  popunderScriptUrl1: 'https://repeattelegraph.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js',
-  popunderScriptUrl2: 'https://repeattelegraph.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js',
+  key728x90: '3635bbbdc742fefb24519c63b6bff3c5',
+  key468x60: 'f1c6f46aca31d8a642cea0cfb8809420',
+  key320x50: 'b9f225aac9d6cce00383764f5a5e0888',
+  key300x250: 'c015de54225846752d4a34b052156ee8',
+  key160x300: '8fd0348a4e76f85f02e3cfba92e5d1b5',
+  key160x600: '32c075957815f785e7ce0236d78b802b',
+  nativeScriptUrl: 'https://repeattelegraph.com/05b45b5e8a25fd475368da7053c8dd8d/invoke.js',
+  nativeContainerId: 'container-05b45b5e8a25fd475368da7053c8dd8d',
+  popunderScriptUrl1: 'https://repeattelegraph.com/59/d6/4a/59d64af1ed83ddee08ed24c679de3f7d.js',
+  popunderScriptUrl2: 'https://repeattelegraph.com/f7/ea/44/f7ea4494ea85550007019f97df638807.js',
   enableAds: true,
 };
 
@@ -246,12 +246,18 @@ export function getStoredAdSettings(): AdSettings {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && parsed.directSponsorLink) {
-        // Upgrade migration: If using old networks/domains, overwrite with new repeattelegraph.com units
-        if (!parsed.directSponsorLink.includes('repeattelegraph.com')) {
-          localStorage.setItem(STORAGE_KEYS.AD_SETTINGS, JSON.stringify(DEFAULT_AD_SETTINGS));
-          return DEFAULT_AD_SETTINGS;
+        // Upgrade migration: If using old sponsor link or old keys, update with new repeattelegraph ad keys
+        if (
+          parsed.directSponsorLink.includes('gj794uv9fq') ||
+          parsed.key728x90 === '4110737d8166f053b733fff6f7e13d06' ||
+          !parsed.key300x250 ||
+          parsed.key300x250 === '36019750f2238adf794264fc6b435242'
+        ) {
+          const updated: AdSettings = { ...DEFAULT_AD_SETTINGS, ...parsed, ...DEFAULT_AD_SETTINGS };
+          localStorage.setItem(STORAGE_KEYS.AD_SETTINGS, JSON.stringify(updated));
+          return updated;
         }
-        return parsed;
+        return { ...DEFAULT_AD_SETTINGS, ...parsed };
       }
     }
   } catch (e) {

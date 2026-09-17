@@ -56,17 +56,17 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
 
     // 2. Open actual download link after short delay
     setTimeout(() => {
+      const a = document.createElement('a');
+      a.href = downloadUrl;
       if (downloadUrl.startsWith('http')) {
-        const a = document.createElement('a');
-        a.href = downloadUrl;
         a.target = '_blank';
         a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
       } else {
-        window.location.href = downloadUrl;
+        a.target = '_self';
       }
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }, 300);
   };
 

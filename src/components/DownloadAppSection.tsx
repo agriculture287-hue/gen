@@ -57,7 +57,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       });
   }, []);
 
-  const mergedPlatforms = platforms.map((platform) => {
+  const mergedPlatforms = platforms
+    .filter((platform) => platform.platform !== 'linux' && platform.platform !== 'web' && platform.id !== 'app-linux' && platform.id !== 'app-web')
+    .map((platform) => {
     const overrideVersion = appVerData?.latest_version || platform.version;
     let overrideDownloadUrl = platform.downloadUrl;
     if (appVerData?.download_url) {
@@ -107,23 +109,27 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
           clearInterval(interval);
           setTimeout(() => {
             // Initiate direct file download from the configured URL
-            if (platform.downloadUrl && platform.downloadUrl.startsWith('http')) {
+            if (platform.downloadUrl) {
               const a = document.createElement('a');
               a.href = platform.downloadUrl;
-              a.target = '_blank';
-              a.rel = 'noopener noreferrer';
+              if (platform.downloadUrl.startsWith('http')) {
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+              } else {
+                a.target = '_self';
+              }
               document.body.appendChild(a);
               a.click();
               document.body.removeChild(a);
             } else {
-              // Fallback to mock txt file if it's a relative path/placeholder
+              // Fallback to mock txt file only if downloadUrl is completely missing
               const fileInfo = `# GEN MUSIC Official Package
 # Platform: ${platform.platform.toUpperCase()}
 # Application: ${platform.name}
 # Version: ${platform.version}
 # Architecture: ${platform.architecture || 'Universal'}
 # Format: ${platform.fileFormat}
-# Official Download URL: ${platform.downloadUrl}
+# Official Download URL: None configured
 # Telegram Community: ${telegramConfig.contactUrl}
 # Verified Safe & Clean (SHA-256 Validated)
 `;

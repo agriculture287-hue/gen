@@ -327,18 +327,18 @@ let activeAppConfig: any = {
     announcement: 'Direct APK download links, beta builds & 24/7 technical help.'
   },
   adSettings: {
-    directSponsorLink: 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe',
-    adsterraScriptHost: 'https://www.highrevenueformat.com',
-    key728x90: '4110737d8166f053b733fff6f7e13d06',
-    key468x60: '37b0c7570a229c52933ce00a9e5ef8b9',
-    key320x50: 'aa73750d369623688925d762a277e45f',
-    key300x250: '36019750f2238adf794264fc6b435242',
-    key160x300: 'ac7ea038a8b23ddb95125cadfe3d8acd',
-    key160x600: '9a699eb9dc590e52d49a7e067d74b972',
-    nativeScriptUrl: 'https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js',
-    nativeContainerId: 'container-3617a4c3f56c896f818969f4fb731195',
-    popunderScriptUrl1: 'https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js',
-    popunderScriptUrl2: 'https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js',
+    directSponsorLink: 'https://repeattelegraph.com/wvr8xjtukm?key=1247384491dae60d76f3cea2ff189af4',
+    adsterraScriptHost: 'https://repeattelegraph.com',
+    key728x90: '3635bbbdc742fefb24519c63b6bff3c5',
+    key468x60: 'f1c6f46aca31d8a642cea0cfb8809420',
+    key320x50: 'b9f225aac9d6cce00383764f5a5e0888',
+    key300x250: 'c015de54225846752d4a34b052156ee8',
+    key160x300: '8fd0348a4e76f85f02e3cfba92e5d1b5',
+    key160x600: '32c075957815f785e7ce0236d78b802b',
+    nativeScriptUrl: 'https://repeattelegraph.com/05b45b5e8a25fd475368da7053c8dd8d/invoke.js',
+    nativeContainerId: 'container-05b45b5e8a25fd475368da7053c8dd8d',
+    popunderScriptUrl1: 'https://repeattelegraph.com/59/d6/4a/59d64af1ed83ddee08ed24c679de3f7d.js',
+    popunderScriptUrl2: 'https://repeattelegraph.com/f7/ea/44/f7ea4494ea85550007019f97df638807.js',
     enableAds: true,
   },
   lastUpdated: new Date().toISOString(),
@@ -359,9 +359,27 @@ app.get('/welcome', (req, res) => {
 // SPONSOR DYNAMIC REDIRECT ENDPOINT (/api/sponsor-click)
 // Handles same-origin redirection to configured Adsterra direct link
 // ==========================================
-app.get('/api/sponsor-click', (req, res) => {
+app.get('/api/sponsor-click', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
-  let link = activeAppConfig.adSettings?.directSponsorLink || 'https://repeattelegraph.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe';
+
+  // Check live blob storage for the latest admin-configured sponsor link
+  try {
+    const liveBlobRes = await blobService.getAppData('app/genmusic-data.json');
+    if (liveBlobRes.success && liveBlobRes.data) {
+      const payload = liveBlobRes.data?.data || liveBlobRes.data;
+      if (payload?.adSettings?.directSponsorLink) {
+        let liveLink = payload.adSettings.directSponsorLink.trim();
+        if (liveLink && !liveLink.startsWith('http://') && !liveLink.startsWith('https://') && !liveLink.startsWith('//')) {
+          liveLink = 'https://' + liveLink;
+        }
+        return res.redirect(302, liveLink);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
+  let link = activeAppConfig.adSettings?.directSponsorLink || 'https://repeattelegraph.com/wvr8xjtukm?key=1247384491dae60d76f3cea2ff189af4';
   link = link.trim();
   if (link && !link.startsWith('http://') && !link.startsWith('https://') && !link.startsWith('//')) {
     link = 'https://' + link;
@@ -791,8 +809,36 @@ app.post('/api/admin/update-version', async (req, res) => {
 // /download/genmusic-setup.exe
 // /download/genmusic.dmg
 // ==========================================
-app.get('/download/genmusic.apk', (req, res) => {
+app.get('/download/genmusic.apk', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+
+  // 1. Check live app-version.json from Vercel Blob
+  try {
+    const liveAppVer = await blobService.getAppData('app-version.json');
+    if (liveAppVer.success && liveAppVer.data?.download_url?.android) {
+      const liveUrl = liveAppVer.data.download_url.android;
+      if (liveUrl && liveUrl.startsWith('http')) {
+        return res.redirect(302, liveUrl);
+      }
+    }
+  } catch (err) {
+    // Continue to fallback
+  }
+
+  // 2. Check local public/app-version.json
+  try {
+    const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
+    if (fs.existsSync(publicPath)) {
+      const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
+      if (diskData?.download_url?.android && diskData.download_url.android.startsWith('http')) {
+        return res.redirect(302, diskData.download_url.android);
+      }
+    }
+  } catch (err) {
+    // Continue to fallback
+  }
+
+  // 3. Fallback to active in-memory manifest
   const customUrl = activeVersionManifest.android.downloadUrl;
   if (customUrl && customUrl.startsWith('http')) {
     return res.redirect(302, customUrl);
@@ -800,12 +846,39 @@ app.get('/download/genmusic.apk', (req, res) => {
   if (activeVersionManifest.android.blobUrl) {
     return res.redirect(302, activeVersionManifest.android.blobUrl);
   }
-  const target = 'https://github.com/genmusic/releases/releases/download/v2.5.0/GEN_MUSIC_v2.5.0.apk';
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk';
   return res.redirect(302, target);
 });
 
-app.get('/download/genmusic-setup.exe', (req, res) => {
+app.get('/download/genmusic-setup.exe', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+
+  // 1. Check live app-version.json from Vercel Blob
+  try {
+    const liveAppVer = await blobService.getAppData('app-version.json');
+    if (liveAppVer.success && liveAppVer.data?.download_url?.windows) {
+      const liveUrl = liveAppVer.data.download_url.windows;
+      if (liveUrl && liveUrl.startsWith('http')) {
+        return res.redirect(302, liveUrl);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
+  // 2. Check local public/app-version.json
+  try {
+    const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
+    if (fs.existsSync(publicPath)) {
+      const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
+      if (diskData?.download_url?.windows && diskData.download_url.windows.startsWith('http')) {
+        return res.redirect(302, diskData.download_url.windows);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
   const customUrl = activeVersionManifest.windows.downloadUrl;
   if (customUrl && customUrl.startsWith('http')) {
     return res.redirect(302, customUrl);
@@ -813,12 +886,39 @@ app.get('/download/genmusic-setup.exe', (req, res) => {
   if (activeVersionManifest.windows.blobUrl) {
     return res.redirect(302, activeVersionManifest.windows.blobUrl);
   }
-  const target = 'https://github.com/genmusic/releases/releases/download/v2.5.0/GEN_MUSIC_Setup_v2.5.0.exe';
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk';
   return res.redirect(302, target);
 });
 
-app.get('/download/genmusic.dmg', (req, res) => {
+app.get('/download/genmusic.dmg', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+
+  // 1. Check live app-version.json from Vercel Blob
+  try {
+    const liveAppVer = await blobService.getAppData('app-version.json');
+    if (liveAppVer.success && liveAppVer.data?.download_url?.macos) {
+      const liveUrl = liveAppVer.data.download_url.macos;
+      if (liveUrl && liveUrl.startsWith('http')) {
+        return res.redirect(302, liveUrl);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
+  // 2. Check local public/app-version.json
+  try {
+    const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
+    if (fs.existsSync(publicPath)) {
+      const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
+      if (diskData?.download_url?.macos && diskData.download_url.macos.startsWith('http')) {
+        return res.redirect(302, diskData.download_url.macos);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
   const customUrl = activeVersionManifest.macos.downloadUrl;
   if (customUrl && customUrl.startsWith('http')) {
     return res.redirect(302, customUrl);
@@ -826,7 +926,7 @@ app.get('/download/genmusic.dmg', (req, res) => {
   if (activeVersionManifest.macos.blobUrl) {
     return res.redirect(302, activeVersionManifest.macos.blobUrl);
   }
-  const target = 'https://github.com/genmusic/releases/releases/download/v2.5.0/GEN_MUSIC_v2.5.0_Universal.dmg';
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk';
   return res.redirect(302, target);
 });
 
@@ -841,7 +941,7 @@ app.get('/download/:file', (req, res) => {
   if (file.includes('dmg') || file.includes('mac') || file.includes('darwin')) {
     return res.redirect(302, '/download/genmusic.dmg');
   }
-  return res.redirect(302, '/#downloads');
+  return res.redirect(302, '/download');
 });
 
 // ==========================================

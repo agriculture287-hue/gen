@@ -72,22 +72,57 @@ export const App: React.FC = () => {
   // Load from adminStore on mount and sync with Vercel Blob
   useEffect(() => {
     // 1. Immediate local state hydration
-    setPlatforms(getStoredReleases());
+    const initialPlatforms = getStoredReleases().filter(p => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
+    setPlatforms(initialPlatforms);
     setTelegramConfig(getStoredTelegramConfig());
     setChannels(getStoredChannels());
     setUpdates(getStoredUpdates());
     setIsAdminLoggedIn(isStoredAdminLoggedIn());
     setAdSettings(getStoredAdSettings());
 
-    // 2. Fetch latest live cloud state from Vercel Blob
+    // 2. Fetch latest live cloud state from Vercel Blob & app-version.json
     const fetchCloudState = async () => {
       try {
+        // Also fetch app-version.json to get direct admin configured URLs and versions
+        try {
+          const appVerRes = await fetch(`/app-version.json?t=${Date.now()}`);
+          if (appVerRes.ok) {
+            const appVerData = await appVerRes.json();
+            if (appVerData?.latest_version) {
+              setPlatforms(prevPlatforms => {
+                const current = (prevPlatforms.length > 0 ? prevPlatforms : getStoredReleases())
+                  .filter(p => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
+                return current.map(p => {
+                  let dUrl = p.downloadUrl;
+                  if (appVerData.download_url) {
+                    if (p.platform === 'android' && appVerData.download_url.android) {
+                      dUrl = appVerData.download_url.android;
+                    } else if (p.platform === 'windows' && appVerData.download_url.windows) {
+                      dUrl = appVerData.download_url.windows;
+                    } else if ((p.platform === 'mac' || p.platform === 'macos') && appVerData.download_url.macos) {
+                      dUrl = appVerData.download_url.macos;
+                    }
+                  }
+                  return {
+                    ...p,
+                    version: appVerData.latest_version,
+                    downloadUrl: dUrl
+                  };
+                });
+              });
+            }
+          }
+        } catch (appVerErr) {
+          console.warn('app-version.json fetch note:', appVerErr);
+        }
+
         const cloudRes = await loadAppDataFromBlob();
         if (cloudRes.success && cloudRes.data) {
           const cloudData = cloudRes.data;
           if (Array.isArray(cloudData.platforms) && cloudData.platforms.length > 0) {
-            setPlatforms(cloudData.platforms);
-            saveStoredReleases(cloudData.platforms);
+            const filteredPlatforms = cloudData.platforms.filter((p: any) => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
+            setPlatforms(filteredPlatforms);
+            saveStoredReleases(filteredPlatforms);
           }
           if (cloudData.telegramConfig && cloudData.telegramConfig.contactUrl) {
             setTelegramConfig(cloudData.telegramConfig);
@@ -305,7 +340,10 @@ export const App: React.FC = () => {
   if (currentPath === '/download' || currentPath === '/downloads') {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
-        <DownloadsPage isAdminLoggedIn={isAdminLoggedIn} />
+        <DownloadsPage 
+          manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
+          isAdminLoggedIn={isAdminLoggedIn} 
+        />
         <Footer 
           onOpenLegalModal={handleOpenLegalModal}
           onDownloadClick={() => {}}
@@ -327,6 +365,7 @@ export const App: React.FC = () => {
       <TopBanner 
         onDownloadClick={scrollToDownload} 
         telegramLink={telegramConfig.contactUrl} 
+        announcementText={telegramConfig.announcementText}
       />
 
       {/* 2. Navigation with Brand, Multi-platform links & Telegram (Admin triggers hidden from UI) */}

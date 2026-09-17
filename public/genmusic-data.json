@@ -4,12 +4,12 @@
       "id": "app-android",
       "name": "GEN MUSIC for Android",
       "platform": "android",
-      "version": "v2.5.0",
+      "version": "v2.0.1",
       "fileFormat": ".apk",
-      "fileSize": "24.8 MB",
+      "fileSize": "63.8 MB",
       "releaseDate": "September 2026",
       "minSystem": "Android 8.0 or later (Oreo to 15)",
-      "downloadUrl": "/download/genmusic.apk",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
       "mirrorUrl": "https://t.me/genmusic_apk",
       "architecture": "ARM64-v8a & Universal",
       "badge": "Direct APK",
@@ -30,7 +30,7 @@
       "fileSize": "68.4 MB",
       "releaseDate": "September 2026",
       "minSystem": "macOS 12.0 Monterey or later (Apple Silicon & Intel)",
-      "downloadUrl": "/download/genmusic.dmg",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
       "mirrorUrl": "https://t.me/genmusic_official",
       "architecture": "Universal (Apple Silicon + Intel)",
       "badge": "macOS DMG",
@@ -51,7 +51,7 @@
       "fileSize": "56.2 MB",
       "releaseDate": "September 2026",
       "minSystem": "Windows 10 / 11 (64-bit)",
-      "downloadUrl": "/download/genmusic-setup.exe",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
       "mirrorUrl": "https://t.me/genmusic_official",
       "architecture": "x64 / AMD64",
       "badge": "Windows Installer",
@@ -104,7 +104,7 @@
   ],
   "telegramConfig": {
     "contactUsername": "@genmusic_admin",
-    "contactUrl": "https://t.me/genmusic_admin",
+    "contactUrl": "https://t.me/genmusic",
     "announcementText": "Direct APK download links, beta builds & 24/7 technical help.",
     "supportHours": "Admin Online 24/7"
   },
@@ -194,34 +194,16 @@
   ],
   "manifest": {
     "android": {
-      "latestVersion": "1.0.1",
-      "minimumVersion": "1.0.0",
-      "downloadUrl": "https://genmugic.vercel.app/download/genmusic.apk",
-      "fileSize": "24.8 MB",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "releaseDate": "2026-09-15",
-      "mirrorUrl": "https://t.me/genmusic_apk",
-      "blobUrl": ""
+      "latestVersion": "2.0.2",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
     },
     "windows": {
-      "latestVersion": "1.0.1",
-      "minimumVersion": "1.0.0",
-      "downloadUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe",
-      "fileSize": "56.2 MB",
-      "sha256": "a12bc44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899",
-      "releaseDate": "2026-09-15",
-      "mirrorUrl": "https://t.me/genmusic_apk",
-      "blobUrl": ""
+      "latestVersion": "2.0.2",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
     },
     "macos": {
-      "latestVersion": "1.0.1",
-      "minimumVersion": "1.0.0",
-      "downloadUrl": "https://genmugic.vercel.app/download/genmusic.dmg",
-      "fileSize": "68.4 MB",
-      "sha256": "c88df44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b112",
-      "releaseDate": "2026-09-15",
-      "mirrorUrl": "https://t.me/genmusic_official",
-      "blobUrl": ""
+      "latestVersion": "2.0.2",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
     },
     "releaseNotes": [
       "Improved streaming engine with adaptive buffer management",
@@ -236,6 +218,37 @@
     "heroBadge": "New Release: v2.5.0 Available Now",
     "announcement": "Direct APK download links, beta builds & 24/7 technical help."
   },
-  "lastUpdated": "2026-09-17T08:24:08.684Z",
-  "updatedBy": "Admin Test"
+  "adSettings": {
+    "directSponsorLink": "https://repeattelegraph.com/wvr8xjtukm?key=1247384491dae60d76f3cea2ff189af4",
+    "adsterraScriptHost": "https://repeattelegraph.com",
+    "key728x90": "3635bbbdc742fefb24519c63b6bff3c5",
+    "key468x60": "f1c6f46aca31d8a642cea0cfb8809420",
+    "key320x50": "b9f225aac9d6cce00383764f5a5e0888",
+    "key300x250": "c015de54225846752d4a34b052156ee8",
+    "key160x300": "8fd0348a4e76f85f02e3cfba92e5d1b5",
+    "key160x600": "32c075957815f785e7ce0236d78b802b",
+    "nativeScriptUrl": "https://repeattelegraph.com/05b45b5e8a25fd475368da7053c8dd8d/invoke.js",
+    "nativeContainerId": "container-05b45b5e8a25fd475368da7053c8dd8d",
+    "popunderScriptUrl1": "https://repeattelegraph.com/59/d6/4a/59d64af1ed83ddee08ed24c679de3f7d.js",
+    "popunderScriptUrl2": "https://repeattelegraph.com/f7/ea/44/f7ea4494ea85550007019f97df638807.js",
+    "enableAds": true
+  },
+  "lastUpdated": "2026-09-17T15:30:25.607Z",
+  "updatedBy": "Admin (Varanasi)",
+  "appVersion": {
+    "latest_version": "2.0.2",
+    "min_supported_version": "v1.0.0",
+    "force_update": true,
+    "whats_new": [
+      "Improved streaming engine with adaptive buffer management",
+      "Better audio quality with lossless Hi-Fi & 3D Spatial Dolby preset",
+      "Playback bug fixes on background audio resume",
+      "UI enhancements with updated player bar and dark theme contrast"
+    ],
+    "download_url": {
+      "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
+      "windows": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
+      "macos": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
+    }
+  }
 }
