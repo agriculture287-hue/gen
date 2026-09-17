@@ -205,6 +205,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
                   <span>Download {p.fileFormat.toUpperCase()}</span>
                 </a>
 
+                <p className="text-[10.5px] text-amber-300/80 text-center mt-2 font-medium">
+                  💡 Opens sponsor ad tab. Simply close ad tab to finish download.
+                </p>
+
                 <div className="mt-3 flex items-center justify-center text-xs">
                   <a
                     href={p.mirrorUrl}

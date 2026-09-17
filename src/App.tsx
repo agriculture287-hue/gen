@@ -7,7 +7,6 @@ import { PremiumFeaturesSection } from './components/PremiumFeaturesSection';
 import { ScreenshotsSection } from './components/ScreenshotsSection';
 import { TelegramChannelsSection } from './components/TelegramChannelsSection';
 import { DownloadAppSection } from './components/DownloadAppSection';
-import { DownloadsPage } from './components/DownloadsPage';
 import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
 import { BetaModal } from './components/BetaModal';
@@ -264,25 +263,17 @@ export const App: React.FC = () => {
           telegramUrl={telegramConfig.contactUrl}
         />
 
-        {/* 4. Download Apps Section */}
+        {/* 4. Unified Multi-Platform Download & Release Hub */}
         <DownloadAppSection 
           platforms={platforms}
           telegramConfig={telegramConfig}
+          manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
+          isAdminLoggedIn={isAdminLoggedIn}
           onOpenBetaModal={() => setBetaModalOpen(true)}
         />
 
         {/* Sponsored Leaderboard Banner (728x90) */}
         <AdLeaderboard728x90 />
-
-        {/* 4.1 Production Multi-Platform Release Hub & Version Matrix */}
-        <div id="downloads-hub">
-          <DownloadsPage 
-            manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
-            onOpenBetaModal={() => setBetaModalOpen(true)}
-            telegramContactUrl={telegramConfig.contactUrl}
-            isAdminLoggedIn={isAdminLoggedIn}
-          />
-        </div>
 
         {/* Sponsored Native In-Feed Container */}
         <AdNativeContainer />

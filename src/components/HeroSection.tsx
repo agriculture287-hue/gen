@@ -152,116 +152,51 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             Enjoy YouTube and Spotify music in one app with offline downloads, EQ controls, Dolby support and more.
           </p>
 
-          {/* Quick Platform Download Cards Grid */}
-          <div className="w-full max-w-2xl pt-2 space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 text-left">
-              Select Your Platform to Download:
-            </div>
+          {/* Primary Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-3">
+            <button
+              onClick={() => onSelectPlatformDownload()}
+              className="px-7 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:shadow-blue-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer"
+            >
+              <Download className="w-5 h-5" />
+              <span>Download Free App</span>
+              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-mono font-bold">
+                {androidApp?.version || 'v2.5.0'}
+              </span>
+            </button>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
-              {/* 1. Android APK */}
-              <button
-                onClick={() => handlePlatformDownloadClick(androidApp?.id)}
-                className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between space-y-2 group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                    {androidApp?.version || 'v2.5.0'}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-bold text-slate-900 text-sm group-hover:text-emerald-700 transition">
-                    Android APK
-                  </div>
-                  <span className="text-[11px] text-slate-500 block">
-                    {androidApp?.fileSize || '24.8 MB'} • Free
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-emerald-600 flex items-center gap-1 pt-1">
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download APK</span>
-                </div>
-              </button>
-
-              {/* 2. Mac macOS DMG */}
-              <button
-                onClick={() => handlePlatformDownloadClick(macApp?.id)}
-                className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between space-y-2 group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-105 transition">
-                    <Laptop className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 font-bold border border-purple-200">
-                    {macApp?.version || 'v2.5.0'}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-bold text-slate-900 text-sm group-hover:text-purple-700 transition">
-                    macOS App
-                  </div>
-                  <span className="text-[11px] text-slate-500 block">
-                    {macApp?.fileSize || '68.4 MB'} • DMG
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-purple-600 flex items-center gap-1 pt-1">
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Mac</span>
-                </div>
-              </button>
-
-              {/* 3. Windows EXE */}
-              <button
-                onClick={() => handlePlatformDownloadClick(winApp?.id)}
-                className="p-4 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all text-left flex flex-col justify-between space-y-2 group cursor-pointer"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition">
-                    <Monitor className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200">
-                    {winApp?.version || 'v2.5.0'}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-bold text-slate-900 text-sm group-hover:text-blue-700 transition">
-                    Windows App
-                  </div>
-                  <span className="text-[11px] text-slate-500 block">
-                    {winApp?.fileSize || '56.2 MB'} • EXE
-                  </span>
-                </div>
-                <div className="text-xs font-bold text-blue-600 flex items-center gap-1 pt-1">
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Win</span>
-                </div>
-              </button>
-            </div>
-          </div>
-
-          {/* Secondary Actions & Telegram */}
-          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-1">
             <button
               onClick={onViewFeatures}
-              className="px-5 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer shadow-xs"
+              className="px-5 py-4 rounded-2xl bg-white border border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Explore Features</span>
-              <ArrowDown className="w-4 h-4 text-slate-400" />
             </button>
 
             <a
               href={telegramUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer"
+              className="px-5 py-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <Send className="w-4 h-4 text-blue-600" />
-              <span>Join Official Telegram Channel</span>
+              <span>Telegram Community</span>
               <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
             </a>
+          </div>
+
+          {/* Supported Platforms Indicators */}
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 text-xs text-slate-500 pt-1">
+            <span className="font-bold text-slate-600">Available on:</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-slate-700 font-semibold border border-slate-200 shadow-xs">
+              <Smartphone className="w-3.5 h-3.5 text-emerald-600" /> Android APK
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-slate-700 font-semibold border border-slate-200 shadow-xs">
+              <Monitor className="w-3.5 h-3.5 text-blue-600" /> Windows EXE
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-slate-700 font-semibold border border-slate-200 shadow-xs">
+              <Laptop className="w-3.5 h-3.5 text-purple-600" /> macOS DMG
+            </span>
+            <span className="text-slate-400">• 100% Free Forever</span>
           </div>
 
           {/* 6 Hero Bullet Features */}
