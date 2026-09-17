@@ -95,7 +95,7 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
         <span>Advertisement</span>
         <span className="text-[9px] text-slate-400 font-normal opacity-75">(Auto-refreshes 1m)</span>
       </span>
-      <div className="w-full max-w-[728px] h-[90px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80">
+      <div className="w-full max-w-[728px] h-[90px] bg-slate-100/60 rounded-xl overflow-hidden flex items-center justify-center shadow-xs border border-slate-200/80 relative">
         <iframe
           key={refreshKey}
           title="Sponsored Ad 728x90"
@@ -103,6 +103,7 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
           width="728"
           height="90"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
@@ -159,6 +160,7 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
           width="468"
           height="60"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
@@ -204,6 +206,7 @@ export const AdNativeContainer: React.FC<{ className?: string }> = ({ className 
           className="w-full min-h-[160px]"
           height="180"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
@@ -281,6 +284,7 @@ export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '
           width="320"
           height="50"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
@@ -337,6 +341,7 @@ export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = 
           width="300"
           height="250"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
@@ -393,6 +398,7 @@ export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = 
           width="160"
           height="300"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
@@ -449,6 +455,7 @@ export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = 
           width="160"
           height="600"
           scrolling="no"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-top-navigation-by-user-activation"
           style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
