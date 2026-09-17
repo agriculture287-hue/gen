@@ -34,6 +34,9 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
         <style>
           body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
         </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
       </head>
       <body>
         <script type="text/javascript">
@@ -86,6 +89,9 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
         <style>
           body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
         </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
       </head>
       <body>
         <script type="text/javascript">
@@ -128,35 +134,37 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
  * Script: https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js
  */
 export const AdNativeContainer: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
   const refreshKey = useAutoRefreshKey(60000);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Dynamically mount or re-trigger script every 60s
-    const scriptId = 'script-ad-native-3617a4c3f56c896f818969f4fb731195';
-    const existing = document.getElementById(scriptId);
-    if (existing) {
-      existing.remove();
-    }
-
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.async = true;
-    script.setAttribute('data-cfasync', 'false');
-    script.src = `https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js?ts=${Date.now()}`;
-    document.body.appendChild(script);
-  }, [refreshKey]);
+  const iframeHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
+        </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
+      </head>
+      <body>
+        <div id="container-3617a4c3f56c896f818969f4fb731195"></div>
+        <script async="async" data-cfasync="false" src="https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js"></script>
+      </body>
+    </html>
+  `;
 
   return (
-    <div className={`w-full flex flex-col items-center justify-center my-6 ${className}`}>
-      <div className="w-full max-w-4xl px-4">
-        <div 
-          key={refreshKey} 
-          id="container-3617a4c3f56c896f818969f4fb731195" 
-          ref={containerRef} 
-          className="w-full min-h-[50px]" 
+    <div className={`w-full flex flex-col items-center justify-center my-6 overflow-hidden ${className}`}>
+      <div className="w-full max-w-4xl px-4 flex justify-center">
+        <iframe
+          key={refreshKey}
+          title="Sponsored Native Container"
+          srcDoc={iframeHtml}
+          className="w-full min-h-[90px]"
+          scrolling="no"
+          style={{ border: 'none', overflow: 'hidden' }}
         />
       </div>
     </div>
@@ -199,6 +207,9 @@ export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '
         <style>
           body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
         </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
       </head>
       <body>
         <script type="text/javascript">
@@ -250,6 +261,9 @@ export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = 
         <style>
           body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
         </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
       </head>
       <body>
         <script type="text/javascript">
@@ -301,6 +315,9 @@ export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = 
         <style>
           body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
         </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
       </head>
       <body>
         <script type="text/javascript">
@@ -352,6 +369,9 @@ export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = 
         <style>
           body { margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; background: transparent; overflow: hidden; }
         </style>
+        <script>
+          window.onerror = function() { return true; };
+        </script>
       </head>
       <body>
         <script type="text/javascript">

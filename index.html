@@ -54,7 +54,17 @@
 
     <!-- Error Protection for External Scripts -->
     <script>
-      // Catch and suppress unhandled third-party cross-origin script errors (e.g., ad networks blocked by tracking prevention or adblockers)
+      // Top-level protection to suppress unhandled third-party cross-origin script errors
+      window.onerror = function (msg, url, lineNo, colNo, err) {
+        if (!msg || msg === 'Script error.' || (typeof msg === 'string' && msg.indexOf('Script error') !== -1)) {
+          return true;
+        }
+        if (url && typeof url === 'string' && url.indexOf(window.location.host) === -1 && url.indexOf('localhost') === -1) {
+          return true;
+        }
+        return false;
+      };
+
       window.addEventListener('error', function (event) {
         if (!event || event.message === 'Script error.' || (event.filename && !event.filename.includes(window.location.host))) {
           if (event && event.preventDefault) event.preventDefault();
@@ -63,34 +73,29 @@
       }, true);
 
       window.addEventListener('unhandledrejection', function (event) {
-        if (event && event.reason && event.reason.message && event.reason.message.includes('Script error')) {
-          if (event.preventDefault) event.preventDefault();
+        if (event && event.reason) {
+          var reasonStr = '' + (event.reason.message || event.reason);
+          if (reasonStr.indexOf('Script error') !== -1) {
+            if (event.preventDefault) event.preventDefault();
+          }
         }
       });
     </script>
 
-    <!-- Monetization Network Scripts (Resilient async loading) -->
+    <!-- Monetization Network (Isolated sandboxed frame) -->
     <script>
-      (function() {
-        const adScripts = [
-          "https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js",
-          "https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js",
-          "https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js"
-        ];
-        adScripts.forEach(function(src) {
-          try {
-            var s = document.createElement('script');
-            s.src = src;
-            s.async = true;
-            s.onerror = function() {
-              /* Gracefully ignore network or adblock blocks */
-            };
-            document.head.appendChild(s);
-          } catch (e) {
-            // Fail safely
-          }
-        });
-      })();
+      window.addEventListener('load', function() {
+        try {
+          var frame = document.createElement('iframe');
+          frame.style.display = 'none';
+          frame.style.width = '0px';
+          frame.style.height = '0px';
+          frame.style.border = 'none';
+          frame.title = 'Partner Network';
+          frame.srcdoc = '<!DOCTYPE html><html><head><script>window.onerror=function(){return true;};<\/script><\/head><body><script src="https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js"><\/script><script src="https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js"><\/script><\/body><\/html>';
+          document.body.appendChild(frame);
+        } catch (e) {}
+      });
     </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white min-h-screen overflow-x-hidden font-['Plus_Jakarta_Sans',sans-serif]">
