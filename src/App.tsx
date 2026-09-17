@@ -36,6 +36,8 @@ import {
   getStoredChannels, 
   getStoredUpdates,
   saveStoredUpdates,
+  getStoredAdSettings,
+  saveStoredAdSettings,
   isStoredAdminLoggedIn, 
   setStoredAdminLoggedIn,
   saveStoredReleases,
@@ -43,7 +45,7 @@ import {
   saveStoredChannels,
   resetAppToDefaults
 } from './data/adminStore';
-import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem } from './types';
+import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem, AdSettings } from './types';
 import { loadAppDataFromBlob, autoSaveAdminDataToBlob } from './lib/blobStorage';
 import { AdminPage } from './pages/AdminPage';
 
@@ -66,6 +68,7 @@ export const App: React.FC = () => {
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adSettings, setAdSettings] = useState(() => getStoredAdSettings());
 
   // Load from adminStore on mount and sync with Vercel Blob
   useEffect(() => {
@@ -75,6 +78,7 @@ export const App: React.FC = () => {
     setChannels(getStoredChannels());
     setUpdates(getStoredUpdates());
     setIsAdminLoggedIn(isStoredAdminLoggedIn());
+    setAdSettings(getStoredAdSettings());
 
     // 2. Fetch latest live cloud state from Vercel Blob
     const fetchCloudState = async () => {
@@ -97,6 +101,11 @@ export const App: React.FC = () => {
           if (Array.isArray(cloudData.updates) && cloudData.updates.length > 0) {
             setUpdates(cloudData.updates);
             saveStoredUpdates(cloudData.updates);
+          }
+          if (cloudData.adSettings) {
+            setAdSettings(cloudData.adSettings);
+            saveStoredAdSettings(cloudData.adSettings);
+            window.dispatchEvent(new Event('genmusic_ads_updated'));
           }
           if (cloudData.manifest) {
             saveLocalVersionManifest(cloudData.manifest);
@@ -130,6 +139,41 @@ export const App: React.FC = () => {
       window.removeEventListener('hashchange', checkAdminRoute);
     };
   }, []);
+
+  // Dynamically load Adsterra Popunder / Social Bar scripts if enabled
+  useEffect(() => {
+    if (!adSettings.enableAds) {
+      // Remove any existing script elements with our custom ad-scripts attribute
+      const existing = document.querySelectorAll('script[data-ad-type="popunder"]');
+      existing.forEach(el => el.remove());
+      return;
+    }
+
+    const scriptsToLoad = [adSettings.popunderScriptUrl1, adSettings.popunderScriptUrl2].filter(Boolean);
+
+    scriptsToLoad.forEach(url => {
+      // Avoid duplicates
+      if (document.querySelector(`script[src="${url}"]`)) return;
+
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = url;
+      script.async = true;
+      script.setAttribute('data-ad-type', 'popunder');
+      
+      script.onerror = () => {
+        console.warn(`Dynamic ad script failed to load: ${url}`);
+      };
+
+      document.head.appendChild(script);
+    });
+
+    return () => {
+      // Cleanup on unmount or setting changes
+      const existing = document.querySelectorAll('script[data-ad-type="popunder"]');
+      existing.forEach(el => el.remove());
+    };
+  }, [adSettings.enableAds, adSettings.popunderScriptUrl1, adSettings.popunderScriptUrl2]);
 
   const handleCloseAdmin = () => {
     setAdminModalOpen(false);
@@ -177,6 +221,7 @@ export const App: React.FC = () => {
       telegramConfig,
       channels,
       updates,
+      adSettings,
       manifest: getLocalVersionManifest(),
     });
   };
@@ -189,6 +234,7 @@ export const App: React.FC = () => {
       telegramConfig: updated,
       channels,
       updates,
+      adSettings,
       manifest: getLocalVersionManifest(),
     });
   };
@@ -201,6 +247,7 @@ export const App: React.FC = () => {
       telegramConfig,
       channels: updated,
       updates,
+      adSettings,
       manifest: getLocalVersionManifest(),
     });
   };
@@ -213,8 +260,23 @@ export const App: React.FC = () => {
       telegramConfig,
       channels,
       updates: updated,
+      adSettings,
       manifest: getLocalVersionManifest(),
     });
+  };
+
+  const handleSaveAdSettings = (updated: AdSettings) => {
+    setAdSettings(updated);
+    saveStoredAdSettings(updated);
+    autoSaveAdminDataToBlob({
+      platforms,
+      telegramConfig,
+      channels,
+      updates,
+      adSettings: updated,
+      manifest: getLocalVersionManifest(),
+    });
+    window.dispatchEvent(new Event('genmusic_ads_updated'));
   };
 
   const handleResetDefaults = () => {
@@ -223,20 +285,24 @@ export const App: React.FC = () => {
     const defTg = getStoredTelegramConfig();
     const defChannels = getStoredChannels();
     const defUpdates = getStoredUpdates();
+    const defAds = getStoredAdSettings();
     const defManifest = DEFAULT_VERSION_MANIFEST;
 
     setPlatforms(defPlatforms);
     setTelegramConfig(defTg);
     setChannels(defChannels);
     setUpdates(defUpdates);
+    setAdSettings(defAds);
 
     autoSaveAdminDataToBlob({
       platforms: defPlatforms,
       telegramConfig: defTg,
       channels: defChannels,
       updates: defUpdates,
+      adSettings: defAds,
       manifest: defManifest,
     });
+    window.dispatchEvent(new Event('genmusic_ads_updated'));
     showToast('Reset all configurations to factory defaults and saved to Vercel Blob!');
   };
 
@@ -423,6 +489,8 @@ export const App: React.FC = () => {
         updates={updates}
         onUpdateUpdates={handleSaveUpdates}
         onSaveUpdates={handleSaveUpdates}
+        adSettings={adSettings}
+        onUpdateAdSettings={handleSaveAdSettings}
         onResetDefaults={handleResetDefaults}
         onShowToast={showToast}
       />

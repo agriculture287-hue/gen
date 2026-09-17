@@ -77,8 +77,18 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
         if (prev >= 90) {
           clearInterval(interval);
           setTimeout(() => {
-            // Initiate file download
-            const fileInfo = `# GEN MUSIC Official Package
+            // Initiate direct file download from the configured URL
+            if (platform.downloadUrl && platform.downloadUrl.startsWith('http')) {
+              const a = document.createElement('a');
+              a.href = platform.downloadUrl;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            } else {
+              // Fallback to mock txt file if it's a relative path/placeholder
+              const fileInfo = `# GEN MUSIC Official Package
 # Platform: ${platform.platform.toUpperCase()}
 # Application: ${platform.name}
 # Version: ${platform.version}
@@ -88,25 +98,21 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 # Telegram Community: ${telegramConfig.contactUrl}
 # Verified Safe & Clean (SHA-256 Validated)
 `;
-            const blob = new Blob([fileInfo], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `GEN-MUSIC-${platform.platform}-${platform.version}${platform.fileFormat}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+              const blob = new Blob([fileInfo], { type: 'application/octet-stream' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `GEN-MUSIC-${platform.platform}-${platform.version}${platform.fileFormat}`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
 
             setDownloadingPlatformId(null);
             setDownloadProgress(100);
             setDownloadSuccessId(platform.id);
             triggerCelebration();
-
-            // Also open actual link if valid external link
-            if (platform.downloadUrl && platform.downloadUrl.startsWith('http')) {
-              window.open(platform.downloadUrl, '_blank');
-            }
           }, 350);
           return 95;
         }

@@ -19,6 +19,7 @@ export interface BlobPutOptions {
   addRandomSuffix?: boolean;
   platform?: 'android' | 'windows' | 'macos' | 'linux' | 'generic';
   customPath?: string;
+  allowOverwrite?: boolean;
 }
 
 export interface BlobPutResult {

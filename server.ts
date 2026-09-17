@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { blobService } from './src/services/blobService';
@@ -18,6 +17,70 @@ const upload = multer({
 
 app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ extended: true, limit: '250mb' }));
+
+let isHydrated = false;
+let isHydrating = false;
+
+async function hydrateBackendState() {
+  if (isHydrated) return;
+  if (isHydrating) {
+    while(isHydrating) { await new Promise(r => setTimeout(r, 50)); }
+    return;
+  }
+  isHydrating = true;
+  try {
+    // 1. Hydrate state from local disk if available
+    try {
+      const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
+      if (fs.existsSync(publicGenDataPath)) {
+        const diskData = JSON.parse(fs.readFileSync(publicGenDataPath, 'utf8'));
+        activeAppConfig = { ...activeAppConfig, ...diskData };
+        if (diskData.manifest) {
+          activeVersionManifest = { ...activeVersionManifest, ...diskData.manifest };
+        }
+        console.log('Successfully hydrated activeAppConfig from local disk public/genmusic-data.json.');
+      }
+    } catch (diskErr) {
+      console.warn('Could not hydrate activeAppConfig from disk on startup:', diskErr);
+    }
+
+    // 2. Hydrate state from Blob Storage (Local Provider or Vercel Mirror)
+    try {
+      const appDataResult = await blobService.getAppData('app/genmusic-data.json');
+      if (appDataResult.success && (appDataResult.data || appDataResult.rawText)) {
+        const payload = appDataResult.data || JSON.parse(appDataResult.rawText!);
+        const resolvedData = payload?.data || payload;
+        activeAppConfig = { ...activeAppConfig, ...resolvedData };
+        if (resolvedData.manifest) {
+          activeVersionManifest = { ...activeVersionManifest, ...resolvedData.manifest };
+        }
+        console.log('Successfully hydrated activeAppConfig from Blob Storage.');
+      } else {
+        const result = await blobService.getAppData('version.json');
+        if (result.success && result.data) {
+          activeVersionManifest = { ...activeVersionManifest, ...result.data };
+          console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
+        } else if (result.rawText) {
+          activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
+        }
+      }
+    } catch (err) {
+      console.warn('Notice: Could not hydrate data from Blob Storage on startup:', err);
+    }
+    
+    isHydrated = true;
+  } finally {
+    isHydrating = false;
+  }
+}
+
+// Hydration Middleware
+app.use(async (req, res, next) => {
+  if (!isHydrated) {
+    await hydrateBackendState();
+  }
+  next();
+});
 
 // Static local storage file serving
 app.use('/storage/blobs', express.static(path.join(process.cwd(), 'public', 'storage', 'blobs')));
@@ -244,6 +307,21 @@ let activeAppConfig: any = {
     heroBadge: 'New Release: v2.5.0 Available Now',
     announcement: 'Direct APK download links, beta builds & 24/7 technical help.'
   },
+  adSettings: {
+    directSponsorLink: 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe',
+    adsterraScriptHost: 'https://www.highrevenueformat.com',
+    key728x90: '4110737d8166f053b733fff6f7e13d06',
+    key468x60: '37b0c7570a229c52933ce00a9e5ef8b9',
+    key320x50: 'aa73750d369623688925d762a277e45f',
+    key300x250: '36019750f2238adf794264fc6b435242',
+    key160x300: 'ac7ea038a8b23ddb95125cadfe3d8acd',
+    key160x600: '9a699eb9dc590e52d49a7e067d74b972',
+    nativeScriptUrl: 'https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js',
+    nativeContainerId: 'container-3617a4c3f56c896f818969f4fb731195',
+    popunderScriptUrl1: 'https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js',
+    popunderScriptUrl2: 'https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js',
+    enableAds: true,
+  },
   lastUpdated: new Date().toISOString(),
   updatedBy: 'Admin (Varanasi)'
 };
@@ -256,6 +334,20 @@ app.get('/welcome', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   const greeting = process.env.GREETING || 'hello world';
   return res.json({ greeting });
+});
+
+// ==========================================
+// SPONSOR DYNAMIC REDIRECT ENDPOINT (/api/sponsor-click)
+// Handles same-origin redirection to configured Adsterra direct link
+// ==========================================
+app.get('/api/sponsor-click', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, max-age=0, must-revalidate');
+  let link = activeAppConfig.adSettings?.directSponsorLink || 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe';
+  link = link.trim();
+  if (link && !link.startsWith('http://') && !link.startsWith('https://') && !link.startsWith('//')) {
+    link = 'https://' + link;
+  }
+  return res.redirect(302, link);
 });
 
 // ==========================================
@@ -311,7 +403,7 @@ app.post('/api/avatar/upload', express.raw({ type: '*/*', limit: '50mb' }), asyn
 app.get('/version.json', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.setHeader('Content-Type', 'application/json');
   return res.json(activeVersionManifest);
 });
@@ -319,7 +411,7 @@ app.get('/version.json', (req, res) => {
 app.get('/app-version.json', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300');
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.setHeader('Content-Type', 'application/json');
   
   return res.json({
@@ -557,6 +649,11 @@ app.post('/api/admin/update-version', async (req, res) => {
 // /download/genmusic.dmg
 // ==========================================
 app.get('/download/genmusic.apk', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  const customUrl = activeVersionManifest.android.downloadUrl;
+  if (customUrl && customUrl.startsWith('http')) {
+    return res.redirect(302, customUrl);
+  }
   if (activeVersionManifest.android.blobUrl) {
     return res.redirect(302, activeVersionManifest.android.blobUrl);
   }
@@ -565,6 +662,11 @@ app.get('/download/genmusic.apk', (req, res) => {
 });
 
 app.get('/download/genmusic-setup.exe', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  const customUrl = activeVersionManifest.windows.downloadUrl;
+  if (customUrl && customUrl.startsWith('http')) {
+    return res.redirect(302, customUrl);
+  }
   if (activeVersionManifest.windows.blobUrl) {
     return res.redirect(302, activeVersionManifest.windows.blobUrl);
   }
@@ -573,6 +675,11 @@ app.get('/download/genmusic-setup.exe', (req, res) => {
 });
 
 app.get('/download/genmusic.dmg', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  const customUrl = activeVersionManifest.macos.downloadUrl;
+  if (customUrl && customUrl.startsWith('http')) {
+    return res.redirect(302, customUrl);
+  }
   if (activeVersionManifest.macos.blobUrl) {
     return res.redirect(302, activeVersionManifest.macos.blobUrl);
   }
@@ -1105,46 +1212,8 @@ app.post('/api/blob/diagnostic/chunks', upload.single('probe'), async (req, res)
 
 // Setup Vite middleware / static files
 async function startServer() {
-  // 1. Hydrate state from local disk if available
-  try {
-    const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
-    if (fs.existsSync(publicGenDataPath)) {
-      const diskData = JSON.parse(fs.readFileSync(publicGenDataPath, 'utf8'));
-      activeAppConfig = { ...activeAppConfig, ...diskData };
-      if (diskData.manifest) {
-        activeVersionManifest = { ...activeVersionManifest, ...diskData.manifest };
-      }
-      console.log('Successfully hydrated activeAppConfig from local disk public/genmusic-data.json.');
-    }
-  } catch (diskErr) {
-    console.warn('Could not hydrate activeAppConfig from disk on startup:', diskErr);
-  }
-
-  // 2. Hydrate state from Blob Storage (Local Provider or Vercel Mirror)
-  try {
-    const appDataResult = await blobService.getAppData('app/genmusic-data.json');
-    if (appDataResult.success && (appDataResult.data || appDataResult.rawText)) {
-      const payload = appDataResult.data || JSON.parse(appDataResult.rawText!);
-      const resolvedData = payload?.data || payload;
-      activeAppConfig = { ...activeAppConfig, ...resolvedData };
-      if (resolvedData.manifest) {
-        activeVersionManifest = { ...activeVersionManifest, ...resolvedData.manifest };
-      }
-      console.log('Successfully hydrated activeAppConfig from Blob Storage.');
-    } else {
-      const result = await blobService.getAppData('version.json');
-      if (result.success && result.data) {
-        activeVersionManifest = { ...activeVersionManifest, ...result.data };
-        console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
-      } else if (result.rawText) {
-        activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
-      }
-    }
-  } catch (err) {
-    console.warn('Notice: Could not hydrate data from Blob Storage on startup:', err);
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
@@ -1153,7 +1222,7 @@ async function startServer() {
       appType: 'spa',
     });
     app.use(vite.middlewares);
-  } else {
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
@@ -1161,10 +1230,16 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`GEN MUSIC Server running on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`GEN MUSIC Server running on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-startServer();
+if (!process.env.VERCEL) {
+  startServer();
+}
+
+export default app;
 

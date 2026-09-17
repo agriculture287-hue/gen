@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ExternalLink, Sparkles } from 'lucide-react';
+import { getStoredAdSettings } from '../data/adminStore';
 
-export const DIRECT_SPONSOR_LINK = 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe';
+export const DIRECT_SPONSOR_LINK = '/api/sponsor-click';
 
 /**
  * Custom hook to trigger auto-refresh every 60 seconds (1 minute)
@@ -20,11 +21,46 @@ function useAutoRefreshKey(intervalMs: number = 60000) {
 }
 
 /**
+ * Hook to retrieve ad settings and listen for updates
+ */
+export function useAdSettings() {
+  const [adSettings, setAdSettings] = useState(() => getStoredAdSettings());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setAdSettings(getStoredAdSettings());
+    };
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('genmusic_ads_updated', handleUpdate);
+    return () => {
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('genmusic_ads_updated', handleUpdate);
+    };
+  }, []);
+
+  return adSettings;
+}
+
+/**
+ * Safely format script source host to guarantee an absolute protocol-relative URL
+ */
+export function getAbsoluteScriptUrl(host: string, key: string): string {
+  if (!host) return '';
+  let cleanHost = host.replace(/^(https?:)?\/\//, '').trim();
+  if (cleanHost.endsWith('/')) {
+    cleanHost = cleanHost.slice(0, -1);
+  }
+  return `https://${cleanHost}/${key}/invoke.js`;
+}
+
+/**
  * Leaderboard Ad Unit (728x90) - Auto-refreshes every 1 min
- * key: 4110737d8166f053b733fff6f7e13d06
  */
 export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.key728x90) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -41,14 +77,14 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
       <body>
         <script type="text/javascript">
           atOptions = {
-            'key' : '4110737d8166f053b733fff6f7e13d06',
+            'key' : '${adSettings.key728x90}',
             'format' : 'iframe',
             'height' : 90,
             'width' : 728,
             'params' : {}
           };
         </script>
-        <script type="text/javascript" src="https://www.highrevenueformat.com/4110737d8166f053b733fff6f7e13d06/invoke.js"></script>
+        <script type="text/javascript" src="${getAbsoluteScriptUrl(adSettings.adsterraScriptHost, adSettings.key728x90)}"></script>
       </body>
     </html>
   `;
@@ -76,10 +112,12 @@ export const AdLeaderboard728x90: React.FC<{ className?: string }> = ({ classNam
 
 /**
  * Compact Banner Ad Unit (468x60) - Auto-refreshes every 1 min
- * key: 37b0c7570a229c52933ce00a9e5ef8b9
  */
 export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.key468x60) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -96,14 +134,14 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
       <body>
         <script type="text/javascript">
           atOptions = {
-            'key' : '37b0c7570a229c52933ce00a9e5ef8b9',
+            'key' : '${adSettings.key468x60}',
             'format' : 'iframe',
             'height' : 60,
             'width' : 468,
             'params' : {}
           };
         </script>
-        <script type="text/javascript" src="https://www.highrevenueformat.com/37b0c7570a229c52933ce00a9e5ef8b9/invoke.js"></script>
+        <script type="text/javascript" src="${getAbsoluteScriptUrl(adSettings.adsterraScriptHost, adSettings.key468x60)}"></script>
       </body>
     </html>
   `;
@@ -130,11 +168,12 @@ export const AdBanner468x60: React.FC<{ className?: string }> = ({ className = '
 
 /**
  * Native Ad Container Unit - Auto-refreshes every 1 min
- * ID: container-3617a4c3f56c896f818969f4fb731195
- * Script: https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js
  */
 export const AdNativeContainer: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.nativeContainerId || !adSettings.nativeScriptUrl) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -149,8 +188,8 @@ export const AdNativeContainer: React.FC<{ className?: string }> = ({ className 
         </script>
       </head>
       <body>
-        <div id="container-3617a4c3f56c896f818969f4fb731195"></div>
-        <script async="async" data-cfasync="false" src="https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js"></script>
+        <div id="${adSettings.nativeContainerId}"></div>
+        <script async="async" data-cfasync="false" src="${adSettings.nativeScriptUrl}"></script>
       </body>
     </html>
   `;
@@ -195,10 +234,12 @@ export const AdDirectSponsorLink: React.FC<{ label?: string; className?: string 
 
 /**
  * Mobile Banner Ad Unit (320x50) - Auto-refreshes every 1 min
- * key: aa73750d369623688925d762a277e45f
  */
 export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.key320x50) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -215,14 +256,14 @@ export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '
       <body>
         <script type="text/javascript">
           atOptions = {
-            'key' : 'aa73750d369623688925d762a277e45f',
+            'key' : '${adSettings.key320x50}',
             'format' : 'iframe',
             'height' : 50,
             'width' : 320,
             'params' : {}
           };
         </script>
-        <script type="text/javascript" src="https://www.highrevenueformat.com/aa73750d369623688925d762a277e45f/invoke.js"></script>
+        <script type="text/javascript" src="${getAbsoluteScriptUrl(adSettings.adsterraScriptHost, adSettings.key320x50)}"></script>
       </body>
     </html>
   `;
@@ -249,10 +290,12 @@ export const AdBanner320x50: React.FC<{ className?: string }> = ({ className = '
 
 /**
  * Medium Rectangle Ad Unit (300x250) - Auto-refreshes every 1 min
- * key: 36019750f2238adf794264fc6b435242
  */
 export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.key300x250) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -269,14 +312,14 @@ export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = 
       <body>
         <script type="text/javascript">
           atOptions = {
-            'key' : '36019750f2238adf794264fc6b435242',
+            'key' : '${adSettings.key300x250}',
             'format' : 'iframe',
             'height' : 250,
             'width' : 300,
             'params' : {}
           };
         </script>
-        <script type="text/javascript" src="https://www.highrevenueformat.com/36019750f2238adf794264fc6b435242/invoke.js"></script>
+        <script type="text/javascript" src="${getAbsoluteScriptUrl(adSettings.adsterraScriptHost, adSettings.key300x250)}"></script>
       </body>
     </html>
   `;
@@ -303,10 +346,12 @@ export const AdBanner300x250: React.FC<{ className?: string }> = ({ className = 
 
 /**
  * Vertical Banner Ad Unit (160x300) - Auto-refreshes every 1 min
- * key: ac7ea038a8b23ddb95125cadfe3d8acd
  */
 export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.key160x300) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -323,14 +368,14 @@ export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = 
       <body>
         <script type="text/javascript">
           atOptions = {
-            'key' : 'ac7ea038a8b23ddb95125cadfe3d8acd',
+            'key' : '${adSettings.key160x300}',
             'format' : 'iframe',
             'height' : 300,
             'width' : 160,
             'params' : {}
           };
         </script>
-        <script type="text/javascript" src="https://www.highrevenueformat.com/ac7ea038a8b23ddb95125cadfe3d8acd/invoke.js"></script>
+        <script type="text/javascript" src="${getAbsoluteScriptUrl(adSettings.adsterraScriptHost, adSettings.key160x300)}"></script>
       </body>
     </html>
   `;
@@ -357,10 +402,12 @@ export const AdBanner160x300: React.FC<{ className?: string }> = ({ className = 
 
 /**
  * Skyscraper Ad Unit (160x600) - Auto-refreshes every 1 min
- * key: 9a699eb9dc590e52d49a7e067d74b972
  */
 export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = '' }) => {
   const refreshKey = useAutoRefreshKey(60000);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds || !adSettings.key160x600) return null;
 
   const iframeHtml = `
     <!DOCTYPE html>
@@ -377,14 +424,14 @@ export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = 
       <body>
         <script type="text/javascript">
           atOptions = {
-            'key' : '9a699eb9dc590e52d49a7e067d74b972',
+            'key' : '${adSettings.key160x600}',
             'format' : 'iframe',
             'height' : 600,
             'width' : 160,
             'params' : {}
           };
         </script>
-        <script type="text/javascript" src="https://www.highrevenueformat.com/9a699eb9dc590e52d49a7e067d74b972/invoke.js"></script>
+        <script type="text/javascript" src="${getAbsoluteScriptUrl(adSettings.adsterraScriptHost, adSettings.key160x600)}"></script>
       </body>
     </html>
   `;
@@ -415,6 +462,9 @@ export const AdBanner160x600: React.FC<{ className?: string }> = ({ className = 
  * and 320x50 Mobile Banner on smaller screens (< md).
  */
 export const AdResponsiveLeaderboard: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const adSettings = useAdSettings();
+  if (!adSettings.enableAds) return null;
+
   return (
     <div className={`w-full flex flex-col items-center justify-center overflow-hidden ${className}`}>
       <div className="hidden md:flex w-full justify-center">
@@ -432,6 +482,9 @@ export const AdResponsiveLeaderboard: React.FC<{ className?: string }> = ({ clas
  * Fixed in left and right gutters for ultra-wide desktop viewports (>= 1536px / 2xl).
  */
 export const AdSideSkyscrapers: React.FC = () => {
+  const adSettings = useAdSettings();
+  if (!adSettings.enableAds) return null;
+
   return (
     <>
       <aside 
@@ -459,6 +512,9 @@ export const AdSideSkyscrapers: React.FC = () => {
  */
 export const AdStickyBottomBar: React.FC = () => {
   const [minimized, setMinimized] = useState(false);
+  const adSettings = useAdSettings();
+
+  if (!adSettings.enableAds) return null;
 
   if (minimized) {
     return (
@@ -516,6 +572,9 @@ export const AdStickyBottomBar: React.FC = () => {
  * Guarantees every single ad format is shown clearly in dedicated content cards.
  */
 export const AdShowcaseSection: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const adSettings = useAdSettings();
+  if (!adSettings.enableAds) return null;
+
   return (
     <section 
       id="sponsored-media-showcase" 
@@ -592,6 +651,9 @@ export const AdShowcaseSection: React.FC<{ className?: string }> = ({ className 
  * at the end of the page.
  */
 export const AdMultiplyMatrix10x: React.FC<{ className?: string }> = ({ className = '' }) => {
+  const adSettings = useAdSettings();
+  if (!adSettings.enableAds) return null;
+
   return (
     <section 
       id="end-page-10x-ad-matrix" 
@@ -723,5 +785,3 @@ export const AdMultiplyMatrix10x: React.FC<{ className?: string }> = ({ classNam
     </section>
   );
 };
-
-

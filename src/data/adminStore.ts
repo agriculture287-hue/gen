@@ -1,4 +1,4 @@
-import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem } from '../types';
+import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem, AdSettings } from '../types';
 import { ANNOUNCEMENT_UPDATES } from './landingData';
 
 export const ADMIN_CREDENTIALS = {
@@ -79,6 +79,22 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
   announcementText: 'Contact admin directly on Telegram for fast APK assistance, feedback, or business queries.',
 };
 
+export const DEFAULT_AD_SETTINGS: AdSettings = {
+  directSponsorLink: 'https://www.profitableratecpmnetwork.com/gj794uv9fq?key=e2dc905fa5332522e2704d3f9c63a8fe',
+  adsterraScriptHost: 'https://www.highrevenueformat.com',
+  key728x90: '4110737d8166f053b733fff6f7e13d06',
+  key468x60: '37b0c7570a229c52933ce00a9e5ef8b9',
+  key320x50: 'aa73750d369623688925d762a277e45f',
+  key300x250: '36019750f2238adf794264fc6b435242',
+  key160x300: 'ac7ea038a8b23ddb95125cadfe3d8acd',
+  key160x600: '9a699eb9dc590e52d49a7e067d74b972',
+  nativeScriptUrl: 'https://pl31365314.profitableratecpmnetwork.com/3617a4c3f56c896f818969f4fb731195/invoke.js',
+  nativeContainerId: 'container-3617a4c3f56c896f818969f4fb731195',
+  popunderScriptUrl1: 'https://pl31365312.profitableratecpmnetwork.com/8e/1e/65/8e1e656fe155c51d1af77fec25f21e56.js',
+  popunderScriptUrl2: 'https://pl31365311.profitableratecpmnetwork.com/03/60/66/0360668b9306bf8e68edf1eefb2756d5.js',
+  enableAds: true,
+};
+
 export const DEFAULT_CHANNELS: TelegramChannel[] = [
   {
     id: 'ch-1',
@@ -124,6 +140,7 @@ const STORAGE_KEYS = {
   CHANNELS: 'genmusic_channels_v1',
   UPDATES: 'genmusic_updates_v1',
   ADMIN_SESSION: 'genmusic_admin_auth_v1',
+  AD_SETTINGS: 'genmusic_ad_settings_v1',
 };
 
 // Platforms Storage
@@ -222,6 +239,30 @@ export function saveStoredUpdates(updates: UpdateItem[]): void {
   }
 }
 
+// Ad Settings Storage
+export function getStoredAdSettings(): AdSettings {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.AD_SETTINGS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.directSponsorLink) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.error('Failed reading ad settings from storage', e);
+  }
+  return DEFAULT_AD_SETTINGS;
+}
+
+export function saveStoredAdSettings(cfg: AdSettings): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.AD_SETTINGS, JSON.stringify(cfg));
+  } catch (e) {
+    console.error('Failed writing ad settings to storage', e);
+  }
+}
+
 // Admin Auth Session
 export function getAdminSession(): boolean {
   try {
@@ -260,6 +301,7 @@ export function resetAppToDefaults(): void {
     localStorage.removeItem(STORAGE_KEYS.TELEGRAM_CONFIG);
     localStorage.removeItem(STORAGE_KEYS.CHANNELS);
     localStorage.removeItem(STORAGE_KEYS.UPDATES);
+    localStorage.removeItem(STORAGE_KEYS.AD_SETTINGS);
   } catch (e) {
     console.error('Failed resetting to defaults', e);
   }

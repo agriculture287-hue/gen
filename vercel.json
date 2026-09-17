@@ -6,7 +6,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
-        { "key": "Cache-Control", "value": "public, max-age=60, s-maxage=300" },
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" },
         { "key": "Content-Type", "value": "application/json" }
       ]
     },
@@ -15,7 +15,7 @@
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
         { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" },
-        { "key": "Cache-Control", "value": "public, max-age=60, s-maxage=300" },
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" },
         { "key": "Content-Type", "value": "application/json" }
       ]
     },
@@ -23,22 +23,23 @@
       "source": "/downloads/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }
       ]
     },
     {
       "source": "/download/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        { "key": "Cache-Control", "value": "public, max-age=0, s-maxage=0, must-revalidate" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/version.json", "destination": "/version.json" },
-    { "source": "/download/genmusic.apk", "destination": "https://github.com/genmusic/releases/releases/download/v2.5.0/GEN_MUSIC_v2.5.0.apk" },
-    { "source": "/download/genmusic-setup.exe", "destination": "https://github.com/genmusic/releases/releases/download/v2.5.0/GEN_MUSIC_Setup_v2.5.0.exe" },
-    { "source": "/download/genmusic.dmg", "destination": "https://github.com/genmusic/releases/releases/download/v2.5.0/GEN_MUSIC_v2.5.0_Universal.dmg" },
+    { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/welcome", "destination": "/api/index.ts" },
+    { "source": "/version.json", "destination": "/api/index.ts" },
+    { "source": "/app-version.json", "destination": "/api/index.ts" },
+    { "source": "/download/(.*)", "destination": "/api/index.ts" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

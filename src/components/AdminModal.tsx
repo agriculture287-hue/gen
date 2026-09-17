@@ -38,8 +38,7 @@ import {
   Bell,
   Radio
 } from 'lucide-react';
-import { BlobDiagnosticModal } from './BlobDiagnosticModal';
-import { AppPlatformRelease, PlatformType, TelegramChannel, TelegramConfig, UpdateItem } from '../types';
+import { AppPlatformRelease, PlatformType, TelegramChannel, TelegramConfig, UpdateItem, AdSettings } from '../types';
 import { ADMIN_CREDENTIALS, verifyAdminCredentials } from '../data/adminStore';
 import { VersionManifest } from '../types/update';
 import { 
@@ -49,15 +48,11 @@ import {
   triggerLocalInAppUpdateAlert 
 } from '../data/versionManifest';
 import { 
-  checkBlobStatus, 
-  putBlob, 
-  testArticleBlobPut, 
   syncAppDataToBlob, 
   loadAppDataFromBlob, 
-  listBlobs, 
-  uploadAppFileToBlob,
   syncAllBackendDataToBlob,
-  BlobItem 
+  BlobItem,
+  checkBlobStatus
 } from '../lib/blobStorage';
 
 interface AdminModalProps {
@@ -79,6 +74,8 @@ interface AdminModalProps {
   updates?: UpdateItem[];
   onUpdateUpdates?: (updates: UpdateItem[]) => void;
   onSaveUpdates?: (updates: UpdateItem[]) => void;
+  adSettings?: AdSettings;
+  onUpdateAdSettings?: (cfg: AdSettings) => void;
   onResetDefaults?: () => void;
   onShowToast: (msg: string) => void;
 }
@@ -102,6 +99,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   updates = [],
   onUpdateUpdates,
   onSaveUpdates,
+  adSettings,
+  onUpdateAdSettings,
   onResetDefaults,
   onShowToast,
 }) => {
@@ -118,7 +117,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [loginError, setLoginError] = useState('');
 
   // Active Admin Tab
-  const [activeTab, setActiveTab] = useState<'apps' | 'whatsnew' | 'telegram' | 'channels' | 'version' | 'blob' | 'settings'>('apps');
+  const [activeTab, setActiveTab] = useState<'apps' | 'whatsnew' | 'telegram' | 'channels' | 'version' | 'settings'>('apps');
 
   // Version Manifest State
   const [versionManifest, setVersionManifest] = useState<VersionManifest>(() => getLocalVersionManifest());
@@ -128,26 +127,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Vercel Blob state
   const [blobStatus, setBlobStatus] = useState<{ configured: boolean; message: string }>({ configured: false, message: 'Not checked' });
   const [isCheckingBlob, setIsCheckingBlob] = useState(false);
-  const [articlePath, setArticlePath] = useState('articles/blob.txt');
-  const [articleText, setArticleText] = useState('Hello World!');
-  const [articleAccess, setArticleAccess] = useState<'private' | 'public'>('private');
-  const [isTestingArticle, setIsTestingArticle] = useState(false);
-  const [testArticleResult, setTestArticleResult] = useState<any>(null);
   const [isSyncingToBlob, setIsSyncingToBlob] = useState(false);
-  const [isLoadingFromBlob, setIsLoadingFromBlob] = useState(false);
-  const [blobList, setBlobList] = useState<BlobItem[]>([]);
-  const [loadingBlobList, setLoadingBlobList] = useState(false);
-
-  // File Upload State for Blob storage
-  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
-  const [targetPlatform, setTargetPlatform] = useState<'android' | 'windows' | 'macos' | 'generic'>('android');
-  const [customBlobPath, setCustomBlobPath] = useState('');
-  const [isUploadingBinary, setIsUploadingBinary] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadFeedback, setUploadFeedback] = useState<{ success?: boolean; message?: string; url?: string } | null>(null);
   const [isSyncingAllBackend, setIsSyncingAllBackend] = useState(false);
-  const [blobSearchFilter, setBlobSearchFilter] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isLoadingFromBlob, setIsLoadingFromBlob] = useState(false);
 
   // Safe empty form initializers to prevent uncontrolled input switching
   const EMPTY_APP_FORM: Partial<AppPlatformRelease> = {
@@ -229,9 +211,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   });
 
   // Unified All-in-One App Release Upload Form State
-  const [unifiedFile, setUnifiedFile] = useState<File | null>(null);
-  const [unifiedIsDragging, setUnifiedIsDragging] = useState(false);
-  const [unifiedUseDirectUrl, setUnifiedUseDirectUrl] = useState(false);
   const [unifiedPlatform, setUnifiedPlatform] = useState<PlatformType>('android');
   const [unifiedAppName, setUnifiedAppName] = useState('GEN MUSIC for Android');
   const [unifiedVersion, setUnifiedVersion] = useState('v2.5.1');
@@ -248,7 +227,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [unifiedAutoUpdateWhatsNew, setUnifiedAutoUpdateWhatsNew] = useState(true);
   const [unifiedAutoSaveBlob, setUnifiedAutoSaveBlob] = useState(true);
   const [isUnifiedPublishing, setIsUnifiedPublishing] = useState(false);
-  const [diagnosticModalOpen, setDiagnosticModalOpen] = useState(false);
   const [unifiedPublishResult, setUnifiedPublishResult] = useState<{
     success: boolean;
     message?: string;
@@ -256,7 +234,38 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     sha256?: string;
     fileSize?: string;
   } | null>(null);
-  const unifiedFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Local state for Ads and Monetization editing
+  const [adsForm, setAdsForm] = useState<AdSettings>(() => adSettings || {
+    directSponsorLink: '',
+    adsterraScriptHost: '',
+    key728x90: '',
+    key468x60: '',
+    key320x50: '',
+    key300x250: '',
+    key160x300: '',
+    key160x600: '',
+    nativeScriptUrl: '',
+    nativeContainerId: '',
+    popunderScriptUrl1: '',
+    popunderScriptUrl2: '',
+    enableAds: true,
+  });
+
+  // Keep local adsForm in sync with prop if it loads from server/blob later
+  React.useEffect(() => {
+    if (adSettings) {
+      setAdsForm(adSettings);
+    }
+  }, [adSettings]);
+
+  const handleSaveAds = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUpdateAdSettings) {
+      onUpdateAdSettings(adsForm);
+      onShowToast('Ads & monetization configuration saved and synced to cloud!');
+    }
+  };
 
   // Login handler
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -359,52 +368,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  const handleUnifiedFileSelected = (file: File | null) => {
-    setUnifiedFile(file);
-    setUnifiedPublishResult(null);
-    if (!file) return;
-
-    const lowerName = file.name.toLowerCase();
-    // Auto-detect version if present in filename like GEN_MUSIC_v2.6.0.apk or app-2.5.2.exe
-    const versionMatch = file.name.match(/v?(\d+\.\d+(\.\d+)?)/i);
-    if (versionMatch) {
-      setUnifiedVersion(`v${versionMatch[1]}`);
-    }
-
-    if (lowerName.endsWith('.apk')) {
-      setUnifiedPlatform('android');
-      setUnifiedAppName('GEN MUSIC for Android');
-      setUnifiedMinSystem('Android 8.0 or later (API 26+)');
-      setUnifiedArchitecture('Universal ARM64 & ARM32');
-      setUnifiedBadge('Direct APK (Latest)');
-    } else if (lowerName.endsWith('.exe') || lowerName.endsWith('.msi')) {
-      setUnifiedPlatform('windows');
-      setUnifiedAppName('GEN MUSIC for Windows');
-      setUnifiedMinSystem('Windows 10 / 11 (64-bit)');
-      setUnifiedArchitecture('x64 Native');
-      setUnifiedBadge('Official Setup (.exe)');
-    } else if (lowerName.endsWith('.dmg') || lowerName.endsWith('.pkg')) {
-      setUnifiedPlatform('mac');
-      setUnifiedAppName('GEN MUSIC for macOS');
-      setUnifiedMinSystem('macOS Monterey 12.0 or later');
-      setUnifiedArchitecture('Universal Apple Silicon & Intel');
-      setUnifiedBadge('Universal (.dmg)');
-    } else if (lowerName.endsWith('.deb') || lowerName.endsWith('.appimage')) {
-      setUnifiedPlatform('linux');
-      setUnifiedAppName('GEN MUSIC for Linux');
-      setUnifiedMinSystem('Ubuntu 20.04+ / Debian / Fedora');
-      setUnifiedArchitecture('x86_64 AppImage');
-      setUnifiedBadge('Official Linux Release');
-    }
-  };
-
   const handleUnifiedPublishRelease = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!unifiedUseDirectUrl && !unifiedFile) {
-      onShowToast('Please select or drag an app file to upload.');
-      return;
-    }
-    if (unifiedUseDirectUrl && !unifiedDirectUrl.trim()) {
+    if (!unifiedDirectUrl.trim()) {
       onShowToast('Please enter a valid download URL.');
       return;
     }
@@ -416,25 +382,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       let finalDownloadUrl = unifiedDirectUrl.trim();
       let calculatedSha256 = '';
       let calculatedFileSize = '25.0 MB';
-
-      // 1. If uploading file to Blob
-      if (!unifiedUseDirectUrl && unifiedFile) {
-        const platformKey = unifiedPlatform === 'mac' ? 'macos' : unifiedPlatform;
-        const uploadRes = await uploadAppFileToBlob(
-          unifiedFile,
-          undefined,
-          platformKey as any,
-          'public'
-        );
-
-        if (!uploadRes.success || !uploadRes.blob) {
-          throw new Error(uploadRes.error || 'Failed to upload binary to Blob storage');
-        }
-
-        finalDownloadUrl = uploadRes.blob.url;
-        calculatedSha256 = uploadRes.sha256 || '';
-        calculatedFileSize = `${(unifiedFile.size / (1024 * 1024)).toFixed(1)} MB`;
-      }
 
       // Format highlights
       const parsedHighlights = unifiedHighlightsText
@@ -690,60 +637,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     setIsCheckingBlob(true);
     try {
       const status = await checkBlobStatus();
-      setBlobStatus(status);
-      if (status.configured) {
-        await handleFetchBlobList();
-      }
+      setBlobStatus({ configured: status.configured, message: status.message || '' });
     } catch (e: any) {
-      setBlobStatus({ configured: false, message: e?.message || 'Error checking blob status' });
+      setBlobStatus({ configured: false, message: e?.message || 'Error checking status' });
     } finally {
       setIsCheckingBlob(false);
     }
   };
-
-  const handleFetchBlobList = async () => {
-    setLoadingBlobList(true);
-    try {
-      const res = await listBlobs();
-      if (res.success && Array.isArray(res.blobs)) {
-        setBlobList(res.blobs);
-      } else {
-        setBlobList([]);
-        if (res.error && !res.error.includes('not configured')) {
-          setBlobStatus(prev => ({
-            ...prev,
-            configured: false,
-            message: res.error || 'Access denied. Verify your BLOB_READ_WRITE_TOKEN.',
-          }));
-        }
-      }
-    } catch {
-      setBlobList([]);
-    } finally {
-      setLoadingBlobList(false);
-    }
-  };
-
-  const handleExecuteArticleTest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsTestingArticle(true);
-    setTestArticleResult(null);
-    try {
-      const res = await testArticleBlobPut(articleText, articlePath, articleAccess);
-      setTestArticleResult(res);
-      if (res.success) {
-        onShowToast(`Blob stored at ${articlePath} (${articleAccess})!`);
-        handleFetchBlobList();
-      } else {
-        onShowToast(res.error || 'Failed to put blob');
-      }
-    } catch (e: any) {
-      setTestArticleResult({ success: false, error: e?.message || 'Failed test' });
-    } finally {
-      setIsTestingArticle(false);
-    }
-  };
-
   const handleSyncToVercelBlob = async () => {
     setIsSyncingToBlob(true);
     try {
@@ -752,12 +652,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         telegramConfig,
         channels,
         updates,
+        adSettings,
         savedAt: new Date().toISOString(),
       };
       const res = await syncAppDataToBlob(payload);
       if (res.success) {
         onShowToast('Synchronized all app releases & data to Vercel Blob (app/genmusic-data.json)!');
-        handleFetchBlobList();
       } else {
         onShowToast(res.error || 'Sync failed. Ensure BLOB_READ_WRITE_TOKEN is set.');
       }
@@ -778,6 +678,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         if (cloudData.telegramConfig) triggerUpdateTelegram(cloudData.telegramConfig);
         if (cloudData.channels) triggerUpdateChannels(cloudData.channels);
         if (cloudData.updates) triggerUpdateUpdates(cloudData.updates);
+        if (cloudData.adSettings && onUpdateAdSettings) onUpdateAdSettings(cloudData.adSettings);
         onShowToast('Successfully loaded and imported app data from Vercel Blob!');
       } else {
         onShowToast(res.error || 'No saved cloud data found in Vercel Blob.');
@@ -789,80 +690,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  const handleBinaryFileUpload = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedUploadFile) {
-      onShowToast('Please select a file to upload first.');
-      return;
-    }
-
-    setIsUploadingBinary(true);
-    setUploadProgress(0);
-    setUploadFeedback(null);
-    try {
-      const platformArg = targetPlatform !== 'generic' ? targetPlatform : undefined;
-      const res = await uploadAppFileToBlob(
-        selectedUploadFile, 
-        customBlobPath.trim() || undefined, 
-        platformArg, 
-        'public',
-        (pct) => setUploadProgress(pct)
-      );
-
-      if (res.success && res.blob) {
-        setUploadFeedback({
-          success: true,
-          message: res.message || 'File uploaded successfully to Vercel Blob!',
-          url: res.blob.url,
-        });
-        onShowToast(`Uploaded ${selectedUploadFile.name} to Vercel Blob!`);
-
-        // If target platform was selected, automatically update the platform download link
-        if (targetPlatform !== 'generic') {
-          const platformKey = targetPlatform === 'macos' ? 'mac' : targetPlatform;
-          const matchedPlatform = platforms.find(p => p.platform === platformKey);
-          if (matchedPlatform) {
-            const updated = platforms.map(p => 
-              p.id === matchedPlatform.id 
-                ? { ...p, downloadUrl: res.blob!.url, fileSize: `${(selectedUploadFile.size / (1024 * 1024)).toFixed(1)} MB` } 
-                : p
-            );
-            triggerUpdatePlatforms(updated);
-          }
-
-          // Also update version manifest
-          setVersionManifest(prev => {
-            const current = { ...prev };
-            if (targetPlatform === 'android') current.android = { ...current.android, downloadUrl: res.blob!.url };
-            if (targetPlatform === 'windows') current.windows = { ...current.windows, downloadUrl: res.blob!.url };
-            if (targetPlatform === 'macos') current.macos = { ...current.macos, downloadUrl: res.blob!.url };
-            saveLocalVersionManifest(current);
-            return current;
-          });
-        }
-
-        // Reset file input
-        setSelectedUploadFile(null);
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        handleFetchBlobList();
-      } else {
-        setUploadFeedback({
-          success: false,
-          message: res.error || 'Failed to upload binary file to Blob storage.',
-        });
-        onShowToast(res.error || 'Upload failed');
-      }
-    } catch (e: any) {
-      setUploadFeedback({
-        success: false,
-        message: e?.message || 'Error uploading file',
-      });
-      onShowToast('Error uploading file to Blob');
-    } finally {
-      setIsUploadingBinary(false);
-    }
-  };
-
   const handleSyncAllBackend = async () => {
     setIsSyncingAllBackend(true);
     try {
@@ -871,12 +698,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         telegramConfig,
         channels,
         updates,
+        adSettings,
         manifest: versionManifest,
       };
       const res = await syncAllBackendDataToBlob(payload);
       if (res.success) {
         onShowToast('All app files, version manifests & backend data synced to Blob Storage!');
-        handleFetchBlobList();
       } else {
         onShowToast(res.error || 'Backend sync failed. Verify BLOB_READ_WRITE_TOKEN.');
       }
@@ -920,6 +747,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         telegramConfig,
         channels,
         updates,
+        adSettings,
         manifest: versionManifest,
       });
 
@@ -1236,18 +1064,15 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </button>
 
                 <button
-                  onClick={() => {
-                    setActiveTab('blob');
-                    handleRefreshBlobStatus();
-                  }}
+                  onClick={() => setActiveTab('ads')}
                   className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer flex items-center gap-2 ${
-                    activeTab === 'blob'
+                    activeTab === 'ads'
                       ? 'bg-blue-600 text-white shadow-sm'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  <Cloud className="w-4 h-4" />
-                  <span>Cloud Store (@vercel/blob)</span>
+                  <Megaphone className="w-4 h-4" />
+                  <span>Ads & Monetization</span>
                 </button>
 
                 <button
@@ -1288,131 +1113,33 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                       {/* Mode Toggle */}
                       <div className="flex items-center gap-1.5 p-1 bg-slate-200/70 rounded-xl self-start sm:self-auto">
-                        <button
-                          type="button"
-                          onClick={() => setUnifiedUseDirectUrl(false)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                            !unifiedUseDirectUrl
-                              ? 'bg-white text-blue-700 shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
-                          <FileUp className="w-3.5 h-3.5" />
-                          <span>File Upload</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUnifiedUseDirectUrl(true)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
-                            unifiedUseDirectUrl
-                              ? 'bg-white text-blue-700 shadow-xs'
-                              : 'text-slate-600 hover:text-slate-900'
-                          }`}
-                        >
+                        <span className="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-blue-700 shadow-xs">
                           <ExternalLink className="w-3.5 h-3.5" />
                           <span>Direct Link</span>
-                        </button>
+                        </span>
                       </div>
                     </div>
 
                     <form onSubmit={handleUnifiedPublishRelease} className="space-y-5">
-                      {/* Step 1: File Upload Dropzone or URL input */}
-                      {!unifiedUseDirectUrl ? (
-                        <div className="space-y-2">
-                          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                            Step 1: Choose or Drag App Installer (.apk, .exe, .dmg, .zip)
-                          </label>
-
-                          <div
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              setUnifiedIsDragging(true);
-                            }}
-                            onDragLeave={(e) => {
-                              e.preventDefault();
-                              setUnifiedIsDragging(false);
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              setUnifiedIsDragging(false);
-                              const droppedFile = e.dataTransfer.files?.[0] || null;
-                              if (droppedFile) handleUnifiedFileSelected(droppedFile);
-                            }}
-                            onClick={() => unifiedFileInputRef.current?.click()}
-                            className={`p-6 rounded-2xl border-2 border-dashed transition text-center cursor-pointer ${
-                              unifiedIsDragging
-                                ? 'border-blue-500 bg-blue-100/50 scale-[0.99]'
-                                : unifiedFile
-                                ? 'border-emerald-400 bg-emerald-50/50'
-                                : 'border-blue-300 bg-white hover:bg-blue-50/30'
-                            }`}
-                          >
-                            <input
-                              ref={unifiedFileInputRef}
-                              type="file"
-                              className="hidden"
-                              onChange={(e) => {
-                                const f = e.target.files?.[0] || null;
-                                handleUnifiedFileSelected(f);
-                              }}
-                            />
-
-                            {unifiedFile ? (
-                              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
-                                  <FileCheck className="w-6 h-6" />
-                                </div>
-                                <div className="text-left">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-slate-900 text-sm font-mono">
-                                      {unifiedFile.name}
-                                    </span>
-                                    <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
-                                      {(unifiedFile.size / (1024 * 1024)).toFixed(1)} MB
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-slate-500 mt-0.5">
-                                    File selected. Target platform and version have been auto-configured below. Click to choose another file.
-                                  </p>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="space-y-2 py-2">
-                                <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 mx-auto flex items-center justify-center shadow-xs">
-                                  <FileUp className="w-6 h-6" />
-                                </div>
-                                <div>
-                                  <p className="text-sm font-bold text-slate-800">
-                                    Click to select or drag & drop app installer file here
-                                  </p>
-                                  <p className="text-xs text-slate-500 mt-1">
-                                    Supports Android <code className="text-blue-600 font-bold font-mono">.apk</code>, Windows <code className="text-blue-600 font-bold font-mono">.exe</code>, macOS <code className="text-blue-600 font-bold font-mono">.dmg</code>, Linux <code className="text-blue-600 font-bold font-mono">.deb/.AppImage</code> (Max: 250 MB)
-                                  </p>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                      {/* Step 1: File URL input */}
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
+                          Step 1: Primary Download Link / Direct CDN URL (GitHub Release Link)
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="url"
+                            value={unifiedDirectUrl || ''}
+                            onChange={(e) => setUnifiedDirectUrl(e.target.value)}
+                            placeholder="https://github.com/genmusic/releases/download/v2.5.1/GEN_MUSIC.apk"
+                            required
+                            className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                          />
                         </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                            Step 1: Primary Download Link / Direct CDN URL
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="url"
-                              value={unifiedDirectUrl || ''}
-                              onChange={(e) => setUnifiedDirectUrl(e.target.value)}
-                              placeholder="https://github.com/genmusic/releases/download/v2.5.1/GEN_MUSIC.apk"
-                              required={unifiedUseDirectUrl}
-                              className="w-full px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-                            />
-                          </div>
-                          <p className="text-[11px] text-slate-500">
-                            Provide a direct downloadable link (GitHub Releases, Cloudflare R2, AWS S3, or direct CDN).
-                          </p>
-                        </div>
-                      )}
+                        <p className="text-[11px] text-slate-500">
+                          Provide a direct downloadable link (GitHub Releases, Cloudflare R2, AWS S3, or direct CDN).
+                        </p>
+                      </div>
 
                       {/* Step 2: Version & Platform Metadata in One Clean Grid */}
                       <div className="space-y-2">
@@ -1678,7 +1405,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                         <button
                           type="submit"
-                          disabled={isUnifiedPublishing || (!unifiedUseDirectUrl && !unifiedFile) || (unifiedUseDirectUrl && !unifiedDirectUrl.trim())}
+                          disabled={isUnifiedPublishing || !unifiedDirectUrl.trim()}
                           className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer"
                         >
                           {isUnifiedPublishing ? (
@@ -2759,205 +2486,239 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
-              {/* TAB: VERCEL BLOB STORAGE & APP BINARY UPLOADER */}
-              {activeTab === 'blob' && (
-                <div className="space-y-6">
-                  {/* Status Banner */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-                          <Cloud className="w-4 h-4" />
-                        </div>
-                        <h4 className="text-sm font-bold text-slate-900 font-heading">
-                          Vercel Blob Storage Integration
-                        </h4>
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          blobStatus.configured 
-                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' 
-                            : 'bg-amber-100 text-amber-700 border border-amber-300'
-                        }`}>
-                          {blobStatus.configured ? 'Token Connected' : 'Checking Token'}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600">
-                        {blobStatus.configured 
-                          ? 'Vercel Blob is connected. Upload application binaries and sync backend data directly to cloud storage.'
-                          : 'Ensure BLOB_READ_WRITE_TOKEN is configured in environment for production blob storage.'}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleRefreshBlobStatus}
-                        disabled={isCheckingBlob}
-                        className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer disabled:opacity-60"
-                      >
-                        <RefreshCw className={`w-3.5 h-3.5 ${isCheckingBlob ? 'animate-spin' : ''}`} />
-                        <span>{isCheckingBlob ? 'Checking...' : 'Refresh Status'}</span>
-                      </button>
-
-                      <button
-                        onClick={handleSyncAllBackend}
-                        disabled={isSyncingAllBackend}
-                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer disabled:opacity-60"
-                      >
-                        <UploadCloud className="w-4 h-4" />
-                        <span>{isSyncingAllBackend ? 'Syncing...' : 'Sync All Backend Data'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => setDiagnosticModalOpen(true)}
-                        className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm cursor-pointer"
-                      >
-                        <Activity className="w-4 h-4 text-blue-400" />
-                        <span>Run Diagnostics</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Section 1: Upload App Binary Files (APK, EXE, DMG) */}
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              {/* TAB: ADS & MONETIZATION */}
+              {activeTab === 'ads' && adsForm && (
+                <form onSubmit={handleSaveAds} className="space-y-6 max-w-3xl">
+                  <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                          <FileUp className="w-4 h-4 text-blue-600" />
-                          <span>Upload App Binary / Release File</span>
+                        <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <Megaphone className="w-5 h-5 text-blue-600" />
+                          <span>Ads & Monetization Config</span>
                         </h4>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          Upload Android .apk, Windows .exe, or macOS .dmg binaries directly to Vercel Blob.
+                          Control site-wide ad delivery, Adsterra scripts, banner placement keys, popunder URLs, and direct sponsor redirection links.
                         </p>
                       </div>
-                      <span className="text-[11px] font-semibold text-slate-400">
-                        Max Size: 250 MB
-                      </span>
+                      
+                      {/* Master Switch */}
+                      <label className="relative inline-flex items-center cursor-pointer select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={adsForm.enableAds}
+                          onChange={(e) => setAdsForm({ ...adsForm, enableAds: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        <span className="ml-2 text-xs font-bold text-slate-700">
+                          {adsForm.enableAds ? 'MONETIZATION ON' : 'MONETIZATION OFF'}
+                        </span>
+                      </label>
                     </div>
 
-                    <form onSubmit={handleBinaryFileUpload} className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* File Selector */}
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                            Choose Binary Package (.apk, .exe, .dmg, .zip, .json)
-                          </label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0] || null;
-                                setSelectedUploadFile(file);
-                                if (file) {
-                                  // Auto detect platform based on extension
-                                  const name = file.name.toLowerCase();
-                                  if (name.endsWith('.apk')) setTargetPlatform('android');
-                                  else if (name.endsWith('.exe') || name.endsWith('.msi')) setTargetPlatform('windows');
-                                  else if (name.endsWith('.dmg') || name.endsWith('.pkg')) setTargetPlatform('macos');
-                                  else setTargetPlatform('generic');
-                                }
-                              }}
-                              className="w-full text-xs text-slate-500 file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 file:cursor-pointer p-1.5 border border-slate-200 rounded-xl bg-slate-50"
-                              required
-                            />
-                          </div>
-                          {selectedUploadFile && (
-                            <p className="text-xs text-blue-600 font-medium">
-                              Selected: <span className="font-bold">{selectedUploadFile.name}</span> ({(selectedUploadFile.size / (1024 * 1024)).toFixed(2)} MB)
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Target Platform */}
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                            Target Platform Manifest Link
-                          </label>
-                          <select
-                            value={targetPlatform || ''}
-                            onChange={(e) => setTargetPlatform(e.target.value as any)}
-                            className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none"
-                          >
-                            <option value="android">Android App (updates .apk link & manifest)</option>
-                            <option value="windows">Windows App (updates .exe link & manifest)</option>
-                            <option value="macos">macOS App (updates .dmg link & manifest)</option>
-                            <option value="generic">Custom / Other File (generic pathname)</option>
-                          </select>
-                        </div>
-
-                        {/* Custom Pathname */}
-                        <div className="space-y-1.5">
-                          <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                            Custom Blob Path (Optional)
-                          </label>
-                          <input
-                            type="text"
-                            value={customBlobPath || ''}
-                            onChange={(e) => setCustomBlobPath(e.target.value)}
-                            placeholder="e.g. downloads/genmusic-v2.5.0.apk"
-                            className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-mono text-slate-800 focus:bg-white focus:outline-none"
-                          />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Sponsor Redirect Link */}
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                          <span>Sponsor Redirect Link (Direct Link URL)</span>
+                          <span className="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded">Required</span>
+                        </label>
+                        <input
+                          type="url"
+                          value={adsForm.directSponsorLink || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, directSponsorLink: e.target.value })}
+                          placeholder="e.g. https://www.profitablecpmrate.com/abcdef"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                        <p className="text-[10px] text-slate-400">
+                          When users click ad units, download mirrors, or sponsor links, they will redirect via <code className="bg-slate-100 p-0.5 rounded font-mono">/api/sponsor-click</code> to this address.
+                        </p>
                       </div>
 
-                      {isUploadingBinary && (
-                        <div className="space-y-2 p-4 rounded-xl bg-blue-50 border border-blue-200">
-                          <div className="flex items-center justify-between text-xs font-bold text-blue-900">
-                            <span>Uploading to Vercel Blob...</span>
-                            <span>{uploadProgress}%</span>
-                          </div>
-                          <div className="w-full h-2.5 rounded-full bg-blue-200 overflow-hidden">
-                            <div 
-                              className="h-full bg-blue-600 transition-all duration-300 rounded-full"
-                              style={{ width: `${uploadProgress}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {uploadFeedback && (
-                        <div className={`p-3.5 rounded-xl text-xs flex items-start gap-2.5 ${
-                          uploadFeedback.success 
-                            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                            : 'bg-rose-50 text-rose-800 border border-rose-200'
-                        }`}>
-                          {uploadFeedback.success ? (
-                            <FileCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
-                          )}
-                          <div className="space-y-1 overflow-hidden">
-                            <p className="font-semibold">{uploadFeedback.message}</p>
-                            {uploadFeedback.url && (
-                              <div className="flex items-center gap-2 pt-1 font-mono text-[11px] break-all">
-                                <span className="text-slate-500">Blob URL:</span>
-                                <a 
-                                  href={uploadFeedback.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                                >
-                                  {uploadFeedback.url}
-                                  <ExternalLink className="w-3 h-3" />
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex justify-end pt-1">
-                        <button
-                          type="submit"
-                          disabled={isUploadingBinary || !selectedUploadFile}
-                          className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 transition shadow-sm cursor-pointer disabled:opacity-50"
-                        >
-                          <FileUp className="w-4 h-4" />
-                          <span>{isUploadingBinary ? 'Uploading to Blob...' : 'Upload File to Vercel Blob'}</span>
-                        </button>
+                      {/* Adsterra Script Host */}
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Adsterra Global Script Host
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.adsterraScriptHost || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, adsterraScriptHost: e.target.value })}
+                          placeholder="e.g. www.profitablecpmrate.com"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                        <p className="text-[10px] text-slate-400">
+                          Main domain/host used by Adsterra script execution (safely proxies script downloads to avoid browser blockages).
+                        </p>
                       </div>
-                    </form>
+
+                      {/* Popunder Script URLs */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Popunder / Social Bar URL 1
+                        </label>
+                        <input
+                          type="url"
+                          value={adsForm.popunderScriptUrl1 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, popunderScriptUrl1: e.target.value })}
+                          placeholder="Popunder javascript URL"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Popunder / Social Bar URL 2
+                        </label>
+                        <input
+                          type="url"
+                          value={adsForm.popunderScriptUrl2 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, popunderScriptUrl2: e.target.value })}
+                          placeholder="Second popunder javascript URL"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
+                        />
+                      </div>
+
+                      {/* Slot Keys Heading */}
+                      <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                        <h5 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-1">
+                          Banner Placement Keys / Tag Hashes
+                        </h5>
+                        <p className="text-[10px] text-slate-400">
+                          Configure hashes generated by your Adsterra publisher dashboard for standard slots.
+                        </p>
+                      </div>
+
+                      {/* Banner Slots keys */}
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Leaderboard (728x90) Key
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.key728x90 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, key728x90: e.target.value })}
+                          placeholder="32-char slot hash"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Standard (468x60) Key
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.key468x60 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, key468x60: e.target.value })}
+                          placeholder="32-char slot hash"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Mobile Banner (320x50) Key
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.key320x50 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, key320x50: e.target.value })}
+                          placeholder="32-char slot hash"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Medium Rectangle (300x250) Key
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.key300x250 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, key300x250: e.target.value })}
+                          placeholder="32-char slot hash"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Vertical Skyscraper (160x300) Key
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.key160x300 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, key160x300: e.target.value })}
+                          placeholder="32-char slot hash"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Vertical Skyscraper (160x600) Key
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.key160x600 || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, key160x600: e.target.value })}
+                          placeholder="32-char slot hash"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                      {/* Native Ad Setup Section */}
+                      <div className="md:col-span-2 border-t border-slate-100 pt-4 mt-2">
+                        <h5 className="text-xs font-black text-slate-800 uppercase tracking-widest mb-1">
+                          Sponsored Native In-Feed Banner Config
+                        </h5>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Native Script Url
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.nativeScriptUrl || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, nativeScriptUrl: e.target.value })}
+                          placeholder="Native ad network javascript url"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                          Native Container Div ID
+                        </label>
+                        <input
+                          type="text"
+                          value={adsForm.nativeContainerId || ''}
+                          onChange={(e) => setAdsForm({ ...adsForm, nativeContainerId: e.target.value })}
+                          placeholder="Container ID (e.g. container-abcdef)"
+                          className="w-full px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white font-mono"
+                        />
+                      </div>
+
+                    </div>
+
+                    <div className="border-t border-slate-100 pt-4 flex justify-end">
+                      <button
+                        type="submit"
+                        className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-sm animate-pulse-subtle"
+                      >
+                        <Save className="w-4 h-4" />
+                        <span>Save Ads Configuration</span>
+                      </button>
+                    </div>
                   </div>
+                </form>
+              )}
 
+              {/* TAB: SETTINGS & CLOUD SYNC */}
+              {activeTab === 'settings' && (
+                <div className="space-y-6">
                   {/* Section 2: Backend Data & Releases Sync */}
                   <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -3016,154 +2777,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </div>
                     </div>
                   </div>
-
-                  {/* Section 3: Live Blob Storage Explorer */}
-                  <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                          <HardDrive className="w-4 h-4 text-slate-700" />
-                          <span>Blob Storage File Explorer ({blobList.length} files)</span>
-                        </h4>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                          List of hosted files and assets in your Vercel Blob storage bucket.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={blobSearchFilter || ''}
-                          onChange={(e) => setBlobSearchFilter(e.target.value)}
-                          placeholder="Filter files..."
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs focus:outline-none focus:border-blue-500"
-                        />
-                        <button
-                          onClick={handleFetchBlobList}
-                          disabled={loadingBlobList}
-                          className="p-1.5 text-slate-500 hover:text-slate-800 rounded-lg hover:bg-slate-100"
-                          title="Refresh list"
-                        >
-                          <RefreshCw className={`w-4 h-4 ${loadingBlobList ? 'animate-spin' : ''}`} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {loadingBlobList ? (
-                      <div className="py-8 text-center text-xs text-slate-400">
-                        <RefreshCw className="w-5 h-5 mx-auto animate-spin mb-2 text-blue-500" />
-                        Loading files from Vercel Blob...
-                      </div>
-                    ) : blobList.length === 0 ? (
-                      <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-slate-100">
-                        <FolderOpen className="w-6 h-6 mx-auto mb-1.5 text-slate-300" />
-                        No files in blob storage yet. Upload a binary or run a sync to create your first cloud blob.
-                      </div>
-                    ) : (
-                      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                        {blobList
-                          .filter(b => !blobSearchFilter || b.pathname.toLowerCase().includes(blobSearchFilter.toLowerCase()))
-                          .map((blob, idx) => (
-                            <div 
-                              key={blob.url || idx}
-                              className="p-3 rounded-xl bg-slate-50 hover:bg-blue-50/50 border border-slate-200 flex items-center justify-between gap-3 text-xs transition"
-                            >
-                              <div className="flex items-center gap-2.5 overflow-hidden">
-                                <Package className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                                <div className="overflow-hidden">
-                                  <span className="font-bold text-slate-900 font-mono truncate block">
-                                    {blob.pathname}
-                                  </span>
-                                  <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-                                    {blob.size && <span>{(blob.size / 1024).toFixed(1)} KB</span>}
-                                    {blob.uploadedAt && <span>{new Date(blob.uploadedAt).toLocaleDateString()}</span>}
-                                    {blob.contentType && <span className="font-mono text-slate-400">{blob.contentType}</span>}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(blob.url);
-                                    onShowToast('Copied Blob URL to clipboard!');
-                                  }}
-                                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300 transition"
-                                  title="Copy URL"
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </button>
-                                <a
-                                  href={blob.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-300 transition"
-                                  title="Open / Download"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </a>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Section 4: Article Test Verification */}
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
-                        <Terminal className="w-3.5 h-3.5 text-blue-600" />
-                        Direct API Blob Put Verification
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        put('articles/blob.txt', '...', &#123; access: 'private' &#125;)
-                      </span>
-                    </div>
-
-                    <form onSubmit={handleExecuteArticleTest} className="flex flex-wrap sm:flex-nowrap gap-2">
-                      <input
-                        type="text"
-                        value={articlePath || ''}
-                        onChange={(e) => setArticlePath(e.target.value)}
-                        placeholder="Path (e.g. articles/blob.txt)"
-                        className="w-full sm:w-1/3 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-mono"
-                      />
-                      <input
-                        type="text"
-                        value={articleText || ''}
-                        onChange={(e) => setArticleText(e.target.value)}
-                        placeholder="Text content"
-                        className="w-full sm:w-1/2 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs"
-                      />
-                      <select
-                        value={articleAccess || ''}
-                        onChange={(e) => setArticleAccess(e.target.value as any)}
-                        className="px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-semibold"
-                      >
-                        <option value="private">Private</option>
-                        <option value="public">Public</option>
-                      </select>
-                      <button
-                        type="submit"
-                        disabled={isTestingArticle}
-                        className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs whitespace-nowrap cursor-pointer disabled:opacity-50"
-                      >
-                        {isTestingArticle ? 'Executing...' : 'Run Put'}
-                      </button>
-                    </form>
-
-                    {testArticleResult && (
-                      <div className={`p-2.5 rounded-lg text-xs font-mono break-all ${
-                        testArticleResult.success ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
-                      }`}>
-                        {testArticleResult.success 
-                          ? `Success! URL: ${testArticleResult.blob?.url || testArticleResult.message}` 
-                          : `Error: ${testArticleResult.error}`}
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -3215,11 +2828,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         </div>
       </div>
 
-      {/* Blob Live Diagnostic Modal */}
-      <BlobDiagnosticModal
-        isOpen={diagnosticModalOpen}
-        onClose={() => setDiagnosticModalOpen(false)}
-      />
     </div>
   );
 };

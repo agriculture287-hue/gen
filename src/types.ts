@@ -111,6 +111,22 @@ export interface TelegramConfig {
   announcementText?: string;
 }
 
+export interface AdSettings {
+  directSponsorLink: string;
+  adsterraScriptHost: string;
+  key728x90: string;
+  key468x60: string;
+  key320x50: string;
+  key300x250: string;
+  key160x300: string;
+  key160x600: string;
+  nativeScriptUrl: string;
+  nativeContainerId: string;
+  popunderScriptUrl1: string;
+  popunderScriptUrl2: string;
+  enableAds: boolean;
+}
+
 export interface TelegramChannel {
   id: string;
   title: string;

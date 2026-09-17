@@ -196,24 +196,35 @@ export const InAppUpdateModal: React.FC<InAppUpdateModalProps> = ({
         if (prev >= 90) {
           clearInterval(interval);
           setTimeout(() => {
-            // Generate binary package
-            const ext = selectedPlatform === 'android' ? '.apk' : selectedPlatform === 'windows' ? '.exe' : '.dmg';
-            const packageContent = `# GEN MUSIC OFFICIAL UPDATE PACKAGE
+            // Initiate direct file download from the configured URL
+            if (targetDownloadUrl && targetDownloadUrl.startsWith('http')) {
+              const a = document.createElement('a');
+              a.href = targetDownloadUrl;
+              a.target = '_blank';
+              a.rel = 'noopener noreferrer';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+            } else {
+              // Fallback to mock txt file
+              const ext = selectedPlatform === 'android' ? '.apk' : selectedPlatform === 'windows' ? '.exe' : '.dmg';
+              const packageContent = `# GEN MUSIC OFFICIAL UPDATE PACKAGE
 # Target Platform: ${selectedPlatform.toUpperCase()}
 # Updated Version: ${activeAlert.version}
 # Release Date: ${new Date().toISOString().split('T')[0]}
 # Download URL: ${targetDownloadUrl}
 # Verified Safe, Clean & Free of Audio Commercials.
 `;
-            const blob = new Blob([packageContent], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `GEN-MUSIC-Update-${selectedPlatform}-${activeAlert.version}${ext}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+              const blob = new Blob([packageContent], { type: 'application/octet-stream' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `GEN-MUSIC-Update-${selectedPlatform}-${activeAlert.version}${ext}`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            }
 
             setIsDownloading(false);
             setDownloadProgress(100);
