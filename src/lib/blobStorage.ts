@@ -350,10 +350,37 @@ export async function loadAppDataFromBlob(): Promise<{ success: boolean; data?: 
       success: false,
       error: 'Invalid response from server',
     });
-    if (!result.success) {
-      return { success: false, error: result.error || 'Data not found in storage' };
+    if (result.success && result.payload) {
+      return { success: true, data: result.payload?.data || result.payload, source: result.source || 'blob-storage' };
     }
-    return { success: true, data: result.payload?.data || result.payload, source: result.source };
+
+    // Fallback 1: Direct backend /api/app-data
+    try {
+      const fallbackRes = await fetch('/api/app-data');
+      if (fallbackRes.ok) {
+        const fallbackData = await fallbackRes.json();
+        if (fallbackData?.success && fallbackData?.data) {
+          return { success: true, data: fallbackData.data, source: 'backend-api' };
+        }
+      }
+    } catch {
+      // Continue to next fallback
+    }
+
+    // Fallback 2: Static /genmusic-data.json
+    try {
+      const staticRes = await fetch('/genmusic-data.json');
+      if (staticRes.ok) {
+        const staticData = await staticRes.json();
+        if (staticData) {
+          return { success: true, data: staticData, source: 'static-file' };
+        }
+      }
+    } catch {
+      // Fail safely
+    }
+
+    return { success: false, error: result.error || 'Data not found in storage' };
   } catch (e: any) {
     return { success: false, error: e?.message || 'Network error' };
   }

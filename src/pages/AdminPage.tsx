@@ -26,13 +26,11 @@ import {
   UploadCloud,
   Database,
   Bell,
-  ShieldCheck,
   RotateCcw,
   Zap,
   Info,
   Eye,
-  EyeOff,
-  KeyRound
+  EyeOff
 } from 'lucide-react';
 import { 
   AppPlatformRelease, 
@@ -267,7 +265,7 @@ export const AdminPage: React.FC = () => {
         return;
       }
 
-      setLoginError(data?.error || 'Invalid password. (Default password: Ankit@123321)');
+      setLoginError(data?.error || 'Invalid password. Please enter the administrator password.');
     } catch (err) {
       console.warn('Login request network error, falling back to client credentials:', err);
       // Offline / Static deployment fallback
@@ -277,7 +275,7 @@ export const AdminPage: React.FC = () => {
         setIsAuthenticated(true);
         await hydrateAllAdminData();
       } else {
-        setLoginError('Server unreachable. Use default admin password: Ankit@123321');
+        setLoginError('Server unreachable. Please verify connection and password.');
       }
     } finally {
       setIsLoggingIn(false);
@@ -495,17 +493,7 @@ export const AdminPage: React.FC = () => {
             )}
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700 tracking-wide uppercase">Admin Password</label>
-                <button
-                  type="button"
-                  onClick={() => setPassword(ADMIN_CREDENTIALS.password)}
-                  className="text-[11px] text-blue-600 hover:text-blue-700 font-semibold cursor-pointer flex items-center gap-1"
-                >
-                  <KeyRound className="w-3 h-3" />
-                  <span>Fill default</span>
-                </button>
-              </div>
+              <label className="block text-xs font-bold text-slate-700 tracking-wide uppercase">Admin Password</label>
 
               <div className="relative">
                 <input
@@ -525,17 +513,6 @@ export const AdminPage: React.FC = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-            </div>
-
-            {/* Quick helper note for deployment */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
-              <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                <span>Default Credentials</span>
-              </div>
-              <p className="text-slate-500 leading-normal">
-                Master password: <code className="px-1.5 py-0.5 rounded bg-slate-200/80 text-slate-800 font-mono font-bold text-[10px]">Ankit@123321</code> or custom <code className="px-1 py-0.5 rounded bg-slate-200/80 text-slate-700 font-mono text-[10px]">ADMIN_PASSWORD</code>.
-              </p>
             </div>
 
             <button
@@ -1131,16 +1108,54 @@ export const AdminPage: React.FC = () => {
                             .filter(l => l.length > 0);
                           const updated = { ...editingPlatform, changelog: cleanedChangelog };
 
-                          setPlatforms(platforms.map(p => p.id === updated.id ? updated : p));
+                          const updatedPlatforms = platforms.map(p => p.id === updated.id ? updated : p);
+                          setPlatforms(updatedPlatforms);
 
                           // Keep the Versions tab (app-version.json source of truth) in sync
                           // so the live Download button reflects this edit immediately.
-                          if (updated.platform === 'android') setAndroidUrl(updated.downloadUrl.trim());
-                          if (updated.platform === 'windows') setWindowsUrl(updated.downloadUrl.trim());
-                          if (updated.platform === 'mac') setMacosUrl(updated.downloadUrl.trim());
+                          let nAndroid = androidUrl;
+                          let nWindows = windowsUrl;
+                          let nMac = macosUrl;
+                          if (updated.platform === 'android') {
+                            nAndroid = updated.downloadUrl.trim();
+                            setAndroidUrl(nAndroid);
+                          }
+                          if (updated.platform === 'windows') {
+                            nWindows = updated.downloadUrl.trim();
+                            setWindowsUrl(nWindows);
+                          }
+                          if (updated.platform === 'mac' || updated.platform === 'macos') {
+                            nMac = updated.downloadUrl.trim();
+                            setMacosUrl(nMac);
+                          }
 
                           setEditingPlatform(null);
-                          setSaveStatus({ success: true, message: `Updated specifications for ${updated.name}. Click "Save & Publish Live" to sync.` });
+                          setSaveStatus({ success: true, message: `Updated specifications for ${updated.name}. Syncing with cloud storage...` });
+                          
+                          // Persist immediately to backend & local storage
+                          saveStoredPlatforms(updatedPlatforms);
+                          syncAllBackendDataToBlob(getFullAdminPayload(updatedPlatforms)).catch(console.warn);
+                          fetch('/api/admin/update-version', {
+                            method: 'POST',
+                            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+                            body: JSON.stringify({
+                              latest_version: latestVersion.trim(),
+                              min_supported_version: minSupportedVersion.trim(),
+                              force_update: forceUpdate,
+                              whats_new: whatsNew
+                                .split('\n')
+                                .map(line => line.trim())
+                                .filter(line => line.length > 0),
+                              download_url: {
+                                android: nAndroid.trim(),
+                                windows: nWindows.trim(),
+                                macos: nMac.trim()
+                              }
+                            })
+                          }).then(() => {
+                            window.dispatchEvent(new Event('genmusic-version-updated'));
+                            setSaveStatus({ success: true, message: `Published download links and specifications for ${updated.name} successfully across all devices!` });
+                          }).catch(console.warn);
                         }}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold cursor-pointer"
                       >

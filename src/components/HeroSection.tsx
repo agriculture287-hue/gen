@@ -21,7 +21,6 @@ import {
 } from 'lucide-react';
 import { AppPlatformRelease } from '../types';
 import { GenMusicLogo } from './GenMusicLogo';
-import { DIRECT_SPONSOR_LINK } from './AdBanners';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 
@@ -121,14 +120,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     androidApp;
 
   const handlePlatformDownloadClick = (platformId?: string) => {
-    try {
-      window.open(DIRECT_SPONSOR_LINK, '_blank');
-    } catch {
-      // safe fallback
+    let target = suggestedApp?.downloadUrl;
+    if (platformId === 'android' && androidApp?.downloadUrl) target = androidApp.downloadUrl;
+    if (platformId === 'windows' && winApp?.downloadUrl) target = winApp.downloadUrl;
+    if ((platformId === 'mac' || platformId === 'macos') && macApp?.downloadUrl) target = macApp.downloadUrl;
+
+    if (target && target !== '#') {
+      const a = document.createElement('a');
+      a.href = target;
+      if (target.startsWith('http') && !target.includes(window.location.host)) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      } else {
+        a.target = '_self';
+      }
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (!target.startsWith('http')) {
+        window.location.href = target;
+      }
     }
-    setTimeout(() => {
-      onSelectPlatformDownload(platformId);
-    }, 250);
+    onSelectPlatformDownload(platformId);
   };
 
   return (

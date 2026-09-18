@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
-import { DIRECT_SPONSOR_LINK } from './AdBanners';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 
 interface DownloadsPageProps {
@@ -40,15 +39,25 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
 
-    // Fetch the live app-version.json directly from the server/CDN
-    fetch('/app-version.json')
-      .then((res) => res.json())
-      .then((data) => {
-        setAppVerData(data);
-      })
-      .catch((err) => {
-        console.warn('Error loading app-version.json:', err);
-      });
+    const loadLiveVersion = () => {
+      fetch('/app-version.json?t=' + Date.now())
+        .then((res) => res.json())
+        .then((data) => {
+          if (data) setAppVerData(data);
+        })
+        .catch((err) => {
+          console.warn('Error loading app-version.json:', err);
+        });
+    };
+
+    loadLiveVersion();
+    window.addEventListener('genmusic-version-updated', loadLiveVersion);
+    window.addEventListener('storage', loadLiveVersion);
+
+    return () => {
+      window.removeEventListener('genmusic-version-updated', loadLiveVersion);
+      window.removeEventListener('storage', loadLiveVersion);
+    };
   }, []);
 
   const handleDownload = (e: React.MouseEvent, downloadUrl: string, fileFormat: string) => {

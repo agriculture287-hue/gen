@@ -68,20 +68,44 @@ async function hydrateBackendState() {
       // 3. Hydrate state specifically from app-version.json (crucial for admin updates persistence across cold starts)
       try {
         const appVersionResult = await blobService.getAppData('app-version.json');
-        if (appVersionResult.success && appVersionResult.data) {
-          const appVer = appVersionResult.data;
-          if (appVer.latest_version) {
-            activeVersionManifest.android.latestVersion = appVer.latest_version;
-            activeVersionManifest.android.minimumVersion = appVer.min_supported_version || appVer.latest_version;
-            if (appVer.download_url?.android) activeVersionManifest.android.downloadUrl = appVer.download_url.android;
-            if (appVer.download_url?.windows) activeVersionManifest.windows.downloadUrl = appVer.download_url.windows;
-            if (appVer.download_url?.macos) activeVersionManifest.macos.downloadUrl = appVer.download_url.macos;
-            if (Array.isArray(appVer.whats_new)) activeVersionManifest.releaseNotes = appVer.whats_new;
-            console.log('Successfully hydrated activeVersionManifest from app-version.json Blob.');
+        let appVer = appVersionResult.success && appVersionResult.data ? appVersionResult.data : null;
+        
+        if (!appVer) {
+          const localAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
+          if (fs.existsSync(localAppVerPath)) {
+            try {
+              appVer = JSON.parse(fs.readFileSync(localAppVerPath, 'utf8'));
+            } catch (e) {
+              // ignore
+            }
           }
         }
+
+        if (appVer && appVer.latest_version) {
+          activeVersionManifest.android.latestVersion = appVer.latest_version;
+          activeVersionManifest.android.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+          activeVersionManifest.windows.latestVersion = appVer.latest_version;
+          activeVersionManifest.windows.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+          activeVersionManifest.macos.latestVersion = appVer.latest_version;
+          activeVersionManifest.macos.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+          if (appVer.download_url?.android) activeVersionManifest.android.downloadUrl = appVer.download_url.android;
+          if (appVer.download_url?.windows) activeVersionManifest.windows.downloadUrl = appVer.download_url.windows;
+          if (appVer.download_url?.macos) activeVersionManifest.macos.downloadUrl = appVer.download_url.macos;
+          if (Array.isArray(appVer.whats_new)) activeVersionManifest.releaseNotes = appVer.whats_new;
+          
+          // Also sync activeAppConfig platforms so /api/app-data immediately delivers the admin links
+          if (Array.isArray(activeAppConfig.platforms)) {
+            activeAppConfig.platforms.forEach((p: any) => {
+              if (p.platform === 'android' && appVer.download_url?.android) p.downloadUrl = appVer.download_url.android;
+              if (p.platform === 'windows' && appVer.download_url?.windows) p.downloadUrl = appVer.download_url.windows;
+              if ((p.platform === 'mac' || p.platform === 'macos') && appVer.download_url?.macos) p.downloadUrl = appVer.download_url.macos;
+              p.version = appVer.latest_version;
+            });
+          }
+          console.log('Successfully hydrated activeVersionManifest and platforms from app-version.json.');
+        }
       } catch (appVerErr) {
-        console.warn('Notice: Could not hydrate from app-version.json Blob on startup:', appVerErr);
+        console.warn('Notice: Could not hydrate from app-version.json on startup:', appVerErr);
       }
     } catch (err) {
       console.warn('Notice: Could not hydrate data from Blob Storage on startup:', err);
@@ -108,6 +132,31 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')
 // Helper to check token configuration
 function isBlobConfigured(): boolean {
   return blobService.isReady();
+}
+
+// Helper to write to both public and dist directories for immediate static availability
+function syncLocalStaticFiles(filename: string, content: string | object) {
+  const serialized = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+  try {
+    const publicPath = path.join(process.cwd(), 'public', filename);
+    const publicDir = path.dirname(publicPath);
+    if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+    fs.writeFileSync(publicPath, serialized, 'utf8');
+  } catch (err) {
+    console.warn(`Could not write public/${filename}:`, err);
+  }
+
+  try {
+    const distDir = path.join(process.cwd(), 'dist');
+    if (fs.existsSync(distDir)) {
+      const distPath = path.join(distDir, filename);
+      const targetDir = path.dirname(distPath);
+      if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+      fs.writeFileSync(distPath, serialized, 'utf8');
+    }
+  } catch (err) {
+    console.warn(`Could not write dist/${filename}:`, err);
+  }
 }
 
 // In-memory active version manifest fallback
@@ -583,33 +632,28 @@ app.post('/api/admin/update-version-manifest', async (req, res) => {
 
     activeVersionManifest = { ...activeVersionManifest, ...updated };
 
-    // Update local public files if present
-    try {
-      const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
-      const formattedAppVersion = {
-        latest_version: activeVersionManifest.android.latestVersion,
-        min_supported_version: activeVersionManifest.android.minimumVersion,
-        force_update: false,
-        whats_new: activeVersionManifest.releaseNotes,
-        download_url: {
-          android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
-          windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
-          macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
-        },
-      };
-      fs.writeFileSync(publicAppVerPath, JSON.stringify(formattedAppVersion, null, 2), 'utf8');
-    } catch (fsErr) {
-      console.warn('Could not write local public/app-version.json:', fsErr);
-    }
+    const formattedAppVersion = {
+      latest_version: activeVersionManifest.android.latestVersion,
+      min_supported_version: activeVersionManifest.android.minimumVersion,
+      force_update: false,
+      whats_new: activeVersionManifest.releaseNotes,
+      download_url: {
+        android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
+        windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
+        macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
+      },
+    };
 
-    // Optionally sync to Vercel Blob if token available
-    if (blobService.isReady()) {
-      try {
-        await blobService.uploadAppData('app-version.json', activeVersionManifest);
-        await blobService.uploadAppData('version.json', activeVersionManifest);
-      } catch (blobErr) {
-        console.warn('Failed saving version.json to Vercel blob:', blobErr);
-      }
+    // Update local public & dist files
+    syncLocalStaticFiles('app-version.json', formattedAppVersion);
+    syncLocalStaticFiles('version.json', activeVersionManifest);
+
+    // Sync to Blob Storage
+    try {
+      await blobService.uploadAppData('app-version.json', formattedAppVersion);
+      await blobService.uploadAppData('version.json', activeVersionManifest);
+    } catch (blobErr) {
+      console.warn('Failed saving version.json to blob storage:', blobErr);
     }
 
     return res.json({
@@ -787,7 +831,7 @@ app.post('/api/admin/login', (req, res) => {
 
     return res.status(401).json({ 
       success: false, 
-      error: 'Invalid password. Use default admin password (Ankit@123321) or configure ADMIN_PASSWORD in environment settings.' 
+      error: 'Invalid password. Please enter the administrator password.' 
     });
   } catch (err: any) {
     return res.status(500).json({ success: false, error: err.message || 'Server error' });
@@ -882,44 +926,23 @@ app.post('/api/admin/update-version', async (req, res) => {
       });
     }
 
-    // 4. Persist locally to server public files so they are immediately live and static-accessible
+    // 4. Persist locally to server static files (both public and dist)
+    syncLocalStaticFiles('app-version.json', appVersionJson);
+    syncLocalStaticFiles('version.json', activeVersionManifest);
+    syncLocalStaticFiles('genmusic-data.json', activeAppConfig);
+
+    // 5. Sync to Blob Storage (Dual local provider + Vercel Blob)
     try {
-      const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
-      fs.writeFileSync(publicAppVerPath, JSON.stringify(appVersionJson, null, 2), 'utf8');
-
-      const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
-      fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
-
-      const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
-      fs.writeFileSync(publicGenDataPath, JSON.stringify(activeAppConfig, null, 2), 'utf8');
-    } catch (fsErr) {
-      console.warn('Could not write local public files in update-version:', fsErr);
-    }
-
-    // 5. Optionally sync to Vercel Blob if token configured
-    const token = process.env.BLOB_READ_WRITE_TOKEN || blobService.getConfig().token;
-    if (token) {
-      try {
-        const { put } = await import('@vercel/blob');
-        const blob = await put('app-version.json', JSON.stringify(appVersionJson, null, 2), {
-          access: 'public',
-          addRandomSuffix: false,
-          allowOverwrite: true,
-          token: token,
-          contentType: 'application/json'
-        });
-        blobUrl = blob.url;
-
-        await put('version.json', JSON.stringify(activeVersionManifest, null, 2), {
-          access: 'public',
-          addRandomSuffix: false,
-          allowOverwrite: true,
-          token: token,
-          contentType: 'application/json'
-        });
-      } catch (putErr: any) {
-        console.warn('Notice: Vercel Blob sync failed, continuing with local persistence:', putErr?.message || putErr);
-      }
+      const appVerBlob = await blobService.uploadAppData('app-version.json', appVersionJson);
+      if (appVerBlob?.blob?.url) blobUrl = appVerBlob.blob.url;
+      await blobService.uploadAppData('version.json', activeVersionManifest);
+      await blobService.uploadAppData('app/genmusic-data.json', {
+        timestamp: new Date().toISOString(),
+        version: '2.5',
+        data: activeAppConfig,
+      });
+    } catch (blobErr: any) {
+      console.warn('Notice: Blob storage sync error in update-version:', blobErr?.message || blobErr);
     }
 
     return res.json({
@@ -1332,19 +1355,10 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app', '/api/admin/s
       },
     };
 
-    // 1. Write to local server disk (public/genmusic-data.json, public/app-version.json, public/version.json)
-    try {
-      const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
-      fs.writeFileSync(publicGenDataPath, JSON.stringify(activeAppConfig, null, 2), 'utf8');
-
-      const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
-      fs.writeFileSync(publicAppVerPath, JSON.stringify(publicAppVersion, null, 2), 'utf8');
-
-      const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
-      fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
-    } catch (fsErr) {
-      console.warn('Could not write local public version & config files:', fsErr);
-    }
+    // 1. Write to local server static files (both public and dist)
+    syncLocalStaticFiles('genmusic-data.json', activeAppConfig);
+    syncLocalStaticFiles('app-version.json', publicAppVersion);
+    syncLocalStaticFiles('version.json', activeVersionManifest);
 
     // 2. Sync to Blob Storage (Dual local disk + Vercel Blob)
     const unifiedRes = await blobService.uploadAppData('app/genmusic-data.json', {

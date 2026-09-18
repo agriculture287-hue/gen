@@ -87,25 +87,34 @@ export const App: React.FC = () => {
             appVerData = await appVerRes.json();
             if (appVerData?.latest_version) {
               setPlatforms(prevPlatforms => {
-                const current = (prevPlatforms.length > 0 ? prevPlatforms : getStoredReleases())
+                const baseList = (prevPlatforms.length >= 3 ? prevPlatforms : getStoredReleases())
                   .filter(p => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
-                return current.map(p => {
-                  let dUrl = p.downloadUrl;
-                  if (appVerData.download_url) {
-                    if (p.platform === 'android' && appVerData.download_url.android) {
-                      dUrl = appVerData.download_url.android;
-                    } else if (p.platform === 'windows' && appVerData.download_url.windows) {
-                      dUrl = appVerData.download_url.windows;
-                    } else if ((p.platform === 'mac' || p.platform === 'macos') && appVerData.download_url.macos) {
-                      dUrl = appVerData.download_url.macos;
-                    }
-                  }
-                  return {
-                    ...p,
+                
+                // Ensure android, windows, and mac are all present
+                const androidObj = baseList.find(p => p.platform === 'android') || getStoredReleases().find(p => p.platform === 'android')!;
+                const winObj = baseList.find(p => p.platform === 'windows') || getStoredReleases().find(p => p.platform === 'windows')!;
+                const macObj = baseList.find(p => p.platform === 'mac' || p.platform === 'macos') || getStoredReleases().find(p => p.platform === 'mac')!;
+
+                const updatedList = [
+                  {
+                    ...androidObj,
                     version: appVerData.latest_version,
-                    downloadUrl: dUrl
-                  };
-                });
+                    downloadUrl: appVerData.download_url?.android || androidObj.downloadUrl
+                  },
+                  {
+                    ...winObj,
+                    version: appVerData.latest_version,
+                    downloadUrl: appVerData.download_url?.windows || winObj.downloadUrl
+                  },
+                  {
+                    ...macObj,
+                    version: appVerData.latest_version,
+                    downloadUrl: appVerData.download_url?.macos || macObj.downloadUrl
+                  }
+                ];
+
+                saveStoredReleases(updatedList);
+                return updatedList;
               });
             }
           }

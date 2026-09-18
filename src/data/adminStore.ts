@@ -16,10 +16,10 @@ export const DEFAULT_PLATFORMS: AppPlatformRelease[] = [
     fileSize: '24.8 MB',
     releaseDate: 'September 2026',
     minSystem: 'Android 8.0 or later (Oreo to Android 15+)',
-    downloadUrl: '/download/genmusic.apk',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk',
     mirrorUrl: 'https://t.me/genmusic_apk',
     architecture: 'ARM64-v8a & Universal (All Devices)',
-    badge: 'Direct APK',
+    badge: 'Most Popular',
     changelog: [
       'Dolby Audio 3D spatial surround sound engine',
       'Batch offline MP3 downloader up to 320kbps',
@@ -27,6 +27,48 @@ export const DEFAULT_PLATFORMS: AppPlatformRelease[] = [
       'Zero audio advertising interruptions'
     ],
     isFeatured: true,
+  },
+  {
+    id: 'app-windows',
+    name: 'GEN MUSIC for Windows',
+    platform: 'windows',
+    version: 'v2.5.0',
+    fileFormat: '.exe',
+    fileSize: '56.2 MB',
+    releaseDate: 'September 2026',
+    minSystem: 'Windows 10 / 11 (64-bit architecture)',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg',
+    mirrorUrl: 'https://t.me/genmusic_apk',
+    architecture: 'x64 & ARM64 Architecture',
+    badge: 'Desktop Edition',
+    changelog: [
+      'Global Media Key Hotkeys & Discord Rich Presence',
+      '10-Band Graphic Equalizer with Bass Virtualizer',
+      'Local Audio File Importer with Automatic Tag Match',
+      'Silent Background Auto-Updater Engine'
+    ],
+    isFeatured: false,
+  },
+  {
+    id: 'app-macos',
+    name: 'GEN MUSIC for macOS',
+    platform: 'mac',
+    version: 'v2.5.0',
+    fileFormat: '.dmg',
+    fileSize: '68.4 MB',
+    releaseDate: 'September 2026',
+    minSystem: 'macOS 12.0 Monterey or later (Apple Silicon & Intel)',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg',
+    mirrorUrl: 'https://t.me/genmusic_official',
+    architecture: 'Universal (Apple Silicon + Intel x86_64)',
+    badge: 'Apple Silicon Ready',
+    changelog: [
+      'Native Apple Silicon M-Series Hardware Acceleration',
+      'AirPlay 2 & Spatial Audio Direct Streaming',
+      'Menu Bar Mini-Player with Track Preview',
+      'Digitally Signed & Sandboxed for Gatekeeper'
+    ],
+    isFeatured: false,
   },
 ];
 
@@ -108,10 +150,7 @@ export function getStoredPlatforms(): AppPlatformRelease[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        const androidOnly = parsed.filter((p) => p.platform === 'android');
-        if (androidOnly.length > 0) {
-          return androidOnly;
-        }
+        return parsed;
       }
     }
   } catch (e) {

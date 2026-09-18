@@ -367,8 +367,14 @@ export class VercelBlobProvider {
   public getTokenConfig(): { token?: string; storeId?: string; isConfigured: boolean; maskedToken?: string } {
     const rawToken = (
       process.env.BLOB_READ_WRITE_TOKEN ||
+      process.env.VERCEL_BLOB_READ_WRITE_TOKEN ||
+      process.env.BLOB_TOKEN ||
+      process.env.VERCEL_BLOB_TOKEN ||
+      process.env.GENMUSIC_BLOB_TOKEN ||
       process.env.Gen_READ_WRITE_TOKEN ||
       process.env.GEN_READ_WRITE_TOKEN ||
+      process.env.BLOB_READWRITE_TOKEN ||
+      process.env.STORAGE_TOKEN ||
       ''
     ).trim();
 
@@ -384,6 +390,7 @@ export class VercelBlobProvider {
 
     const rawStoreId = (
       process.env.BLOB_STORE_ID ||
+      process.env.VERCEL_BLOB_STORE_ID ||
       process.env.Gen_STORE_ID ||
       process.env.GEN_STORE_ID ||
       ''
