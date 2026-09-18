@@ -1,0 +1,125 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-primary: #f8fafc;
+    --card-bg: #ffffff;
+    --card-border: #e2e8f0;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+/* Light Surface Card Classes */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.glass-panel-subtle {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.glass-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  background: #ffffff;
+  border-color: #93c5fd;
+  box-shadow: 0 12px 28px -6px rgba(37, 99, 235, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Vibrant Glow Utilities for Light Theme */
+.neon-glow-cyan {
+  box-shadow: 0 8px 24px -4px rgba(6, 182, 212, 0.25);
+}
+
+.neon-glow-purple {
+  box-shadow: 0 8px 24px -4px rgba(147, 51, 234, 0.25);
+}
+
+.neon-glow-pink {
+  box-shadow: 0 8px 24px -4px rgba(236, 72, 153, 0.25);
+}
+
+.neon-text-cyan {
+  color: #0891b2;
+}
+
+.neon-border-cyan {
+  border-color: #06b6d4;
+}
+
+/* Custom Sleek Scrollbar for Light Theme */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Hide scrollbar for clean horizontal reels */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Light gradient background mesh */
+.bg-mesh-glow {
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.07) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.07) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(6, 182, 212, 0.04) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.06) 0px, transparent 50%);
+}
+
+/* Equalizer bar animation */
+@keyframes eqBounce {
+  0%, 100% { height: 4px; }
+  50% { height: 18px; }
+}
+
+.animate-eq-1 {
+  animation: eqBounce 0.7s ease-in-out infinite;
+}
+.animate-eq-2 {
+  animation: eqBounce 0.5s ease-in-out 0.2s infinite;
+}
+.animate-eq-3 {
+  animation: eqBounce 0.9s ease-in-out 0.4s infinite;
+}
+.animate-eq-4 {
+  animation: eqBounce 0.6s ease-in-out 0.1s infinite;
+}

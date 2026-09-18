@@ -1,0 +1,32 @@
+name: gen_music
+description: "GEN MUSIC - Music For Every Mood Flutter Client"
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.16.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP client for fetching app-version.json
+  http: ^1.2.1
+
+  # System browser launcher for redirecting to https://genmusics.vercel.app/download
+  url_launcher: ^6.3.0
+
+  # App version reader
+  package_info_plus: ^8.0.0
+
+  # Realtime WebSocket updates via Pusher
+  pusher_channels_flutter: ^2.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

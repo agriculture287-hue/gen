@@ -1,0 +1,174 @@
+{
+  "platforms": [
+    {
+      "id": "app-android",
+      "name": "GEN MUSIC for Android",
+      "platform": "android",
+      "version": "v2.0.1",
+      "fileFormat": ".apk",
+      "fileSize": "63.8 MB",
+      "releaseDate": "September 2026",
+      "minSystem": "Android 8.0 or later (Oreo to 15+)",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
+      "mirrorUrl": "https://t.me/genmusic_apk",
+      "architecture": "ARM64-v8a & Universal (All Devices)",
+      "badge": "Official APK",
+      "changelog": [
+        "Dolby Audio 3D spatial surround sound engine",
+        "Batch offline MP3 downloader up to 320kbps",
+        "Unified YouTube Music and Spotify catalogs",
+        "Zero audio advertising interruptions"
+      ],
+      "isFeatured": true
+    }
+  ],
+  "telegramConfig": {
+    "contactUsername": "@genmusic_admin",
+    "contactUrl": "https://t.me/genmusic",
+    "announcementText": "Direct APK download links, beta builds & 24/7 technical help.",
+    "supportHours": "Admin Online 24/7"
+  },
+  "channels": [
+    {
+      "id": "ch-1",
+      "title": "GEN MUSIC Official Channel",
+      "description": "The primary broadcast channel for release notes, stable APK updates, and platform announcements.",
+      "link": "https://t.me/GenMusicApp",
+      "badge": "Main Updates",
+      "memberCount": "15,400+ members"
+    },
+    {
+      "id": "ch-2",
+      "title": "APK Downloads & Mirrors",
+      "description": "Fast direct APK download mirrors, nightly beta builds, and instant installation guides.",
+      "link": "https://t.me/GenMusicApp",
+      "badge": "Direct APK",
+      "memberCount": "8,900+ members"
+    },
+    {
+      "id": "ch-3",
+      "title": "VIP Community & Discussion",
+      "description": "Community chat for music requests, feature suggestions, bug reports, and audio lovers.",
+      "link": "https://t.me/GenMusicApp",
+      "badge": "Community Chat",
+      "memberCount": "6,200+ members"
+    }
+  ],
+  "updates": [
+    {
+      "id": "up-1789631112110",
+      "version": "v2.5.1",
+      "releaseDate": "September 2026",
+      "tag": "New Release",
+      "highlights": [
+        "Audio performance improvement",
+        "Bug fixes"
+      ]
+    },
+    {
+      "id": "up-1789631110227",
+      "version": "v2.5.1",
+      "releaseDate": "September 2026",
+      "tag": "New Release",
+      "highlights": [
+        "Audio performance improvement",
+        "Bug fixes"
+      ]
+    },
+    {
+      "id": "up-1",
+      "version": "v2.5.0",
+      "releaseDate": "September 2026",
+      "tag": "Latest Release",
+      "highlights": [
+        "Added Dolby Audio 3D spatial surround sound engine",
+        "Batch offline MP3 downloader up to 320kbps with album art",
+        "Unified YouTube Music and Spotify catalog search",
+        "Zero audio commercials and uninterrupted playback"
+      ]
+    },
+    {
+      "id": "up-2",
+      "version": "v2.4.2",
+      "releaseDate": "August 2026",
+      "tag": "Performance",
+      "highlights": [
+        "50% reduction in audio buffering latency on 4G/5G",
+        "Custom 10-band equalizer presets (Bass Boost, Vocal, Club)",
+        "Sleep timer with gradual audio fade-out",
+        "Fixed background playback stopping on Android 14+"
+      ]
+    },
+    {
+      "id": "up-3",
+      "version": "v2.4.0",
+      "releaseDate": "July 2026",
+      "tag": "Major Update",
+      "highlights": [
+        "Complete OLED dark mode redesign with smooth neon accents",
+        "Real-time synchronized floating lyrics support",
+        "Lossless FLAC and Hi-Res 24-bit audio playback support",
+        "Added Telegram cloud backup for favorite playlists"
+      ]
+    }
+  ],
+  "manifest": {
+    "android": {
+      "latestVersion": "2.0.2",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
+    },
+    "windows": {
+      "latestVersion": "2.0.2",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
+    },
+    "macos": {
+      "latestVersion": "2.0.2",
+      "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
+    },
+    "releaseNotes": [
+      "Improved streaming engine with adaptive buffer management",
+      "Better audio quality with lossless Hi-Fi & 3D Spatial Dolby preset",
+      "Playback bug fixes on background audio resume",
+      "UI enhancements with updated player bar and dark theme contrast"
+    ]
+  },
+  "siteSettings": {
+    "heroTitle": "Music For Every Mood",
+    "heroSubtitle": "Stream unlimited songs, listen offline with 320kbps quality, and enjoy ad-free music across all your devices without any monthly subscriptions.",
+    "heroBadge": "New Release: v2.5.0 Available Now",
+    "announcement": "Direct APK download links, beta builds & 24/7 technical help."
+  },
+  "adSettings": {
+    "directSponsorLink": "https://repeattelegraph.com/wvr8xjtukm?key=1247384491dae60d76f3cea2ff189af4",
+    "adsterraScriptHost": "https://repeattelegraph.com",
+    "key728x90": "3635bbbdc742fefb24519c63b6bff3c5",
+    "key468x60": "f1c6f46aca31d8a642cea0cfb8809420",
+    "key320x50": "b9f225aac9d6cce00383764f5a5e0888",
+    "key300x250": "c015de54225846752d4a34b052156ee8",
+    "key160x300": "8fd0348a4e76f85f02e3cfba92e5d1b5",
+    "key160x600": "32c075957815f785e7ce0236d78b802b",
+    "nativeScriptUrl": "https://repeattelegraph.com/05b45b5e8a25fd475368da7053c8dd8d/invoke.js",
+    "nativeContainerId": "container-05b45b5e8a25fd475368da7053c8dd8d",
+    "popunderScriptUrl1": "https://repeattelegraph.com/59/d6/4a/59d64af1ed83ddee08ed24c679de3f7d.js",
+    "popunderScriptUrl2": "https://repeattelegraph.com/f7/ea/44/f7ea4494ea85550007019f97df638807.js",
+    "enableAds": true
+  },
+  "lastUpdated": "2026-09-17T15:30:25.607Z",
+  "updatedBy": "Admin (Varanasi)",
+  "appVersion": {
+    "latest_version": "2.0.2",
+    "min_supported_version": "v1.0.0",
+    "force_update": true,
+    "whats_new": [
+      "Improved streaming engine with adaptive buffer management",
+      "Better audio quality with lossless Hi-Fi & 3D Spatial Dolby preset",
+      "Playback bug fixes on background audio resume",
+      "UI enhancements with updated player bar and dark theme contrast"
+    ],
+    "download_url": {
+      "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
+      "windows": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk",
+      "macos": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk"
+    }
+  }
+}
