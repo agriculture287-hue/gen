@@ -20,6 +20,7 @@ import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { AdDirectSponsorLink } from './AdBanners';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
+import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -34,7 +35,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 }) => {
   const [downloadingPlatformId, setDownloadingPlatformId] = useState<string | null>(null);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
-  const [appVerData, setAppVerData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'android' | 'windows' | 'macos'>('all');
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
@@ -46,31 +46,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
-  }, []);
-
-  const fetchVersionData = () => {
-    fetch('/app-version.json?t=' + Date.now())
-      .then((res) => res.json())
-      .then((data) => {
-        setAppVerData(data);
-      })
-      .catch((err) => {
-        console.warn('Notice: Could not load app-version.json:', err);
-      });
-  };
-
-  useEffect(() => {
-    fetchVersionData();
-
-    // Listen for live updates broadcast by admin panel
-    const handleStorageChange = () => fetchVersionData();
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('genmusic-version-updated', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('genmusic-version-updated', handleStorageChange);
-    };
   }, []);
 
   const triggerCelebration = () => {
@@ -86,13 +61,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
     }
   };
 
-  // Build the 3 standard release platforms with live admin download URLs
-  const androidPlatform = initialPlatforms.find((p) => p.platform === 'android');
-  const windowsPlatform = initialPlatforms.find((p) => p.platform === 'windows');
-  const macPlatform = initialPlatforms.find((p) => p.platform === 'mac' || p.platform === 'macos');
-
-  const liveVersion = appVerData?.latest_version || manifest.android.latestVersion || 'v2.5.0';
-
   const downloadCards = [
     {
       id: 'android',
@@ -101,11 +69,11 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       shortName: 'Android',
       tagline: 'Direct APK Package for Phones, Tablets & Android TV',
       fileFormat: '.apk',
-      fileSize: manifest.android.fileSize || androidPlatform?.fileSize || '24.8 MB',
-      downloadUrl: appVerData?.download_url?.android || androidPlatform?.downloadUrl || manifest.android.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
+      fileSize: DOWNLOAD_LINKS.android.fileSize,
+      downloadUrl: DOWNLOAD_LINKS.android.downloadUrl,
       filename: `GEN-Music.apk`,
-      minSystem: 'Android 8.0 Oreo or later (Android 8 - 15+)',
-      architecture: 'ARM64-v8a & Universal (All Devices)',
+      minSystem: DOWNLOAD_LINKS.android.minSystem,
+      architecture: DOWNLOAD_LINKS.android.architecture,
       badge: 'Most Popular',
       accentColor: 'from-emerald-500 to-teal-600',
       borderColor: 'border-emerald-500/50',
@@ -125,11 +93,11 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       shortName: 'Windows',
       tagline: 'Standard 64-bit Installer with Auto-Update Support',
       fileFormat: '.exe',
-      fileSize: manifest.windows.fileSize || windowsPlatform?.fileSize || '56.2 MB',
-      downloadUrl: appVerData?.download_url?.windows || windowsPlatform?.downloadUrl || manifest.windows.downloadUrl || '/download/genmusic-setup.exe',
+      fileSize: DOWNLOAD_LINKS.windows.fileSize,
+      downloadUrl: DOWNLOAD_LINKS.windows.downloadUrl,
       filename: `GEN-Music-Setup.exe`,
-      minSystem: 'Windows 10 / Windows 11 (64-bit)',
-      architecture: 'x64 & ARM64 Architecture',
+      minSystem: DOWNLOAD_LINKS.windows.minSystem,
+      architecture: DOWNLOAD_LINKS.windows.architecture,
       badge: 'Desktop Edition',
       accentColor: 'from-blue-600 to-indigo-600',
       borderColor: 'border-blue-500/50',
@@ -149,11 +117,11 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       shortName: 'macOS',
       tagline: 'Universal DMG for Apple Silicon (M1/M2/M3/M4) & Intel Macs',
       fileFormat: '.dmg',
-      fileSize: manifest.macos.fileSize || macPlatform?.fileSize || '68.4 MB',
-      downloadUrl: appVerData?.download_url?.macos || macPlatform?.downloadUrl || manifest.macos.downloadUrl || '/download/genmusic.dmg',
+      fileSize: DOWNLOAD_LINKS.macos.fileSize,
+      downloadUrl: DOWNLOAD_LINKS.macos.downloadUrl,
       filename: `GEN-Music.dmg`,
-      minSystem: 'macOS 12.0 Monterey or later (Sonoma & Sequoia Ready)',
-      architecture: 'Universal (Apple Silicon + Intel x86_64)',
+      minSystem: DOWNLOAD_LINKS.macos.minSystem,
+      architecture: DOWNLOAD_LINKS.macos.architecture,
       badge: 'Apple Silicon Ready',
       accentColor: 'from-indigo-600 to-purple-600',
       borderColor: 'border-purple-500/50',

@@ -12,37 +12,19 @@ import { Footer } from './components/Footer';
 import { BetaModal } from './components/BetaModal';
 import { DownloadsPage } from './components/DownloadsPage';
 import { 
-  AdLeaderboard728x90, 
-  AdBanner468x60, 
   AdNativeContainer,
   AdBanner300x250,
   AdBanner320x50,
+  AdBanner468x60,
   AdBanner160x300,
   AdBanner160x600,
   AdSideSkyscrapers,
   AdResponsiveLeaderboard,
   AdShowcaseSection,
-  AdMultiplyMatrix10x,
-  AdDirectSponsorLink
+  AdMultiplyMatrix10x
 } from './components/AdBanners';
-import { getLocalVersionManifest, saveLocalVersionManifest, DEFAULT_VERSION_MANIFEST } from './data/versionManifest';
-import { 
-  getStoredReleases, 
-  getStoredTelegramConfig, 
-  getStoredChannels, 
-  getStoredUpdates,
-  saveStoredUpdates,
-  getStoredAdSettings,
-  saveStoredAdSettings,
-  isStoredAdminLoggedIn, 
-  setStoredAdminLoggedIn,
-  saveStoredReleases,
-  saveStoredTelegramConfig,
-  saveStoredChannels,
-  resetAppToDefaults
-} from './data/adminStore';
-import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem, AdSettings } from './types';
-import { loadAppDataFromBlob } from './lib/blobStorage';
+import { DOWNLOAD_LINKS } from './data/downloadLinks';
+import { AppPlatformRelease } from './types';
 
 export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
@@ -50,124 +32,75 @@ export const App: React.FC = () => {
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // App dynamic state persisted in localStorage
-  const [platforms, setPlatforms] = useState<AppPlatformRelease[]>([]);
-  const [telegramConfig, setTelegramConfig] = useState<TelegramConfig>({
-    contactUsername: '@genmusic_admin',
-    contactUrl: 'https://t.me/genmusic_admin',
-    announcementText: 'Direct APK download links, beta builds & 24/7 technical help.',
-    supportHours: 'Admin Online 24/7'
-  });
-  const [channels, setChannels] = useState<TelegramChannel[]>([]);
-  const [updates, setUpdates] = useState<UpdateItem[]>([]);
-  const [adSettings, setAdSettings] = useState(() => getStoredAdSettings());
+  // Statically mapped platforms based on downloadLinks.ts
+  const platforms: AppPlatformRelease[] = [
+    {
+      id: 'app-android',
+      name: 'GEN MUSIC for Android',
+      platform: 'android',
+      version: DOWNLOAD_LINKS.version,
+      fileFormat: '.apk',
+      fileSize: DOWNLOAD_LINKS.android.fileSize,
+      releaseDate: DOWNLOAD_LINKS.releaseDate,
+      minSystem: DOWNLOAD_LINKS.android.minSystem,
+      downloadUrl: DOWNLOAD_LINKS.android.downloadUrl,
+      mirrorUrl: DOWNLOAD_LINKS.android.downloadUrl,
+      architecture: DOWNLOAD_LINKS.android.architecture,
+      badge: 'Direct APK',
+      changelog: [
+        'Dolby Audio 3D spatial surround sound engine',
+        'Batch offline MP3 downloader up to 320kbps',
+        'Unified free music catalog with unlimited streaming',
+        'Zero audio advertising interruptions'
+      ],
+      isFeatured: true,
+    },
+    {
+      id: 'app-mac',
+      name: 'GEN MUSIC for macOS',
+      platform: 'mac',
+      version: DOWNLOAD_LINKS.version,
+      fileFormat: '.dmg',
+      fileSize: DOWNLOAD_LINKS.macos.fileSize,
+      releaseDate: DOWNLOAD_LINKS.releaseDate,
+      minSystem: DOWNLOAD_LINKS.macos.minSystem,
+      downloadUrl: DOWNLOAD_LINKS.macos.downloadUrl,
+      mirrorUrl: DOWNLOAD_LINKS.macos.downloadUrl,
+      architecture: DOWNLOAD_LINKS.macos.architecture,
+      badge: 'macOS DMG',
+      changelog: [
+        'Native Apple Silicon high efficiency decoding',
+        'Menu bar mini player and keyboard media keys',
+        'Lossless Hi-Fi streaming virtualizer',
+        'System-wide lyrics overlay widget'
+      ],
+      isFeatured: true,
+    },
+    {
+      id: 'app-windows',
+      name: 'GEN MUSIC for Windows',
+      platform: 'windows',
+      version: DOWNLOAD_LINKS.version,
+      fileFormat: '.exe',
+      fileSize: DOWNLOAD_LINKS.windows.fileSize,
+      releaseDate: DOWNLOAD_LINKS.releaseDate,
+      minSystem: DOWNLOAD_LINKS.windows.minSystem,
+      downloadUrl: DOWNLOAD_LINKS.windows.downloadUrl,
+      mirrorUrl: DOWNLOAD_LINKS.windows.downloadUrl,
+      architecture: DOWNLOAD_LINKS.windows.architecture,
+      badge: 'Windows Installer',
+      changelog: [
+        'Direct hardware audio acceleration (WASAPI exclusive mode)',
+        'Tray minimize and background audio service',
+        'Offline MP3 batch download manager',
+        'Custom local music folder scanning and tag editor'
+      ],
+      isFeatured: true,
+    }
+  ];
 
-  // Load from adminStore on mount and sync with Vercel Blob
   useEffect(() => {
-    // 1. Immediate local state hydration
-    const initialPlatforms = getStoredReleases().filter(p => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
-    setPlatforms(initialPlatforms);
-    setTelegramConfig(getStoredTelegramConfig());
-    setChannels(getStoredChannels());
-    setUpdates(getStoredUpdates());
-    setAdSettings(getStoredAdSettings());
-
-    // 2. Fetch latest live cloud state from Vercel Blob & app-version.json
-    const fetchCloudState = async () => {
-      let appVerData: any = null;
-      try {
-        // Also fetch app-version.json to get direct admin configured URLs and versions
-        try {
-          const appVerRes = await fetch(`/app-version.json?t=${Date.now()}`);
-          if (appVerRes.ok) {
-            appVerData = await appVerRes.json();
-            if (appVerData?.latest_version) {
-              setPlatforms(prevPlatforms => {
-                const baseList = (prevPlatforms.length >= 3 ? prevPlatforms : getStoredReleases())
-                  .filter(p => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
-                
-                // Ensure android, windows, and mac are all present
-                const androidObj = baseList.find(p => p.platform === 'android') || getStoredReleases().find(p => p.platform === 'android')!;
-                const winObj = baseList.find(p => p.platform === 'windows') || getStoredReleases().find(p => p.platform === 'windows')!;
-                const macObj = baseList.find(p => p.platform === 'mac' || p.platform === 'macos') || getStoredReleases().find(p => p.platform === 'mac')!;
-
-                const updatedList = [
-                  {
-                    ...androidObj,
-                    version: appVerData.latest_version,
-                    downloadUrl: appVerData.download_url?.android || androidObj.downloadUrl
-                  },
-                  {
-                    ...winObj,
-                    version: appVerData.latest_version,
-                    downloadUrl: appVerData.download_url?.windows || winObj.downloadUrl
-                  },
-                  {
-                    ...macObj,
-                    version: appVerData.latest_version,
-                    downloadUrl: appVerData.download_url?.macos || macObj.downloadUrl
-                  }
-                ];
-
-                saveStoredReleases(updatedList);
-                return updatedList;
-              });
-            }
-          }
-        } catch (appVerErr) {
-          console.warn('app-version.json fetch note:', appVerErr);
-        }
-
-        const cloudRes = await loadAppDataFromBlob();
-        if (cloudRes.success && cloudRes.data) {
-          const cloudData = cloudRes.data;
-          if (Array.isArray(cloudData.platforms) && cloudData.platforms.length > 0) {
-            let filteredPlatforms = cloudData.platforms.filter((p: any) => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
-            if (appVerData?.download_url) {
-              filteredPlatforms = filteredPlatforms.map((p: any) => {
-                let dUrl = p.downloadUrl;
-                if (p.platform === 'android' && appVerData.download_url.android) dUrl = appVerData.download_url.android;
-                if (p.platform === 'windows' && appVerData.download_url.windows) dUrl = appVerData.download_url.windows;
-                if ((p.platform === 'mac' || p.platform === 'macos') && appVerData.download_url.macos) dUrl = appVerData.download_url.macos;
-                return {
-                  ...p,
-                  version: appVerData.latest_version || p.version,
-                  downloadUrl: dUrl
-                };
-              });
-            }
-            setPlatforms(filteredPlatforms);
-            saveStoredReleases(filteredPlatforms);
-          }
-          if (cloudData.telegramConfig && cloudData.telegramConfig.contactUrl) {
-            setTelegramConfig(cloudData.telegramConfig);
-            saveStoredTelegramConfig(cloudData.telegramConfig);
-          }
-          if (Array.isArray(cloudData.channels) && cloudData.channels.length > 0) {
-            setChannels(cloudData.channels);
-            saveStoredChannels(cloudData.channels);
-          }
-          if (Array.isArray(cloudData.updates) && cloudData.updates.length > 0) {
-            setUpdates(cloudData.updates);
-            saveStoredUpdates(cloudData.updates);
-          }
-          if (cloudData.adSettings) {
-            setAdSettings(cloudData.adSettings);
-            saveStoredAdSettings(cloudData.adSettings);
-            window.dispatchEvent(new Event('genmusic_ads_updated'));
-          }
-          if (cloudData.manifest) {
-            saveLocalVersionManifest(cloudData.manifest);
-          }
-        }
-      } catch (err) {
-        console.warn('Vercel Blob remote fetch note:', err);
-      }
-    };
-
-    fetchCloudState();
-
-    const checkAdminRoute = () => {
+    const checkRoute = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
@@ -177,15 +110,13 @@ export const App: React.FC = () => {
       }
     };
 
-    checkAdminRoute();
-    window.addEventListener('popstate', checkAdminRoute);
-    window.addEventListener('hashchange', checkAdminRoute);
-    window.addEventListener('genmusic-version-updated', fetchCloudState);
+    checkRoute();
+    window.addEventListener('popstate', checkRoute);
+    window.addEventListener('hashchange', checkRoute);
 
     return () => {
-      window.removeEventListener('popstate', checkAdminRoute);
-      window.removeEventListener('hashchange', checkAdminRoute);
-      window.removeEventListener('genmusic-version-updated', fetchCloudState);
+      window.removeEventListener('popstate', checkRoute);
+      window.removeEventListener('hashchange', checkRoute);
     };
   }, []);
 
@@ -197,9 +128,6 @@ export const App: React.FC = () => {
 
   const handleOpenLegalModal = (type: 'privacy' | 'terms' | 'support' | 'contact') => {
     showToast(`Opening ${type.toUpperCase()} policy document...`);
-    if (type === 'contact' || type === 'support') {
-      window.open(telegramConfig.contactUrl, '_blank');
-    }
   };
 
   const showToast = (message: string) => {
@@ -228,9 +156,7 @@ export const App: React.FC = () => {
   if (currentPath === '/download' || currentPath === '/downloads') {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
-        <DownloadsPage 
-          manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
-        />
+        <DownloadsPage />
         <Footer 
           onOpenLegalModal={handleOpenLegalModal}
           onDownloadClick={() => {}}
@@ -276,7 +202,6 @@ export const App: React.FC = () => {
         {/* 4. Unified Multi-Platform Download & Release Hub */}
         <DownloadAppSection 
           platforms={platforms}
-          manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
           onOpenBetaModal={() => setBetaModalOpen(true)}
         />
 
@@ -325,9 +250,8 @@ export const App: React.FC = () => {
           <AdBanner160x600 />
         </div>
 
-        {/* 9. Updates & Announcements (dynamic What's New from admin) */}
+        {/* 9. Updates & Announcements */}
         <UpdatesSection 
-          updates={updates}
           onDownloadClick={scrollToDownload}
         />
 

@@ -12,18 +12,10 @@ import {
   Send,
   Zap
 } from 'lucide-react';
-import { VersionManifest } from '../types/update';
-import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
+import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
-interface DownloadsPageProps {
-  manifest?: VersionManifest;
-  onOpenBetaModal?: () => void;
-}
-
-export const DownloadsPage: React.FC<DownloadsPageProps> = ({
-  manifest = DEFAULT_VERSION_MANIFEST,
-}) => {
+export const DownloadsPage: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
     recommendedFileFormat: '.apk',
@@ -31,30 +23,9 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
     isMobile: true,
     rawOS: 'Android',
   });
-  const [appVerData, setAppVerData] = useState<any>(null);
 
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
-
-    const loadLiveVersion = () => {
-      fetch('/app-version.json?t=' + Date.now())
-        .then((res) => res.json())
-        .then((data) => {
-          if (data) setAppVerData(data);
-        })
-        .catch((err) => {
-          console.warn('Error loading app-version.json:', err);
-        });
-    };
-
-    loadLiveVersion();
-    window.addEventListener('genmusic-version-updated', loadLiveVersion);
-    window.addEventListener('storage', loadLiveVersion);
-
-    return () => {
-      window.removeEventListener('genmusic-version-updated', loadLiveVersion);
-      window.removeEventListener('storage', loadLiveVersion);
-    };
   }, []);
 
   const handleDownload = (e: React.MouseEvent, downloadUrl: string, fileFormat: string) => {
@@ -70,10 +41,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'Android App',
       tagline: 'Direct APK Package for Phones & Tablets',
       fileFormat: '.apk',
-      downloadUrl: appVerData?.download_url?.android || manifest.android.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
-      fileSize: manifest.android.fileSize || '24.8 MB',
-      sysReq: 'Android 8.0 Oreo or later (Android 8 - 15+)',
-      arch: 'ARM64-v8a / Universal',
+      downloadUrl: DOWNLOAD_LINKS.android.downloadUrl,
+      fileSize: DOWNLOAD_LINKS.android.fileSize,
+      sysReq: DOWNLOAD_LINKS.android.minSystem,
+      arch: DOWNLOAD_LINKS.android.architecture,
       icon: <Smartphone className="w-8 h-8 text-emerald-600" />,
       features: ['Background Audio Playback', 'Lossless 320kbps MP3 Saver', 'Dolby Surround Sound', 'Unlimited Free Music Sync'],
       isRecommended: deviceInfo.platform === 'android',
@@ -83,10 +54,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'Windows Desktop',
       tagline: 'Standard 64-bit Installer with Auto-Updates',
       fileFormat: '.exe',
-      downloadUrl: appVerData?.download_url?.windows || manifest.windows.downloadUrl || '/download/genmusic-setup.exe',
-      fileSize: manifest.windows.fileSize || '56.2 MB',
-      sysReq: 'Windows 10 / 11 (64-bit architecture)',
-      arch: 'x64 / ARM64',
+      downloadUrl: DOWNLOAD_LINKS.windows.downloadUrl,
+      fileSize: DOWNLOAD_LINKS.windows.fileSize,
+      sysReq: DOWNLOAD_LINKS.windows.minSystem,
+      arch: DOWNLOAD_LINKS.windows.architecture,
       icon: <Monitor className="w-8 h-8 text-blue-600" />,
       features: ['Discord Rich Presence', 'System Media Key Hotkeys', '10-Band EQ & Bass Virtualizer', 'Silent Auto-Updates'],
       isRecommended: deviceInfo.platform === 'windows',
@@ -96,10 +67,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'macOS Desktop',
       tagline: 'Universal DMG for Apple Silicon & Intel Macs',
       fileFormat: '.dmg',
-      downloadUrl: appVerData?.download_url?.macos || manifest.macos.downloadUrl || '/download/genmusic.dmg',
-      fileSize: manifest.macos.fileSize || '68.4 MB',
-      sysReq: 'macOS 12.0 Monterey or later (M1/M2/M3/M4 & Intel)',
-      arch: 'Universal (Apple Silicon + Intel)',
+      downloadUrl: DOWNLOAD_LINKS.macos.downloadUrl,
+      fileSize: DOWNLOAD_LINKS.macos.fileSize,
+      sysReq: DOWNLOAD_LINKS.macos.minSystem,
+      arch: DOWNLOAD_LINKS.macos.architecture,
       icon: <Laptop className="w-8 h-8 text-indigo-600" />,
       features: ['Menu Bar Mini Player', 'Native Apple Silicon Decoding', 'AirPlay & Spatial Audio', 'Auto-Updater Integration'],
       isRecommended: deviceInfo.platform === 'macos',
