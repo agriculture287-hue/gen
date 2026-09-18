@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Menu, 
   X, 
   Download, 
-  Send
+  Send,
+  Smartphone,
+  Monitor,
+  Laptop
 } from 'lucide-react';
 import { GenMusicLogo } from './GenMusicLogo';
+import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 
 interface NavbarProps {
   activeNav: string;
@@ -23,6 +27,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   telegramUrl,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
+    platform: 'android',
+    recommendedFileFormat: '.apk',
+    platformName: 'Android',
+    isMobile: true,
+    rawOS: 'Android',
+  });
+
+  useEffect(() => {
+    setDeviceInfo(detectUserDevice());
+  }, []);
 
   const navLinks = [
     { id: 'home', label: 'Home' },
@@ -112,14 +127,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Telegram</span>
           </a>
 
-          {/* Primary CTA */}
+          {/* Primary CTA with Device Suggestion */}
           <button
             onClick={onDownloadClick}
             id="navbar-download-cta"
             className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:opacity-95 transition transform hover:-translate-y-0.5 cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Get Apps</span>
+            {deviceInfo.platform === 'android' ? (
+              <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+            ) : deviceInfo.platform === 'windows' ? (
+              <Monitor className="w-3.5 h-3.5 text-blue-200" />
+            ) : deviceInfo.platform === 'macos' ? (
+              <Laptop className="w-3.5 h-3.5 text-indigo-200" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>
+              {deviceInfo.platform === 'android' ? 'Download APK' :
+               deviceInfo.platform === 'windows' ? 'Download EXE' :
+               deviceInfo.platform === 'macos' ? 'Download DMG' :
+               'Get Apps'}
+            </span>
           </button>
 
           {/* Mobile Menu Toggle */}
@@ -168,10 +196,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setMobileMenuOpen(false);
                 onDownloadClick();
               }}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
             >
-              <Download className="w-4 h-4" />
-              <span>Download Android, Mac & Windows Apps</span>
+              {deviceInfo.platform === 'android' ? (
+                <Smartphone className="w-4 h-4 text-emerald-300" />
+              ) : deviceInfo.platform === 'windows' ? (
+                <Monitor className="w-4 h-4 text-blue-200" />
+              ) : deviceInfo.platform === 'macos' ? (
+                <Laptop className="w-4 h-4 text-indigo-200" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span>
+                {deviceInfo.platform === 'android' ? 'Download Android APK Package' :
+                 deviceInfo.platform === 'windows' ? 'Download Windows Setup (.exe)' :
+                 deviceInfo.platform === 'macos' ? 'Download macOS App (.dmg)' :
+                 'Download Android, Mac & Windows Apps'}
+              </span>
             </button>
           </div>
         </div>

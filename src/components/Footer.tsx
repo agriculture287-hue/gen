@@ -55,13 +55,13 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 max-w-sm leading-relaxed">
-              The modern music client uniting YouTube Music and Spotify catalogs with multi-platform releases for Android, macOS, and Windows.
+              The modern music client uniting YouTube Music and Spotify catalogs with direct APK releases for Android mobile devices.
             </p>
 
             <div className="flex items-center gap-3 text-xs text-slate-600 pt-1">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Multi-Platform Ready
+                Android Mobile Ready
               </span>
               <span>• Free Forever</span>
             </div>
@@ -119,7 +119,7 @@ export const Footer: React.FC<FooterProps> = ({
             </h3>
             <ul className="space-y-2 text-xs">
               <li><a href="#home" className="hover:text-blue-600 transition">Home</a></li>
-              <li><a href="#download" className="hover:text-blue-600 transition">Download Android, Mac, Win</a></li>
+              <li><a href="#download" className="hover:text-blue-600 transition">Download Mobile APK</a></li>
               <li><a href="#channels" className="hover:text-blue-600 transition">Telegram Channels</a></li>
               <li><a href="#features" className="hover:text-blue-600 transition">Features</a></li>
               <li><a href="#screenshots" className="hover:text-blue-600 transition">Screenshots</a></li>

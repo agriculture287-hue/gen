@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Download, 
   Sparkles, 
@@ -16,11 +16,14 @@ import {
   ShieldCheck, 
   Disc3,
   Send,
-  ExternalLink
+  ExternalLink,
+  Apple
 } from 'lucide-react';
 import { AppPlatformRelease } from '../types';
 import { GenMusicLogo } from './GenMusicLogo';
 import { DIRECT_SPONSOR_LINK } from './AdBanners';
+import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
+import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 
 interface HeroSectionProps {
   platforms: AppPlatformRelease[];
@@ -95,9 +98,27 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     };
   }, []);
 
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
+    platform: 'android',
+    recommendedFileFormat: '.apk',
+    platformName: 'Android',
+    isMobile: true,
+    rawOS: 'Android',
+  });
+
+  useEffect(() => {
+    setDeviceInfo(detectUserDevice());
+  }, []);
+
   const androidApp = platforms.find((p) => p.platform === 'android') || platforms[0];
   const macApp = platforms.find((p) => p.platform === 'mac') || platforms[1];
   const winApp = platforms.find((p) => p.platform === 'windows') || platforms[2];
+
+  // Resolve specific suggested app based on detected device
+  const suggestedApp = 
+    deviceInfo.platform === 'windows' ? winApp :
+    deviceInfo.platform === 'macos' ? macApp :
+    androidApp;
 
   const handlePlatformDownloadClick = (platformId?: string) => {
     try {
@@ -152,16 +173,31 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             Enjoy YouTube and Spotify music in one app with offline downloads, EQ controls, Dolby support and more.
           </p>
 
+          {/* Device Identification & Specific Suggestion Banner */}
+          <DeviceSuggestionBanner 
+            deviceInfo={deviceInfo}
+            downloadUrl={suggestedApp?.downloadUrl}
+            version={suggestedApp?.version || 'v2.5.0'}
+            fileSize={suggestedApp?.fileSize || '24.8 MB'}
+            onDownload={() => handlePlatformDownloadClick(deviceInfo.platform === 'ios' ? 'android' : deviceInfo.platform)}
+            onViewAllPlatforms={() => onSelectPlatformDownload()}
+          />
+
           {/* Primary Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-3">
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-1">
             <button
-              onClick={() => onSelectPlatformDownload()}
+              onClick={() => handlePlatformDownloadClick(deviceInfo.platform === 'ios' ? 'android' : deviceInfo.platform)}
               className="px-7 py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-blue-500/25 hover:shadow-2xl hover:shadow-blue-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer"
             >
               <Download className="w-5 h-5" />
-              <span>Download Free App</span>
+              <span>
+                {deviceInfo.platform === 'android' ? 'Download Android APK' :
+                 deviceInfo.platform === 'windows' ? 'Download Windows EXE' :
+                 deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
+                 'Download Free App'}
+              </span>
               <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-mono font-bold">
-                {androidApp?.version || 'v2.5.0'}
+                {suggestedApp?.version || 'v2.5.0'}
               </span>
             </button>
 

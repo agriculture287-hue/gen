@@ -9,11 +9,13 @@ import {
   Sparkles, 
   ExternalLink, 
   FileCode2, 
-  Send
+  Send,
+  Zap
 } from 'lucide-react';
-import { VersionManifest, SupportedPlatform } from '../types/update';
-import { detectCurrentPlatform, DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
+import { VersionManifest } from '../types/update';
+import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { DIRECT_SPONSOR_LINK } from './AdBanners';
+import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 
 interface DownloadsPageProps {
   manifest?: VersionManifest;
@@ -26,12 +28,17 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
   manifest = DEFAULT_VERSION_MANIFEST,
   isAdminLoggedIn = false,
 }) => {
-  const [detectedOS, setDetectedOS] = useState<SupportedPlatform>('web');
+  const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
+    platform: 'android',
+    recommendedFileFormat: '.apk',
+    platformName: 'Android',
+    isMobile: true,
+    rawOS: 'Android',
+  });
   const [appVerData, setAppVerData] = useState<any>(null);
 
   useEffect(() => {
-    const os = detectCurrentPlatform();
-    setDetectedOS(os);
+    setDeviceInfo(detectUserDevice());
 
     // Fetch the live app-version.json directly from the server/CDN
     fetch('/app-version.json')
@@ -44,30 +51,26 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       });
   }, []);
 
-  const handleDownloadWithAd = (e: React.MouseEvent, downloadUrl: string) => {
-    e.preventDefault();
+  const handleDownload = (e: React.MouseEvent, downloadUrl: string, fileFormat: string) => {
+    if (!downloadUrl) return;
 
-    // 1. First open ad link in new tab
-    try {
-      window.open(DIRECT_SPONSOR_LINK, '_blank');
-    } catch {
-      // safe fallback
+    // Trigger download immediately
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    if (downloadUrl.startsWith('http') && !downloadUrl.includes(window.location.host)) {
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+    } else {
+      a.target = '_self';
     }
+    a.download = `GEN-MUSIC-${fileFormat}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
-    // 2. Open actual download link after short delay
-    setTimeout(() => {
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      if (downloadUrl.startsWith('http')) {
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-      } else {
-        a.target = '_self';
-      }
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }, 300);
+    if (!downloadUrl.startsWith('http')) {
+      window.location.href = downloadUrl;
+    }
   };
 
   const platformsList = [
@@ -84,7 +87,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       arch: 'ARM64-v8a / Universal',
       icon: <Smartphone className="w-8 h-8 text-emerald-600" />,
       features: ['Background Audio Playback', 'Lossless 320kbps MP3 Saver', 'Dolby Surround Sound', 'Spotify & YouTube Sync'],
-      isRecommended: detectedOS === 'android',
+      isRecommended: deviceInfo.platform === 'android',
     },
     {
       id: 'windows',
@@ -99,7 +102,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       arch: 'x64 / ARM64',
       icon: <Monitor className="w-8 h-8 text-blue-600" />,
       features: ['Discord Rich Presence', 'System Media Key Hotkeys', '10-Band EQ & Bass Virtualizer', 'Silent Auto-Updates'],
-      isRecommended: detectedOS === 'windows',
+      isRecommended: deviceInfo.platform === 'windows',
     },
     {
       id: 'macos',
@@ -114,7 +117,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       arch: 'Universal (Apple Silicon + Intel)',
       icon: <Laptop className="w-8 h-8 text-indigo-600" />,
       features: ['Menu Bar Mini Player', 'Native Apple Silicon Decoding', 'AirPlay & Spatial Audio', 'Auto-Updater Integration'],
-      isRecommended: detectedOS === 'macos',
+      isRecommended: deviceInfo.platform === 'macos',
     },
   ];
 
@@ -140,12 +143,13 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
             Free, unlimited music streaming and offline audio player for all your devices. Zero audio ads, lossless 320kbps audio engine, and automatic background updates.
           </p>
 
-          {detectedOS !== 'web' && (
-            <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-800/90 border border-slate-700 text-xs font-semibold text-slate-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>We detected your operating system: <strong className="text-white capitalize">{detectedOS}</strong>. We've highlighted the recommended package below.</span>
-            </div>
-          )}
+          <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-800/90 border border-slate-700 text-xs font-semibold text-slate-200">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>
+              Detected Device: <strong className="text-white capitalize">{deviceInfo.platformName}</strong>. 
+              We've automatically suggested and highlighted the {deviceInfo.recommendedFileFormat} package below.
+            </span>
+          </div>
         </div>
 
         {/* Platform Download Cards Grid */}
@@ -204,7 +208,10 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
               <div>
                 <a
                   href={p.downloadUrl}
-                  onClick={(e) => handleDownloadWithAd(e, p.downloadUrl)}
+                  target={p.downloadUrl.startsWith('http') ? '_blank' : '_self'}
+                  rel="noopener noreferrer"
+                  download={`GEN-MUSIC-${p.name}${p.fileFormat}`}
+                  onClick={(e) => handleDownload(e, p.downloadUrl, p.fileFormat)}
                   id={`btn-download-${p.id}`}
                   className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-white shadow-lg cursor-pointer ${
                     p.isRecommended
@@ -215,10 +222,6 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
                   <Download className="w-4 h-4" />
                   <span>Download {p.fileFormat.toUpperCase()}</span>
                 </a>
-
-                <p className="text-[10.5px] text-amber-300/80 text-center mt-2 font-medium">
-                  💡 Opens sponsor ad tab. Simply close ad tab to finish download.
-                </p>
 
                 <div className="mt-3 flex items-center justify-center text-xs">
                   <a

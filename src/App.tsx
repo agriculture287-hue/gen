@@ -82,12 +82,13 @@ export const App: React.FC = () => {
 
     // 2. Fetch latest live cloud state from Vercel Blob & app-version.json
     const fetchCloudState = async () => {
+      let appVerData: any = null;
       try {
         // Also fetch app-version.json to get direct admin configured URLs and versions
         try {
           const appVerRes = await fetch(`/app-version.json?t=${Date.now()}`);
           if (appVerRes.ok) {
-            const appVerData = await appVerRes.json();
+            appVerData = await appVerRes.json();
             if (appVerData?.latest_version) {
               setPlatforms(prevPlatforms => {
                 const current = (prevPlatforms.length > 0 ? prevPlatforms : getStoredReleases())
@@ -120,7 +121,20 @@ export const App: React.FC = () => {
         if (cloudRes.success && cloudRes.data) {
           const cloudData = cloudRes.data;
           if (Array.isArray(cloudData.platforms) && cloudData.platforms.length > 0) {
-            const filteredPlatforms = cloudData.platforms.filter((p: any) => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
+            let filteredPlatforms = cloudData.platforms.filter((p: any) => p.platform !== 'linux' && p.platform !== 'web' && p.id !== 'app-linux' && p.id !== 'app-web');
+            if (appVerData?.download_url) {
+              filteredPlatforms = filteredPlatforms.map((p: any) => {
+                let dUrl = p.downloadUrl;
+                if (p.platform === 'android' && appVerData.download_url.android) dUrl = appVerData.download_url.android;
+                if (p.platform === 'windows' && appVerData.download_url.windows) dUrl = appVerData.download_url.windows;
+                if ((p.platform === 'mac' || p.platform === 'macos') && appVerData.download_url.macos) dUrl = appVerData.download_url.macos;
+                return {
+                  ...p,
+                  version: appVerData.latest_version || p.version,
+                  downloadUrl: dUrl
+                };
+              });
+            }
             setPlatforms(filteredPlatforms);
             saveStoredReleases(filteredPlatforms);
           }
@@ -154,16 +168,25 @@ export const App: React.FC = () => {
 
     const checkAdminRoute = () => {
       const path = window.location.pathname.toLowerCase();
-      setCurrentPath(path);
+      const hash = window.location.hash.toLowerCase();
+      if (path === '/admin' || path.startsWith('/admin/') || hash === '#/admin' || hash === '#admin') {
+        setCurrentPath('/admin');
+      } else if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
+        setCurrentPath('/download');
+      } else {
+        setCurrentPath(path);
+      }
     };
 
     checkAdminRoute();
     window.addEventListener('popstate', checkAdminRoute);
     window.addEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('genmusic-version-updated', fetchCloudState);
 
     return () => {
       window.removeEventListener('popstate', checkAdminRoute);
       window.removeEventListener('hashchange', checkAdminRoute);
+      window.removeEventListener('genmusic-version-updated', fetchCloudState);
     };
   }, []);
 

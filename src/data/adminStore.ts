@@ -15,58 +15,16 @@ export const DEFAULT_PLATFORMS: AppPlatformRelease[] = [
     fileFormat: '.apk',
     fileSize: '24.8 MB',
     releaseDate: 'September 2026',
-    minSystem: 'Android 8.0 or later (Oreo to 15)',
+    minSystem: 'Android 8.0 or later (Oreo to Android 15+)',
     downloadUrl: '/download/genmusic.apk',
     mirrorUrl: 'https://t.me/genmusic_apk',
-    architecture: 'ARM64-v8a & Universal',
+    architecture: 'ARM64-v8a & Universal (All Devices)',
     badge: 'Direct APK',
     changelog: [
       'Dolby Audio 3D spatial surround sound engine',
       'Batch offline MP3 downloader up to 320kbps',
       'Unified YouTube Music and Spotify catalogs',
       'Zero audio advertising interruptions'
-    ],
-    isFeatured: true,
-  },
-  {
-    id: 'app-mac',
-    name: 'GEN MUSIC for macOS',
-    platform: 'mac',
-    version: 'v2.5.0',
-    fileFormat: '.dmg',
-    fileSize: '68.4 MB',
-    releaseDate: 'September 2026',
-    minSystem: 'macOS 12.0 Monterey or later (Apple Silicon & Intel)',
-    downloadUrl: '/download/genmusic.dmg',
-    mirrorUrl: 'https://t.me/genmusic_official',
-    architecture: 'Universal (Apple Silicon + Intel)',
-    badge: 'macOS DMG',
-    changelog: [
-      'Native Apple Silicon high efficiency decoding',
-      'Menu bar mini player and keyboard media keys',
-      'Lossless Hi-Fi streaming virtualizer',
-      'System-wide lyrics overlay widget'
-    ],
-    isFeatured: true,
-  },
-  {
-    id: 'app-windows',
-    name: 'GEN MUSIC for Windows',
-    platform: 'windows',
-    version: 'v2.5.0',
-    fileFormat: '.exe',
-    fileSize: '56.2 MB',
-    releaseDate: 'September 2026',
-    minSystem: 'Windows 10 / 11 (64-bit)',
-    downloadUrl: '/download/genmusic-setup.exe',
-    mirrorUrl: 'https://t.me/genmusic_apk',
-    architecture: 'Windows x64 / ARM64',
-    badge: 'Windows Setup',
-    changelog: [
-      'Discord Rich Presence status sync',
-      'Background playback with taskbar controls',
-      'Custom 10-band equalizer and bass boost',
-      'Local folder library import & offline caching'
     ],
     isFeatured: true,
   },
@@ -150,7 +108,10 @@ export function getStoredPlatforms(): AppPlatformRelease[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const androidOnly = parsed.filter((p) => p.platform === 'android');
+        if (androidOnly.length > 0) {
+          return androidOnly;
+        }
       }
     }
   } catch (e) {
