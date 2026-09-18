@@ -364,6 +364,9 @@ export class LocalDiskBlobProvider {
 // ==========================================
 
 export class VercelBlobProvider {
+  // In-memory cache of resolved pathname -> blob metadata for immediate deterministic lookups
+  private blobCache: Map<string, { url: string; downloadUrl: string; updatedAt: number }> = new Map();
+
   public getTokenConfig(): { token?: string; storeId?: string; isConfigured: boolean; maskedToken?: string } {
     const rawToken = (
       process.env.BLOB_READ_WRITE_TOKEN ||
@@ -429,6 +432,8 @@ export class VercelBlobProvider {
     const cleanPath = sanitizeBlobPath(pathname);
     const contentType = options.contentType || getMimeType(cleanPath);
 
+    console.log(`[VercelBlobProvider.put] Uploading to Vercel Blob: "${cleanPath}" (allowOverwrite=${options.allowOverwrite ?? true})`);
+
     try {
       let result: PutBlobResult;
       try {
@@ -455,19 +460,117 @@ export class VercelBlobProvider {
         }
       }
 
+      // Immediately cache the resolved URL for deterministic instantaneous lookups
+      if (result && result.url) {
+        this.blobCache.set(cleanPath, {
+          url: result.url,
+          downloadUrl: result.downloadUrl || result.url,
+          updatedAt: Date.now(),
+        });
+        console.log(`[VercelBlobProvider.put] Success! URL: ${result.url}`);
+      }
+
       return { success: true, blob: result };
     } catch (err: any) {
       const msg = err?.message || String(err);
+      console.error(`[VercelBlobProvider.put] Error uploading "${cleanPath}":`, msg);
       return { success: false, error: msg };
     }
+  }
+
+  /**
+   * Deterministically resolve a pathname to its Vercel Blob URL
+   */
+  public async resolveUrl(pathname: string): Promise<string | null> {
+    const cleanPath = sanitizeBlobPath(pathname);
+    
+    // 1. Check in-memory cache first (fastest, prevents race condition / eventual consistency lag)
+    const cached = this.blobCache.get(cleanPath);
+    if (cached && cached.url) {
+      return cached.url;
+    }
+
+    // 2. Query Vercel list with prefix
+    const { token } = this.getTokenConfig();
+    if (!token) return null;
+
+    try {
+      const listRes = await this.list({ prefix: cleanPath });
+      if (listRes.success && listRes.blobs && listRes.blobs.length > 0) {
+        const matched = listRes.blobs.find(
+          (b) => b.pathname === cleanPath || b.pathname.toLowerCase() === cleanPath.toLowerCase()
+        );
+        if (matched && matched.url) {
+          this.blobCache.set(cleanPath, {
+            url: matched.url,
+            downloadUrl: matched.downloadUrl || matched.url,
+            updatedAt: Date.now(),
+          });
+          return matched.url;
+        }
+      }
+    } catch (err) {
+      console.warn(`[VercelBlobProvider.resolveUrl] List lookup notice for "${cleanPath}":`, err);
+    }
+
+    return null;
   }
 
   public async get(pathnameOrUrl: string, options: { access?: BlobAccessMode } = {}): Promise<{ success: boolean; text?: string; data?: any; error?: string }> {
     const { token } = this.getTokenConfig();
     if (!token) return { success: false, error: 'BLOB_READ_WRITE_TOKEN is not configured.' };
 
+    let targetUrl = pathnameOrUrl;
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      const resolved = await this.resolveUrl(pathnameOrUrl);
+      if (resolved) {
+        targetUrl = resolved;
+      } else {
+        return { success: false, error: `Could not resolve blob URL for "${pathnameOrUrl}"` };
+      }
+    }
+
+    console.log(`[VercelBlobProvider.get] Fetching: ${targetUrl}`);
+
+    // Strategy 1: Direct cache-busting HTTP fetch (bypasses CDN cache lag completely!)
     try {
-      const res = await vercelGet(pathnameOrUrl, { token, access: options.access || 'public' });
+      const fetchUrl = targetUrl.includes('?') 
+        ? `${targetUrl}&_t=${Date.now()}` 
+        : `${targetUrl}?_t=${Date.now()}`;
+      
+      const fetchHeaders: Record<string, string> = {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+      };
+      if (token) {
+        fetchHeaders['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: fetchHeaders,
+        cache: 'no-store',
+      });
+
+      if (response.ok) {
+        const text = await response.text();
+        let data: any = undefined;
+        try {
+          if (text && text.trim().startsWith('{') || text.trim().startsWith('[')) {
+            data = JSON.parse(text);
+          }
+        } catch {
+          // not JSON
+        }
+        return { success: true, text, data };
+      }
+    } catch (fetchErr) {
+      console.warn(`[VercelBlobProvider.get] Direct fetch notice for ${targetUrl}:`, fetchErr);
+    }
+
+    // Strategy 2: vercelGet SDK fallback
+    try {
+      const res = await vercelGet(targetUrl, { token, access: options.access || 'public' });
       if (!res) return { success: false, error: 'Blob not found in Vercel store' };
 
       let text = '';
@@ -508,16 +611,25 @@ export class VercelBlobProvider {
         cursor: options.cursor,
       });
 
-      const blobs: BlobItem[] = res.blobs.map((b) => ({
-        url: b.url,
-        downloadUrl: b.downloadUrl,
-        pathname: b.pathname,
-        size: b.size,
-        uploadedAt: b.uploadedAt.toISOString ? b.uploadedAt.toISOString() : String(b.uploadedAt),
-        contentType: getMimeType(b.pathname),
-        provider: 'vercel',
-        access: 'public',
-      }));
+      const blobs: BlobItem[] = res.blobs.map((b) => {
+        // Populate cache as we discover blobs
+        this.blobCache.set(b.pathname, {
+          url: b.url,
+          downloadUrl: b.downloadUrl,
+          updatedAt: new Date(b.uploadedAt).getTime(),
+        });
+
+        return {
+          url: b.url,
+          downloadUrl: b.downloadUrl,
+          pathname: b.pathname,
+          size: b.size,
+          uploadedAt: b.uploadedAt.toISOString ? b.uploadedAt.toISOString() : String(b.uploadedAt),
+          contentType: getMimeType(b.pathname),
+          provider: 'vercel',
+          access: 'public',
+        };
+      });
 
       return {
         success: true,
@@ -534,8 +646,14 @@ export class VercelBlobProvider {
     const { token } = this.getTokenConfig();
     if (!token) return { success: false, error: 'BLOB_READ_WRITE_TOKEN is not configured.' };
 
+    let target = urlOrPath;
+    if (!target.startsWith('http://') && !target.startsWith('https://')) {
+      const resolved = await this.resolveUrl(urlOrPath);
+      if (resolved) target = resolved;
+    }
+
     try {
-      const metadata = await vercelHead(urlOrPath, { token });
+      const metadata = await vercelHead(target, { token });
       return { success: true, metadata };
     } catch (err: any) {
       return { success: false, error: err?.message || 'Failed fetching head info' };
@@ -683,39 +801,79 @@ export class UnifiedBlobStorageEngine {
   }
 
   /**
-   * Universal get: checks local first, then Vercel if needed
+   * Universal get: checks Vercel first (with deterministic URL resolution & cache-busting), then Local disk & public folder fallback
    */
-  public async get(pathnameOrUrl: string): Promise<{ success: boolean; data?: any; text?: string; buffer?: Buffer; error?: string }> {
-    let resolvedUrl = pathnameOrUrl;
+  public async get(pathnameOrUrl: string): Promise<{ success: boolean; data?: any; text?: string; buffer?: Buffer; error?: string; source?: string }> {
+    const cleanPath = sanitizeBlobPath(pathnameOrUrl);
 
-    // If it's a pathname and Vercel is ready, resolve it to a Vercel Blob URL first
-    if (!pathnameOrUrl.startsWith('http://') && !pathnameOrUrl.startsWith('https://')) {
-      if (this.vercel.isReady()) {
-        try {
-          const listRes = await this.vercel.list({ prefix: pathnameOrUrl });
-          if (listRes.success && listRes.blobs && listRes.blobs.length > 0) {
-            // Find an exact pathname match
-            const matchedBlob = listRes.blobs.find(b => b.pathname === pathnameOrUrl);
-            if (matchedBlob) {
-              resolvedUrl = matchedBlob.url;
-            }
-          }
-        } catch (err) {
-          console.warn('[UnifiedBlobStorageEngine.get] Failed resolving pathname via Vercel list:', err);
+    // 1. Try Vercel Blob (if configured)
+    if (this.vercel.isReady()) {
+      try {
+        const vRes = await this.vercel.get(pathnameOrUrl);
+        if (vRes.success && (vRes.text || vRes.data)) {
+          return {
+            success: true,
+            text: vRes.text,
+            data: vRes.data,
+            buffer: vRes.text ? Buffer.from(vRes.text) : undefined,
+            source: 'vercel',
+          };
         }
+      } catch (vercelErr) {
+        console.warn(`[UnifiedBlobStorageEngine.get] Vercel get notice for "${pathnameOrUrl}":`, vercelErr);
       }
     }
 
-    // If it's a Vercel URL
-    if (resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://')) {
-      if (this.vercel.isReady()) {
-        const vRes = await this.vercel.get(resolvedUrl);
-        if (vRes.success) return vRes;
+    // 2. Try Local Disk Provider
+    try {
+      const localRes = await this.local.get(pathnameOrUrl);
+      if (localRes.success && (localRes.text || localRes.buffer)) {
+        let parsedData: any = undefined;
+        try {
+          if (localRes.text && (localRes.text.trim().startsWith('{') || localRes.text.trim().startsWith('['))) {
+            parsedData = JSON.parse(localRes.text);
+          }
+        } catch {
+          // not JSON
+        }
+        return {
+          success: true,
+          text: localRes.text,
+          data: parsedData,
+          buffer: localRes.buffer,
+          source: 'local-disk',
+        };
       }
+    } catch (localErr) {
+      // Continue to public folder check
     }
 
-    // Try local
-    return await this.local.get(pathnameOrUrl);
+    // 3. Fallback: check direct public/ files on disk (e.g. public/app-version.json)
+    try {
+      const publicPath = path.join(process.cwd(), 'public', cleanPath);
+      if (fs.existsSync(publicPath)) {
+        const raw = fs.readFileSync(publicPath, 'utf8');
+        let parsedData: any = undefined;
+        try {
+          if (raw.trim().startsWith('{') || raw.trim().startsWith('[')) {
+            parsedData = JSON.parse(raw);
+          }
+        } catch {
+          // not JSON
+        }
+        return {
+          success: true,
+          text: raw,
+          data: parsedData,
+          buffer: Buffer.from(raw),
+          source: 'public-disk',
+        };
+      }
+    } catch (fsErr) {
+      // Continue
+    }
+
+    return { success: false, error: `Blob not found at "${pathnameOrUrl}" across Vercel, local storage, and public assets` };
   }
 
   /**
@@ -857,18 +1015,25 @@ export class UnifiedBlobStorageEngine {
   ): Promise<BlobPutResult> {
     const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
     const cleanPath = sanitizeBlobPath(pathname, 'app');
-    return await this.put(cleanPath, content, {
+    console.log(`[UnifiedBlobStorageEngine.uploadAppData] Saving to "${cleanPath}"`);
+    const result = await this.put(cleanPath, content, {
       ...options,
       contentType: options.contentType || (cleanPath.endsWith('.json') ? 'application/json' : 'text/plain'),
     });
+    console.log(`[UnifiedBlobStorageEngine.uploadAppData] Saved "${cleanPath}" -> Success: ${result.success}, Provider: ${result.provider}, URL: ${result.publicUrl || 'local'}`);
+    return result;
   }
 
   /**
    * Retrieve parsed application data
    */
-  public async getAppData<T = any>(pathnameOrUrl: string): Promise<{ success: boolean; data?: T; rawText?: string; error?: string }> {
+  public async getAppData<T = any>(pathnameOrUrl: string): Promise<{ success: boolean; data?: T; rawText?: string; error?: string; source?: string }> {
+    console.log(`[UnifiedBlobStorageEngine.getAppData] Reading "${pathnameOrUrl}"...`);
     const res = await this.get(pathnameOrUrl);
-    if (!res.success) return { success: false, error: res.error };
+    if (!res.success) {
+      console.warn(`[UnifiedBlobStorageEngine.getAppData] Failed reading "${pathnameOrUrl}":`, res.error);
+      return { success: false, error: res.error };
+    }
 
     let parsed: T | undefined = res.data;
     if (!parsed && res.text) {
@@ -879,10 +1044,13 @@ export class UnifiedBlobStorageEngine {
       }
     }
 
+    console.log(`[UnifiedBlobStorageEngine.getAppData] Successfully retrieved "${pathnameOrUrl}" from source: ${res.source || 'unknown'}`);
+
     return {
       success: true,
       data: parsed,
       rawText: res.text,
+      source: res.source,
     };
   }
 

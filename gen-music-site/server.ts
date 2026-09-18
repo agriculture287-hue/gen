@@ -366,27 +366,37 @@ app.post('/api/avatar/upload', express.raw({ type: '*/*', limit: '50mb' }), asyn
 app.get('/version.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  res.setHeader('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.setHeader('Content-Type', 'application/json');
+
+  console.log(`[GET /version.json] Request received from ${req.ip}`);
 
   try {
     const result = await blobService.getAppData('version.json');
     if (result.success && result.data) {
+      console.log(`[GET /version.json] Serving live data from ${result.source || 'storage'}`);
       return res.json(result.data);
     }
   } catch (err) {
-    console.warn('Failed to fetch live version.json from Vercel Blob:', err);
+    console.warn('[GET /version.json] Error fetching live version.json:', err);
   }
 
+  console.log('[GET /version.json] Serving in-memory activeVersionManifest fallback');
   return res.json(activeVersionManifest);
 });
 
 app.get('/app-version.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  res.setHeader('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.setHeader('Content-Type', 'application/json');
   
+  console.log(`[GET /app-version.json] Request received from ${req.ip}`);
+
   const fallback = {
     latest_version: activeVersionManifest.android.latestVersion,
     min_supported_version: activeVersionManifest.android.minimumVersion,
@@ -402,12 +412,14 @@ app.get('/app-version.json', async (req, res) => {
   try {
     const result = await blobService.getAppData('app-version.json');
     if (result.success && result.data) {
+      console.log(`[GET /app-version.json] Serving live data from ${result.source || 'storage'}: version=${result.data.latest_version}`);
       return res.json(result.data);
     }
   } catch (err) {
-    console.warn('Failed to fetch live app-version.json from Vercel Blob:', err);
+    console.warn('[GET /app-version.json] Error fetching live app-version.json:', err);
   }
 
+  console.log('[GET /app-version.json] Serving fallback manifest');
   return res.json(fallback);
 });
 
@@ -421,43 +433,49 @@ app.post('/api/admin/update-version-manifest', async (req, res) => {
 
     activeVersionManifest = { ...activeVersionManifest, ...updated };
 
-    // Update local public files if present
+    const formattedAppVersion = {
+      latest_version: activeVersionManifest.android.latestVersion,
+      min_supported_version: activeVersionManifest.android.minimumVersion,
+      force_update: false,
+      whats_new: activeVersionManifest.releaseNotes,
+      download_url: {
+        android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
+        windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
+        macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
+      },
+    };
+
+    // Update local public files on disk
     try {
       const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
-      const formattedAppVersion = {
-        latest_version: activeVersionManifest.android.latestVersion,
-        min_supported_version: activeVersionManifest.android.minimumVersion,
-        force_update: false,
-        whats_new: activeVersionManifest.releaseNotes,
-        download_url: {
-          android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
-          windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
-          macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
-        },
-      };
       fs.writeFileSync(publicAppVerPath, JSON.stringify(formattedAppVersion, null, 2), 'utf8');
+
+      const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
+      fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
     } catch (fsErr) {
-      console.warn('Could not write local public/app-version.json:', fsErr);
+      console.warn('Could not write local public version files:', fsErr);
     }
 
-    // Optionally sync to Vercel Blob if token available
-    if (blobService.isReady()) {
-      try {
-        await blobService.uploadAppData('app-version.json', activeVersionManifest);
-        await blobService.uploadAppData('version.json', activeVersionManifest);
-      } catch (blobErr) {
-        console.warn('Failed saving version.json to Vercel blob:', blobErr);
-      }
-    }
+    // Sync to Blob Storage
+    const appVersionRes = await blobService.uploadAppData('app-version.json', formattedAppVersion);
+    const versionManifestRes = await blobService.uploadAppData('version.json', activeVersionManifest);
+
+    console.log(`[AdminUpdateManifest] Saved app-version.json (${appVersionRes.publicUrl || 'local'}) & version.json (${versionManifestRes.publicUrl || 'local'})`);
 
     return res.json({
       success: true,
       manifest: activeVersionManifest,
-      message: 'Version manifest updated successfully across endpoints.',
+      appVersion: formattedAppVersion,
+      blobs: {
+        appVersion: appVersionRes.publicUrl || appVersionRes.blob?.url,
+        versionManifest: versionManifestRes.publicUrl || versionManifestRes.blob?.url,
+      },
+      message: 'Version manifest updated and synced across storage layers.',
     });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error?.message });
   }
+});
 });
 
 // ==========================================
@@ -661,70 +679,52 @@ app.post('/api/admin/update-version', async (req, res) => {
       }
     };
 
-    let blobUrl = '';
+    console.log('[POST /api/admin/update-version] Incoming payload:', JSON.stringify(appVersionJson, null, 2));
 
-    // 3. Upload to Vercel Blob
-    const token = process.env.BLOB_READ_WRITE_TOKEN || blobService.getConfig().token;
-    if (!token) {
-      return res.status(400).json({
-        success: false,
-        error: 'Vercel Blob token (BLOB_READ_WRITE_TOKEN) is not configured.'
-      });
+    // Sync in-memory version manifest
+    if (activeVersionManifest) {
+      activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
+      if (appVersionJson.download_url.android) activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
+      if (appVersionJson.download_url.windows) activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
+      if (appVersionJson.download_url.macos) activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
+      activeVersionManifest.releaseNotes = appVersionJson.whats_new;
     }
 
-    try {
-      const { put } = await import('@vercel/blob');
-      const blob = await put('app-version.json', JSON.stringify(appVersionJson, null, 2), {
-        access: 'public',
-        addRandomSuffix: false,
-        allowOverwrite: true,
-        token: token,
-        contentType: 'application/json'
-      });
-      blobUrl = blob.url;
-
-      // Sync in-memory version manifest if active
-      if (activeVersionManifest) {
-        activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
-        activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
-        if (appVersionJson.download_url.android) activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
-        if (appVersionJson.download_url.windows) activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
-        if (appVersionJson.download_url.macos) activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
-        activeVersionManifest.releaseNotes = appVersionJson.whats_new;
-      }
-
-      // Also upload version.json to Vercel Blob to keep them fully synced!
-      await put('version.json', JSON.stringify(activeVersionManifest, null, 2), {
-        access: 'public',
-        addRandomSuffix: false,
-        allowOverwrite: true,
-        token: token,
-        contentType: 'application/json'
-      });
-    } catch (putErr: any) {
-      console.error('Vercel Blob put failed:', putErr);
-      return res.status(500).json({
-        success: false,
-        error: `Vercel Blob upload failed: ${putErr?.message || putErr}`
-      });
-    }
-
-    // 4. Save locally to public/app-version.json as fallback
+    // Save locally to public/app-version.json and public/version.json
     try {
       const publicAppVerPath = path.join(process.cwd(), 'public', 'app-version.json');
       fs.writeFileSync(publicAppVerPath, JSON.stringify(appVersionJson, null, 2), 'utf8');
+
+      const publicVerPath = path.join(process.cwd(), 'public', 'version.json');
+      fs.writeFileSync(publicVerPath, JSON.stringify(activeVersionManifest, null, 2), 'utf8');
     } catch (fsErr) {
-      console.warn('Could not write local public/app-version.json:', fsErr);
+      console.warn('[POST /api/admin/update-version] Could not write local public JSON files:', fsErr);
     }
+
+    // Upload to Blob Storage (Dual local disk + Vercel Blob)
+    const appVersionPut = await blobService.uploadAppData('app-version.json', appVersionJson);
+    const versionManifestPut = await blobService.uploadAppData('version.json', activeVersionManifest);
+
+    const blobUrl = appVersionPut.publicUrl || appVersionPut.blob?.url || '';
+
+    console.log(`[POST /api/admin/update-version] Uploaded app-version.json -> Success: ${appVersionPut.success}, URL: ${blobUrl}`);
 
     return res.json({
       success: true,
       blobUrl,
       url: blobUrl,
-      message: 'App version manifest updated and deployed live on Vercel Blob successfully!'
+      savedLocally: true,
+      provider: appVersionPut.provider,
+      data: appVersionJson,
+      blobs: {
+        appVersion: blobUrl,
+        versionManifest: versionManifestPut.publicUrl || versionManifestPut.blob?.url,
+      },
+      message: 'App version manifest updated and synced across storage layers successfully!'
     });
   } catch (error: any) {
-    console.error('Update version error:', error);
+    console.error('[POST /api/admin/update-version] Error:', error);
     return res.status(500).json({ success: false, error: error?.message || 'Server error' });
   }
 });
