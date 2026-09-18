@@ -162,34 +162,34 @@ function syncLocalStaticFiles(filename: string, content: string | object) {
 // In-memory active version manifest fallback
 let activeVersionManifest = {
   android: {
-    latestVersion: '1.0.1',
-    minimumVersion: '1.0.0',
-    downloadUrl: 'https://genmugic.vercel.app/download/genmusic.apk',
+    latestVersion: '2.5.0',
+    minimumVersion: '2.0.0',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk',
     fileSize: '24.8 MB',
     sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     releaseDate: '2026-09-15',
     mirrorUrl: 'https://t.me/genmusic_apk',
-    blobUrl: '',
+    blobUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk',
   },
   windows: {
-    latestVersion: '1.0.1',
-    minimumVersion: '1.0.0',
-    downloadUrl: 'https://genmugic.vercel.app/download/genmusic-setup.exe',
+    latestVersion: '2.5.0',
+    minimumVersion: '2.0.0',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg',
     fileSize: '56.2 MB',
     sha256: 'a12bc44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b899',
     releaseDate: '2026-09-15',
     mirrorUrl: 'https://t.me/genmusic_apk',
-    blobUrl: '',
+    blobUrl: 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg',
   },
   macos: {
-    latestVersion: '1.0.1',
-    minimumVersion: '1.0.0',
-    downloadUrl: 'https://genmugic.vercel.app/download/genmusic.dmg',
+    latestVersion: '2.5.0',
+    minimumVersion: '2.0.0',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg',
     fileSize: '68.4 MB',
     sha256: 'c88df44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b112',
     releaseDate: '2026-09-15',
     mirrorUrl: 'https://t.me/genmusic_official',
-    blobUrl: '',
+    blobUrl: 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg',
   },
   releaseNotes: [
     'Improved streaming engine with adaptive buffer management',
@@ -595,29 +595,59 @@ app.get('/version.json', async (req, res) => {
 app.get('/app-version.json', async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
   res.setHeader('Content-Type', 'application/json');
   
+  // 1. Check live Blob Storage first
+  try {
+    const result = await blobService.getAppData('app-version.json');
+    if (result.success && result.data && result.data.latest_version && result.data.download_url) {
+      if (result.data.download_url.android) {
+        activeVersionManifest.android.downloadUrl = result.data.download_url.android;
+        activeVersionManifest.android.blobUrl = result.data.download_url.android;
+      }
+      if (result.data.download_url.windows) {
+        activeVersionManifest.windows.downloadUrl = result.data.download_url.windows;
+        activeVersionManifest.windows.blobUrl = result.data.download_url.windows;
+      }
+      if (result.data.download_url.macos) {
+        activeVersionManifest.macos.downloadUrl = result.data.download_url.macos;
+        activeVersionManifest.macos.blobUrl = result.data.download_url.macos;
+      }
+      return res.json(result.data);
+    }
+  } catch (err) {
+    console.warn('Failed to fetch live app-version.json from Blob:', err);
+  }
+
+  // 2. Check local disk
+  try {
+    const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
+    if (fs.existsSync(publicPath)) {
+      const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
+      if (diskData && diskData.latest_version && diskData.download_url) {
+        return res.json(diskData);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
+  // 3. Fallback to active in-memory manifest (always prioritize downloadUrl)
   const fallback = {
     latest_version: activeVersionManifest.android.latestVersion,
     min_supported_version: activeVersionManifest.android.minimumVersion,
     force_update: false,
     whats_new: activeVersionManifest.releaseNotes,
     download_url: {
-      android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
-      windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
-      macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
+      android: activeVersionManifest.android.downloadUrl || activeVersionManifest.android.blobUrl,
+      windows: activeVersionManifest.windows.downloadUrl || activeVersionManifest.windows.blobUrl,
+      macos: activeVersionManifest.macos.downloadUrl || activeVersionManifest.macos.blobUrl,
     },
   };
-
-  try {
-    const result = await blobService.getAppData('app-version.json');
-    if (result.success && result.data) {
-      return res.json(result.data);
-    }
-  } catch (err) {
-    console.warn('Failed to fetch live app-version.json from Vercel Blob:', err);
-  }
 
   return res.json(fallback);
 });
@@ -632,15 +662,28 @@ app.post('/api/admin/update-version-manifest', async (req, res) => {
 
     activeVersionManifest = { ...activeVersionManifest, ...updated };
 
+    if (updated.android?.downloadUrl) {
+      activeVersionManifest.android.downloadUrl = updated.android.downloadUrl;
+      activeVersionManifest.android.blobUrl = updated.android.downloadUrl;
+    }
+    if (updated.windows?.downloadUrl) {
+      activeVersionManifest.windows.downloadUrl = updated.windows.downloadUrl;
+      activeVersionManifest.windows.blobUrl = updated.windows.downloadUrl;
+    }
+    if (updated.macos?.downloadUrl) {
+      activeVersionManifest.macos.downloadUrl = updated.macos.downloadUrl;
+      activeVersionManifest.macos.blobUrl = updated.macos.downloadUrl;
+    }
+
     const formattedAppVersion = {
       latest_version: activeVersionManifest.android.latestVersion,
       min_supported_version: activeVersionManifest.android.minimumVersion,
       force_update: false,
       whats_new: activeVersionManifest.releaseNotes,
       download_url: {
-        android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
-        windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
-        macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
+        android: activeVersionManifest.android.downloadUrl || activeVersionManifest.android.blobUrl,
+        windows: activeVersionManifest.windows.downloadUrl || activeVersionManifest.windows.blobUrl,
+        macos: activeVersionManifest.macos.downloadUrl || activeVersionManifest.macos.blobUrl,
       },
     };
 
@@ -905,9 +948,23 @@ app.post('/api/admin/update-version', async (req, res) => {
     if (activeVersionManifest) {
       activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
       activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
-      if (appVersionJson.download_url.android) activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
-      if (appVersionJson.download_url.windows) activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
-      if (appVersionJson.download_url.macos) activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
+      activeVersionManifest.windows.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.windows.minimumVersion = appVersionJson.min_supported_version;
+      activeVersionManifest.macos.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.macos.minimumVersion = appVersionJson.min_supported_version;
+
+      if (appVersionJson.download_url.android) {
+        activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
+        activeVersionManifest.android.blobUrl = appVersionJson.download_url.android;
+      }
+      if (appVersionJson.download_url.windows) {
+        activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
+        activeVersionManifest.windows.blobUrl = appVersionJson.download_url.windows;
+      }
+      if (appVersionJson.download_url.macos) {
+        activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
+        activeVersionManifest.macos.blobUrl = appVersionJson.download_url.macos;
+      }
       activeVersionManifest.releaseNotes = appVersionJson.whats_new;
     }
 
@@ -966,55 +1023,15 @@ app.post('/api/admin/update-version', async (req, res) => {
 // /download/genmusic.dmg
 // ==========================================
 app.get('/download/genmusic.apk', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
 
-  // 1. Check live app-version.json from Vercel Blob
+  // 1. Check live app-version.json from Blob
   try {
     const liveAppVer = await blobService.getAppData('app-version.json');
     if (liveAppVer.success && liveAppVer.data?.download_url?.android) {
       const liveUrl = liveAppVer.data.download_url.android;
-      if (liveUrl && liveUrl.startsWith('http')) {
-        return res.redirect(302, liveUrl);
-      }
-    }
-  } catch (err) {
-    // Continue to fallback
-  }
-
-  // 2. Check local public/app-version.json
-  try {
-    const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
-    if (fs.existsSync(publicPath)) {
-      const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
-      if (diskData?.download_url?.android && diskData.download_url.android.startsWith('http')) {
-        return res.redirect(302, diskData.download_url.android);
-      }
-    }
-  } catch (err) {
-    // Continue to fallback
-  }
-
-  // 3. Fallback to active in-memory manifest
-  const customUrl = activeVersionManifest.android.downloadUrl;
-  if (customUrl && customUrl.startsWith('http')) {
-    return res.redirect(302, customUrl);
-  }
-  if (activeVersionManifest.android.blobUrl) {
-    return res.redirect(302, activeVersionManifest.android.blobUrl);
-  }
-  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk';
-  return res.redirect(302, target);
-});
-
-app.get('/download/genmusic-setup.exe', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
-
-  // 1. Check live app-version.json from Vercel Blob
-  try {
-    const liveAppVer = await blobService.getAppData('app-version.json');
-    if (liveAppVer.success && liveAppVer.data?.download_url?.windows) {
-      const liveUrl = liveAppVer.data.download_url.windows;
-      if (liveUrl && liveUrl.startsWith('http')) {
+      if (liveUrl && liveUrl.startsWith('http') && !liveUrl.includes('/download/genmusic.apk')) {
         return res.redirect(302, liveUrl);
       }
     }
@@ -1027,7 +1044,56 @@ app.get('/download/genmusic-setup.exe', async (req, res) => {
     const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
     if (fs.existsSync(publicPath)) {
       const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
-      if (diskData?.download_url?.windows && diskData.download_url.windows.startsWith('http')) {
+      if (diskData?.download_url?.android && diskData.download_url.android.startsWith('http') && !diskData.download_url.android.includes('/download/genmusic.apk')) {
+        return res.redirect(302, diskData.download_url.android);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
+  // 3. Fallback to active in-memory manifest
+  const customUrl = activeVersionManifest.android.downloadUrl;
+  if (customUrl && customUrl.startsWith('http') && !customUrl.includes('/download/genmusic.apk')) {
+    return res.redirect(302, customUrl);
+  }
+  if (activeVersionManifest.android.blobUrl && activeVersionManifest.android.blobUrl.startsWith('http') && !activeVersionManifest.android.blobUrl.includes('/download/genmusic.apk')) {
+    return res.redirect(302, activeVersionManifest.android.blobUrl);
+  }
+
+  // 4. Check local uploaded files
+  const localApk = path.join(process.cwd(), 'public', 'storage', 'blobs', 'genmusic.apk');
+  if (fs.existsSync(localApk)) {
+    return res.download(localApk, `GEN-Music-${activeVersionManifest.android.latestVersion}.apk`);
+  }
+
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk';
+  return res.redirect(302, target);
+});
+
+app.get('/download/genmusic-setup.exe', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+
+  // 1. Check live app-version.json from Blob
+  try {
+    const liveAppVer = await blobService.getAppData('app-version.json');
+    if (liveAppVer.success && liveAppVer.data?.download_url?.windows) {
+      const liveUrl = liveAppVer.data.download_url.windows;
+      if (liveUrl && liveUrl.startsWith('http') && !liveUrl.includes('/download/genmusic-setup.exe')) {
+        return res.redirect(302, liveUrl);
+      }
+    }
+  } catch (err) {
+    // Continue
+  }
+
+  // 2. Check local public/app-version.json
+  try {
+    const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
+    if (fs.existsSync(publicPath)) {
+      const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
+      if (diskData?.download_url?.windows && diskData.download_url.windows.startsWith('http') && !diskData.download_url.windows.includes('/download/genmusic-setup.exe')) {
         return res.redirect(302, diskData.download_url.windows);
       }
     }
@@ -1036,25 +1102,32 @@ app.get('/download/genmusic-setup.exe', async (req, res) => {
   }
 
   const customUrl = activeVersionManifest.windows.downloadUrl;
-  if (customUrl && customUrl.startsWith('http')) {
+  if (customUrl && customUrl.startsWith('http') && !customUrl.includes('/download/genmusic-setup.exe')) {
     return res.redirect(302, customUrl);
   }
-  if (activeVersionManifest.windows.blobUrl) {
+  if (activeVersionManifest.windows.blobUrl && activeVersionManifest.windows.blobUrl.startsWith('http') && !activeVersionManifest.windows.blobUrl.includes('/download/genmusic-setup.exe')) {
     return res.redirect(302, activeVersionManifest.windows.blobUrl);
   }
-  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk';
+
+  const localExe = path.join(process.cwd(), 'public', 'storage', 'blobs', 'genmusic-setup.exe');
+  if (fs.existsSync(localExe)) {
+    return res.download(localExe, `GEN-Music-Setup-${activeVersionManifest.windows.latestVersion}.exe`);
+  }
+
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg';
   return res.redirect(302, target);
 });
 
 app.get('/download/genmusic.dmg', async (req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
 
-  // 1. Check live app-version.json from Vercel Blob
+  // 1. Check live app-version.json from Blob
   try {
     const liveAppVer = await blobService.getAppData('app-version.json');
     if (liveAppVer.success && liveAppVer.data?.download_url?.macos) {
       const liveUrl = liveAppVer.data.download_url.macos;
-      if (liveUrl && liveUrl.startsWith('http')) {
+      if (liveUrl && liveUrl.startsWith('http') && !liveUrl.includes('/download/genmusic.dmg')) {
         return res.redirect(302, liveUrl);
       }
     }
@@ -1067,7 +1140,7 @@ app.get('/download/genmusic.dmg', async (req, res) => {
     const publicPath = path.join(process.cwd(), 'public', 'app-version.json');
     if (fs.existsSync(publicPath)) {
       const diskData = JSON.parse(fs.readFileSync(publicPath, 'utf8'));
-      if (diskData?.download_url?.macos && diskData.download_url.macos.startsWith('http')) {
+      if (diskData?.download_url?.macos && diskData.download_url.macos.startsWith('http') && !diskData.download_url.macos.includes('/download/genmusic.dmg')) {
         return res.redirect(302, diskData.download_url.macos);
       }
     }
@@ -1076,13 +1149,19 @@ app.get('/download/genmusic.dmg', async (req, res) => {
   }
 
   const customUrl = activeVersionManifest.macos.downloadUrl;
-  if (customUrl && customUrl.startsWith('http')) {
+  if (customUrl && customUrl.startsWith('http') && !customUrl.includes('/download/genmusic.dmg')) {
     return res.redirect(302, customUrl);
   }
-  if (activeVersionManifest.macos.blobUrl) {
+  if (activeVersionManifest.macos.blobUrl && activeVersionManifest.macos.blobUrl.startsWith('http') && !activeVersionManifest.macos.blobUrl.includes('/download/genmusic.dmg')) {
     return res.redirect(302, activeVersionManifest.macos.blobUrl);
   }
-  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.0.apk';
+
+  const localDmg = path.join(process.cwd(), 'public', 'storage', 'blobs', 'genmusic.dmg');
+  if (fs.existsSync(localDmg)) {
+    return res.download(localDmg, `GEN-Music-${activeVersionManifest.macos.latestVersion}.dmg`);
+  }
+
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg';
   return res.redirect(302, target);
 });
 
@@ -1117,6 +1196,72 @@ app.get('/api/blob/status', (req, res) => {
       localBlobsCount: 0,
       message: err?.message || 'Local storage operational',
     });
+  }
+});
+
+// Configure & connect Vercel Blob Token
+app.post('/api/blob/configure-token', async (req, res) => {
+  try {
+    const { token, storeId } = req.body || {};
+    if (!token || typeof token !== 'string' || !token.trim()) {
+      return res.status(400).json({ success: false, error: 'BLOB_READ_WRITE_TOKEN string is required' });
+    }
+
+    const testRes = await blobService.setVercelToken(token.trim(), storeId);
+    if (!testRes.success) {
+      return res.status(400).json({
+        success: false,
+        error: testRes.error || 'Vercel Blob token verification failed',
+        status: blobService.getStatus(),
+      });
+    }
+
+    // Immediately synchronize all live configuration and download links to Vercel Blob worldwide
+    let syncError: string | undefined = undefined;
+    try {
+      const publicAppVer = {
+        latest_version: activeVersionManifest.android.latestVersion,
+        min_supported_version: activeVersionManifest.android.minimumVersion,
+        force_update: false,
+        whats_new: activeVersionManifest.releaseNotes,
+        download_url: {
+          android: activeVersionManifest.android.downloadUrl || activeVersionManifest.android.blobUrl,
+          windows: activeVersionManifest.windows.downloadUrl || activeVersionManifest.windows.blobUrl,
+          macos: activeVersionManifest.macos.downloadUrl || activeVersionManifest.macos.blobUrl,
+        },
+      };
+
+      await blobService.uploadAppData('app-version.json', publicAppVer);
+      await blobService.uploadAppData('version.json', activeVersionManifest);
+      await blobService.uploadAppData('app/genmusic-data.json', {
+        timestamp: new Date().toISOString(),
+        version: '2.5',
+        data: activeAppConfig,
+      });
+    } catch (e: any) {
+      syncError = e?.message;
+      console.warn('Notice on initial blob replication:', e);
+    }
+
+    return res.json({
+      success: true,
+      message: 'Vercel Blob Token successfully connected! All link data published worldwide across Edge CDN.',
+      status: blobService.getStatus(),
+      syncError,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Server error' });
+  }
+});
+
+// Test Vercel Blob Token without saving
+app.post('/api/blob/test-token', async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    const result = await blobService.testVercelConnection(token);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err?.message || 'Test failed' });
   }
 });
 
@@ -1329,15 +1474,36 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app', '/api/admin/s
         ...activeVersionManifest,
         ...backendPayload.manifest,
       };
+      if (backendPayload.manifest.android?.downloadUrl) {
+        activeVersionManifest.android.downloadUrl = backendPayload.manifest.android.downloadUrl;
+        activeVersionManifest.android.blobUrl = backendPayload.manifest.android.downloadUrl;
+      }
+      if (backendPayload.manifest.windows?.downloadUrl) {
+        activeVersionManifest.windows.downloadUrl = backendPayload.manifest.windows.downloadUrl;
+        activeVersionManifest.windows.blobUrl = backendPayload.manifest.windows.downloadUrl;
+      }
+      if (backendPayload.manifest.macos?.downloadUrl) {
+        activeVersionManifest.macos.downloadUrl = backendPayload.manifest.macos.downloadUrl;
+        activeVersionManifest.macos.blobUrl = backendPayload.manifest.macos.downloadUrl;
+      }
     } else if (backendPayload.platforms && Array.isArray(backendPayload.platforms)) {
       // If platforms array passed, extract latest download URLs into manifest
       const androidPlatform = backendPayload.platforms.find((p: any) => p.platform === 'android');
       const windowsPlatform = backendPayload.platforms.find((p: any) => p.platform === 'windows');
       const macPlatform = backendPayload.platforms.find((p: any) => p.platform === 'mac' || p.platform === 'macos');
 
-      if (androidPlatform?.downloadUrl) activeVersionManifest.android.downloadUrl = androidPlatform.downloadUrl;
-      if (windowsPlatform?.downloadUrl) activeVersionManifest.windows.downloadUrl = windowsPlatform.downloadUrl;
-      if (macPlatform?.downloadUrl) activeVersionManifest.macos.downloadUrl = macPlatform.downloadUrl;
+      if (androidPlatform?.downloadUrl) {
+        activeVersionManifest.android.downloadUrl = androidPlatform.downloadUrl;
+        activeVersionManifest.android.blobUrl = androidPlatform.downloadUrl;
+      }
+      if (windowsPlatform?.downloadUrl) {
+        activeVersionManifest.windows.downloadUrl = windowsPlatform.downloadUrl;
+        activeVersionManifest.windows.blobUrl = windowsPlatform.downloadUrl;
+      }
+      if (macPlatform?.downloadUrl) {
+        activeVersionManifest.macos.downloadUrl = macPlatform.downloadUrl;
+        activeVersionManifest.macos.blobUrl = macPlatform.downloadUrl;
+      }
     }
 
     activeAppConfig.manifest = activeVersionManifest;
@@ -1349,9 +1515,9 @@ app.post(['/api/blob/sync-all-backend-data', '/api/blob/sync-app', '/api/admin/s
       force_update: false,
       whats_new: backendPayload?.manifest?.releaseNotes || activeVersionManifest.releaseNotes,
       download_url: {
-        android: activeVersionManifest.android.blobUrl || activeVersionManifest.android.downloadUrl,
-        windows: activeVersionManifest.windows.blobUrl || activeVersionManifest.windows.downloadUrl,
-        macos: activeVersionManifest.macos.blobUrl || activeVersionManifest.macos.downloadUrl,
+        android: activeVersionManifest.android.downloadUrl || activeVersionManifest.android.blobUrl,
+        windows: activeVersionManifest.windows.downloadUrl || activeVersionManifest.windows.blobUrl,
+        macos: activeVersionManifest.macos.downloadUrl || activeVersionManifest.macos.blobUrl,
       },
     };
 

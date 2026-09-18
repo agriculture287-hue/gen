@@ -180,30 +180,14 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 
   const handleDownloadClick = (e: React.MouseEvent, card: typeof downloadCards[0]) => {
     const targetUrl = card.downloadUrl;
-    if (!targetUrl) return;
+    if (!targetUrl) {
+      e.preventDefault();
+      return;
+    }
 
     setDownloadingPlatformId(card.id);
     setDownloadSuccessId(card.id);
     triggerCelebration();
-
-    // Trigger the configured link immediately
-    const a = document.createElement('a');
-    a.href = targetUrl;
-    if (targetUrl.startsWith('http') && !targetUrl.includes(window.location.host)) {
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-    } else {
-      a.target = '_self';
-    }
-    a.download = card.filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // If local path like /download/genmusic.apk, ensure browser navigates
-    if (!targetUrl.startsWith('http')) {
-      window.location.href = targetUrl;
-    }
 
     setTimeout(() => {
       setDownloadingPlatformId(null);
@@ -390,7 +374,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                       href={card.downloadUrl}
                       target={card.downloadUrl.startsWith('http') ? '_blank' : '_self'}
                       rel="noopener noreferrer"
-                      download={card.filename}
+                      download={card.downloadUrl.startsWith('http') ? undefined : card.filename}
                       id={`btn-download-${card.id}`}
                       onClick={(e) => handleDownloadClick(e, card)}
                       className={`w-full py-4 px-4 rounded-2xl font-extrabold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 text-white shadow-lg cursor-pointer bg-gradient-to-r ${card.accentColor} hover:opacity-95 active:scale-[0.98]`}

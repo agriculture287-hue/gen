@@ -61,24 +61,9 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
   }, []);
 
   const handleDownload = (e: React.MouseEvent, downloadUrl: string, fileFormat: string) => {
-    if (!downloadUrl) return;
-
-    // Trigger download immediately
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    if (downloadUrl.startsWith('http') && !downloadUrl.includes(window.location.host)) {
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-    } else {
-      a.target = '_self';
-    }
-    a.download = `GEN-MUSIC-${fileFormat}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    if (!downloadUrl.startsWith('http')) {
-      window.location.href = downloadUrl;
+    if (!downloadUrl) {
+      e.preventDefault();
+      return;
     }
   };
 
@@ -219,7 +204,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
                   href={p.downloadUrl}
                   target={p.downloadUrl.startsWith('http') ? '_blank' : '_self'}
                   rel="noopener noreferrer"
-                  download={`GEN-MUSIC-${p.name}${p.fileFormat}`}
+                  download={p.downloadUrl.startsWith('http') ? undefined : `GEN-MUSIC-${p.name}${p.fileFormat}`}
                   onClick={(e) => handleDownload(e, p.downloadUrl, p.fileFormat)}
                   id={`btn-download-${p.id}`}
                   className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-white shadow-lg cursor-pointer ${

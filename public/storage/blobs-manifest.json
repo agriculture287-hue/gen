@@ -3,33 +3,33 @@
     "url": "/storage/blobs/app/genmusic-data.json",
     "downloadUrl": "/storage/blobs/app/genmusic-data.json",
     "pathname": "app/genmusic-data.json",
-    "size": 8887,
-    "uploadedAt": "2026-09-17T09:35:51.351Z",
+    "size": 10233,
+    "uploadedAt": "2026-09-18T13:14:20.471Z",
     "contentType": "application/json",
     "provider": "local",
-    "sha256": "a37e0292318900ef50647e9754134636cc899ce24cb566c041ba4f27c6e0bd8f",
+    "sha256": "eee5c2e280f628036df6e23b62ab8cef717b9c971257151db1cfd0c6ea9374a6",
     "access": "public"
   },
   "app-version.json": {
     "url": "/storage/blobs/app-version.json",
     "downloadUrl": "/storage/blobs/app-version.json",
     "pathname": "app-version.json",
-    "size": 707,
-    "uploadedAt": "2026-09-17T09:35:52.829Z",
+    "size": 404,
+    "uploadedAt": "2026-09-18T13:14:20.470Z",
     "contentType": "application/json",
     "provider": "local",
-    "sha256": "fe26dc55232029b6aff394c1e2d15f3482eb34f171d8a498bfd9adf3be0e0ddc",
+    "sha256": "1ca7275feff0ffce90d6bc2365a86e37e88f60993c3195bd24625426c318ded8",
     "access": "public"
   },
   "version.json": {
     "url": "/storage/blobs/version.json",
     "downloadUrl": "/storage/blobs/version.json",
     "pathname": "version.json",
-    "size": 1474,
-    "uploadedAt": "2026-09-17T09:35:54.209Z",
+    "size": 790,
+    "uploadedAt": "2026-09-18T13:14:20.471Z",
     "contentType": "application/json",
     "provider": "local",
-    "sha256": "2e6660261ce192c720e95134359cb2c2aac9f16f13333780e4b8ae7de22e72cc",
+    "sha256": "5ef6ae09fa026811455ac46df1b21cfceb70243593e3a634e58686d04b42a332",
     "access": "public"
   }
 }

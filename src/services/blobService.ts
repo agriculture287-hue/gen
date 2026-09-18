@@ -229,6 +229,20 @@ export class LocalDiskBlobProvider {
 
       fs.writeFileSync(targetFile, buffer);
 
+      // Also ensure root public and dist directories receive critical config files
+      if (cleanPath === 'app-version.json' || cleanPath === 'version.json' || cleanPath.endsWith('genmusic-data.json')) {
+        try {
+          const rootPublicPath = path.join(process.cwd(), 'public', path.basename(cleanPath));
+          fs.writeFileSync(rootPublicPath, buffer);
+          const rootDistPath = path.join(process.cwd(), 'dist', path.basename(cleanPath));
+          if (fs.existsSync(path.join(process.cwd(), 'dist'))) {
+            fs.writeFileSync(rootDistPath, buffer);
+          }
+        } catch {
+          // Non-blocking
+        }
+      }
+
       const url = `/storage/blobs/${cleanPath}`;
       const blobItem: BlobItem = {
         url,
@@ -266,10 +280,22 @@ export class LocalDiskBlobProvider {
   public async get(pathname: string): Promise<{ success: boolean; buffer?: Buffer; text?: string; blob?: BlobItem; error?: string }> {
     try {
       const cleanPath = sanitizeBlobPath(pathname);
-      const targetFile = path.join(this.baseDir, cleanPath);
+      let targetFile = path.join(this.baseDir, cleanPath);
 
       if (!fs.existsSync(targetFile)) {
-        return { success: false, error: `Blob not found at ${cleanPath}` };
+        // Fallback to public root
+        const publicFallback = path.join(process.cwd(), 'public', cleanPath);
+        if (fs.existsSync(publicFallback)) {
+          targetFile = publicFallback;
+        } else {
+          // Fallback to public/basename
+          const baseNameFallback = path.join(process.cwd(), 'public', path.basename(cleanPath));
+          if (fs.existsSync(baseNameFallback)) {
+            targetFile = baseNameFallback;
+          } else {
+            return { success: false, error: `Blob not found at ${cleanPath}` };
+          }
+        }
       }
 
       const buffer = fs.readFileSync(targetFile);
@@ -364,6 +390,65 @@ export class LocalDiskBlobProvider {
 // ==========================================
 
 export class VercelBlobProvider {
+  private persistentTokenPath = path.join(process.cwd(), '.data', 'blob_token.json');
+
+  public setToken(token: string, storeId?: string): boolean {
+    try {
+      const dataDir = path.dirname(this.persistentTokenPath);
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(
+        this.persistentTokenPath,
+        JSON.stringify({ token: token.trim(), storeId: storeId?.trim() || '' }, null, 2),
+        'utf8'
+      );
+      process.env.BLOB_READ_WRITE_TOKEN = token.trim();
+      if (storeId) process.env.BLOB_STORE_ID = storeId.trim();
+      return true;
+    } catch (err) {
+      console.warn('[VercelBlobProvider] Failed to save persistent token:', err);
+      return false;
+    }
+  }
+
+  public async testConnection(customToken?: string): Promise<{
+    success: boolean;
+    message: string;
+    storeId?: string;
+    blobsCount?: number;
+    error?: string;
+  }> {
+    const token = (customToken || this.getTokenConfig().token || '').trim();
+    if (!token) {
+      return { success: false, message: 'Token is missing or empty.', error: 'Token is missing or empty.' };
+    }
+    if (!token.startsWith('vercel_blob_rw_')) {
+      return {
+        success: false,
+        message: 'Token must begin with "vercel_blob_rw_"',
+        error: 'Token must begin with "vercel_blob_rw_"',
+      };
+    }
+
+    try {
+      const res = await vercelList({ token, limit: 1 });
+      const storeIdMatch = token.match(/store_[a-zA-Z0-9_-]+/);
+      return {
+        success: true,
+        message: 'Successfully connected to Vercel Blob store!',
+        storeId: storeIdMatch ? storeIdMatch[0] : undefined,
+        blobsCount: res.blobs ? res.blobs.length : 0,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err?.message || 'Failed connecting to Vercel Blob API',
+        error: err?.message || 'Failed connecting to Vercel Blob API',
+      };
+    }
+  }
+
   public getTokenConfig(): { token?: string; storeId?: string; isConfigured: boolean; maskedToken?: string } {
     const rawToken = (
       process.env.BLOB_READ_WRITE_TOKEN ||
@@ -388,6 +473,20 @@ export class VercelBlobProvider {
       }
     }
 
+    // Also check saved persistent token if not found in environment
+    if (!token) {
+      try {
+        if (fs.existsSync(this.persistentTokenPath)) {
+          const fileData = JSON.parse(fs.readFileSync(this.persistentTokenPath, 'utf8'));
+          if (fileData?.token && typeof fileData.token === 'string' && fileData.token.startsWith('vercel_blob_rw_')) {
+            token = fileData.token.trim();
+          }
+        }
+      } catch {
+        // Continue
+      }
+    }
+
     const rawStoreId = (
       process.env.BLOB_STORE_ID ||
       process.env.VERCEL_BLOB_STORE_ID ||
@@ -403,6 +502,11 @@ export class VercelBlobProvider {
       else storeId = rawStoreId.replace(/^["']|["']$/g, '').trim();
     } else if (rawToken) {
       const match = rawToken.match(/store_[a-zA-Z0-9_-]+/);
+      if (match) storeId = match[0];
+    }
+
+    if (!storeId && token) {
+      const match = token.match(/store_[a-zA-Z0-9_-]+/);
       if (match) storeId = match[0];
     }
 
@@ -499,6 +603,26 @@ export class VercelBlobProvider {
 
       return { success: true, text, data };
     } catch (err: any) {
+      // Direct HTTP fetch fallback for public blobs
+      if (pathnameOrUrl.startsWith('http://') || pathnameOrUrl.startsWith('https://')) {
+        try {
+          const fetchRes = await fetch(pathnameOrUrl, {
+            headers: { 'Cache-Control': 'no-cache' },
+          });
+          if (fetchRes.ok) {
+            const text = await fetchRes.text();
+            let data: any = undefined;
+            try {
+              data = JSON.parse(text);
+            } catch {
+              // Not JSON
+            }
+            return { success: true, text, data };
+          }
+        } catch {
+          // Fall through
+        }
+      }
       return { success: false, error: err?.message || 'Failed fetching blob from Vercel' };
     }
   }
@@ -569,16 +693,84 @@ export class VercelBlobProvider {
 export class UnifiedBlobStorageEngine {
   public local: LocalDiskBlobProvider;
   public vercel: VercelBlobProvider;
+  private knownUrlsPath = path.join(process.cwd(), '.data', 'blob_urls.json');
+  private knownBlobUrls: Map<string, string> = new Map();
 
   constructor() {
     this.local = new LocalDiskBlobProvider();
     this.vercel = new VercelBlobProvider();
+    this.initKnownUrls();
+  }
+
+  private initKnownUrls() {
+    try {
+      if (fs.existsSync(this.knownUrlsPath)) {
+        const data = JSON.parse(fs.readFileSync(this.knownUrlsPath, 'utf8'));
+        if (data && typeof data === 'object') {
+          for (const [k, v] of Object.entries(data)) {
+            if (typeof v === 'string') {
+              this.knownBlobUrls.set(k, v);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[UnifiedBlobStorageEngine] Could not load known URLs:', err);
+    }
+  }
+
+  private saveKnownUrls() {
+    try {
+      const dataDir = path.dirname(this.knownUrlsPath);
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(
+        this.knownUrlsPath,
+        JSON.stringify(Object.fromEntries(this.knownBlobUrls), null, 2),
+        'utf8'
+      );
+    } catch (err) {
+      console.warn('[UnifiedBlobStorageEngine] Could not save known URLs:', err);
+    }
+  }
+
+  public async setVercelToken(token: string, storeId?: string): Promise<{
+    success: boolean;
+    message: string;
+    status: BlobStatusInfo;
+    error?: string;
+  }> {
+    const test = await this.vercel.testConnection(token);
+    if (!test.success) {
+      return {
+        success: false,
+        message: test.error || 'Token verification failed',
+        status: this.getStatus(),
+        error: test.error,
+      };
+    }
+
+    this.vercel.setToken(token, storeId);
+    return {
+      success: true,
+      message: 'Token verified and connected to Vercel Blob successfully!',
+      status: this.getStatus(),
+    };
+  }
+
+  public async testVercelConnection(customToken?: string) {
+    return await this.vercel.testConnection(customToken);
+  }
+
+  public getKnownUrl(pathname: string): string | undefined {
+    return this.knownBlobUrls.get(pathname);
   }
 
   /**
    * Get unified system status
    */
-  public getStatus(): BlobStatusInfo {
+  public getStatus(): BlobStatusInfo & { knownBlobUrls?: Record<string, string> } {
     const vercelConfig = this.vercel.getTokenConfig();
     const localCount = this.local.getCount();
 
@@ -598,6 +790,7 @@ export class UnifiedBlobStorageEngine {
       tokenMasked: vercelConfig.maskedToken,
       localBlobsCount: localCount,
       message,
+      knownBlobUrls: Object.fromEntries(this.knownBlobUrls),
     };
   }
 
@@ -645,6 +838,10 @@ export class UnifiedBlobStorageEngine {
             sha256,
             access: options.access || 'public',
           };
+
+          // Cache known live URL for instant lookup
+          this.knownBlobUrls.set(cleanPath, vercelRes.blob.url);
+          this.saveKnownUrls();
 
           return {
             success: true,
@@ -698,17 +895,25 @@ export class UnifiedBlobStorageEngine {
     // If it's a pathname and Vercel is ready, resolve it to a Vercel Blob URL first
     if (!pathnameOrUrl.startsWith('http://') && !pathnameOrUrl.startsWith('https://')) {
       if (this.vercel.isReady()) {
-        try {
-          const listRes = await this.vercel.list({ prefix: pathnameOrUrl });
-          if (listRes.success && listRes.blobs && listRes.blobs.length > 0) {
-            // Find an exact pathname match
-            const matchedBlob = listRes.blobs.find(b => b.pathname === pathnameOrUrl);
-            if (matchedBlob) {
-              resolvedUrl = matchedBlob.url;
+        const cachedUrl = this.knownBlobUrls.get(pathnameOrUrl) || this.knownBlobUrls.get(sanitizeBlobPath(pathnameOrUrl));
+        if (cachedUrl) {
+          resolvedUrl = cachedUrl;
+        } else {
+          try {
+            const listRes = await this.vercel.list({ prefix: pathnameOrUrl });
+            if (listRes.success && listRes.blobs && listRes.blobs.length > 0) {
+              const matchedBlob = listRes.blobs.find(
+                b => b.pathname === pathnameOrUrl || b.pathname.endsWith('/' + pathnameOrUrl)
+              ) || listRes.blobs[0];
+              if (matchedBlob) {
+                resolvedUrl = matchedBlob.url;
+                this.knownBlobUrls.set(pathnameOrUrl, matchedBlob.url);
+                this.saveKnownUrls();
+              }
             }
+          } catch (err) {
+            console.warn('[UnifiedBlobStorageEngine.get] Failed resolving pathname via Vercel list:', err);
           }
-        } catch (err) {
-          console.warn('[UnifiedBlobStorageEngine.get] Failed resolving pathname via Vercel list:', err);
         }
       }
     }

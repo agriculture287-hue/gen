@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-18T08:22:31.727Z",
+  "timestamp": "2026-09-18T13:14:20.471Z",
   "version": "2.5",
   "data": {
     "platforms": [
@@ -7,12 +7,12 @@
         "id": "app-android",
         "name": "GEN MUSIC for Android",
         "platform": "android",
-        "version": "v2.0.1",
+        "version": "2.5.0",
         "fileFormat": ".apk",
         "fileSize": "63.8 MB",
         "releaseDate": "September 2026",
         "minSystem": "Android 8.0 or later (Oreo to 15)",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk",
+        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk",
         "mirrorUrl": "https://t.me/genmusic_apk",
         "architecture": "ARM64-v8a & Universal",
         "badge": "Direct APK",
@@ -28,12 +28,12 @@
         "id": "app-mac",
         "name": "GEN MUSIC for macOS",
         "platform": "mac",
-        "version": "v2.5.0",
+        "version": "2.5.0",
         "fileFormat": ".dmg",
         "fileSize": "68.4 MB",
         "releaseDate": "September 2026",
         "minSystem": "macOS 12.0 Monterey or later (Apple Silicon & Intel)",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg",
+        "downloadUrl": "https://genmugic.vercel.app/download/genmusic.dmg",
         "mirrorUrl": "https://t.me/genmusic_official",
         "architecture": "Universal (Apple Silicon + Intel)",
         "badge": "macOS DMG",
@@ -49,12 +49,12 @@
         "id": "app-windows",
         "name": "GEN MUSIC for Windows",
         "platform": "windows",
-        "version": "v2.5.0",
+        "version": "2.5.0",
         "fileFormat": ".exe",
         "fileSize": "56.2 MB",
         "releaseDate": "September 2026",
         "minSystem": "Windows 10 / 11 (64-bit)",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg",
+        "downloadUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe",
         "mirrorUrl": "https://t.me/genmusic_official",
         "architecture": "x64 / AMD64",
         "badge": "Windows Installer",
@@ -70,7 +70,7 @@
         "id": "app-linux",
         "name": "GEN MUSIC for Linux",
         "platform": "linux",
-        "version": "v2.5.0",
+        "version": "1.0.1",
         "fileFormat": ".AppImage",
         "fileSize": "62.1 MB",
         "releaseDate": "September 2026",
@@ -89,7 +89,7 @@
         "id": "app-web",
         "name": "GEN MUSIC Web App (PWA)",
         "platform": "web",
-        "version": "v2.5.0",
+        "version": "1.0.1",
         "fileFormat": "PWA",
         "fileSize": "Cloud Stream",
         "releaseDate": "September 2026",
@@ -197,16 +197,22 @@
     ],
     "manifest": {
       "android": {
-        "latestVersion": "2.0.2",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk"
+        "latestVersion": "2.5.0",
+        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk",
+        "minimumVersion": "2.0.0",
+        "blobUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk"
       },
       "windows": {
-        "latestVersion": "2.0.2",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg"
+        "latestVersion": "2.5.0",
+        "downloadUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe",
+        "minimumVersion": "2.0.0",
+        "blobUrl": "https://genmugic.vercel.app/download/genmusic-setup.exe"
       },
       "macos": {
-        "latestVersion": "2.0.2",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg"
+        "latestVersion": "2.5.0",
+        "downloadUrl": "https://genmugic.vercel.app/download/genmusic.dmg",
+        "minimumVersion": "2.0.0",
+        "blobUrl": "https://genmugic.vercel.app/download/genmusic.dmg"
       },
       "releaseNotes": [
         "Improved streaming engine with adaptive buffer management",
