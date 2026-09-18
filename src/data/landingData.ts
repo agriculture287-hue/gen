@@ -234,9 +234,14 @@ export const APP_SCREENSHOTS: AppScreenshot[] = [
 
 export const FAQ_LIST: FAQItem[] = [
   {
+    id: 'faq-echomusic',
+    question: 'What is Echomusic and how is it related to GEN MUSIC?',
+    answer: 'Echomusic (also known as Remix GEN MUSIC or Echo Music) is our flagship streaming audio player. It combines YouTube Music and Spotify catalogs into one lightweight app with 320kbps offline MP3 downloads, binaural Dolby spatial audio, and zero audio subscription fees on Android, Windows, and Mac.',
+  },
+  {
     id: 'faq-1',
-    question: 'Is GEN MUSIC free?',
-    answer: 'Yes, GEN MUSIC is 100% free forever. There are no subscriptions, no monthly charges, no hidden paywalls, and no credit card required. You get complete access to unlimited streaming, offline downloads, and studio audio features without paying a single cent.',
+    question: 'Is GEN MUSIC / Echomusic free?',
+    answer: 'Yes, Echomusic and GEN MUSIC are 100% free forever. There are no subscriptions, no monthly charges, no hidden paywalls, and no credit card required. You get complete access to unlimited streaming, offline downloads, and studio audio features without paying a single cent.',
   },
   {
     id: 'faq-2',

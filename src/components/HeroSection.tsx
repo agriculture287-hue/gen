@@ -155,7 +155,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           {/* Top Pill Badge */}
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white border border-blue-200 shadow-sm text-xs font-semibold text-slate-700">
             <GenMusicLogo size="xs" glow={false} />
-            <span className="text-blue-700 font-bold">Android, macOS & Windows</span>
+            <span className="text-blue-700 font-bold">Echomusic • Android, macOS & Windows</span>
             <span className="text-slate-400">•</span>
             <span className="text-emerald-700 font-bold">Latest {androidApp?.version || 'v2.5.0'}</span>
           </div>
@@ -170,7 +170,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
           {/* EXACT SUBTITLE */}
           <p className="text-lg sm:text-2xl text-slate-600 font-normal max-w-2xl leading-relaxed">
-            Enjoy YouTube and Spotify music in one app with offline downloads, EQ controls, Dolby support and more.
+            Enjoy YouTube and Spotify music in one app with offline downloads, EQ controls, Dolby support and more with Echomusic &amp; Remix GEN MUSIC.
           </p>
 
           {/* Device Identification & Specific Suggestion Banner */}

@@ -55,13 +55,13 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 max-w-sm leading-relaxed">
-              The modern music client uniting YouTube Music and Spotify catalogs with direct APK releases for Android mobile devices.
+              The modern music client uniting YouTube Music and Spotify catalogs. Also known as Echomusic & Remix GEN MUSIC with high-speed direct APK releases for Android, Windows, and Mac.
             </p>
 
             <div className="flex items-center gap-3 text-xs text-slate-600 pt-1">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Android Mobile Ready
+                Echomusic APK Ready
               </span>
               <span>• Free Forever</span>
             </div>
@@ -124,6 +124,7 @@ export const Footer: React.FC<FooterProps> = ({
               <li><a href="#features" className="hover:text-blue-600 transition">Features</a></li>
               <li><a href="#screenshots" className="hover:text-blue-600 transition">Screenshots</a></li>
               <li><a href="#faq" className="hover:text-blue-600 transition">FAQ</a></li>
+              <li><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition text-blue-600 font-semibold">XML Sitemap</a></li>
             </ul>
           </div>
 
@@ -187,7 +188,7 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <p className="text-slate-500 text-center sm:text-left">
-            © {new Date().getFullYear()} GEN MUSIC. "Music For Every Mood". Not affiliated with Google LLC, YouTube, or Spotify AB.
+            © {new Date().getFullYear()} Remix GEN MUSIC & Echomusic. "Music For Every Mood". Direct APK & app packages. Not affiliated with Google LLC, YouTube, or Spotify AB.
           </p>
 
           <button

@@ -1,6 +1,6 @@
 {
   "name": "Remix GEN MUSIC",
-  "description": "Music For Every Mood. Free unlimited music experience uniting YouTube and Spotify music in one app with offline downloads, EQ controls, and Dolby support.",
+  "description": "Remix GEN MUSIC & Echomusic: Free unlimited music experience uniting YouTube and Spotify in one app with offline downloads, EQ controls, and Dolby support for Android, Windows, and Mac.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
