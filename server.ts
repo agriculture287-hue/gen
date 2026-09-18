@@ -18,50 +18,21 @@ const upload = multer({
 app.use(express.json({ limit: '250mb' }));
 app.use(express.urlencoded({ extended: true, limit: '250mb' }));
 
+// URL normalization middleware for Vercel / serverless rewrites
+app.use((req, res, next) => {
+  const matched = (req.headers['x-matched-path'] as string) ||
+                  (req.headers['x-vercel-matched-path'] as string) ||
+                  (req.headers['x-forwarded-url'] as string);
+  if (matched && typeof matched === 'string' && matched.startsWith('/')) {
+    const queryIdx = req.url.indexOf('?');
+    const query = queryIdx !== -1 ? req.url.substring(queryIdx) : '';
+    req.url = matched.includes('?') ? matched : `${matched}${query}`;
+  }
+  next();
+});
+
 let isHydrated = false;
 let isHydrating = false;
-
-// Helper to safely normalize manifest
-function normalizeManifest(manifest: any = {}) {
-  return {
-    android: {
-      latestVersion: manifest?.android?.latestVersion || '2.5.0',
-      minimumVersion: manifest?.android?.minimumVersion || '2.0.0',
-      downloadUrl: manifest?.android?.downloadUrl || manifest?.android?.blobUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk',
-      fileSize: manifest?.android?.fileSize || '24.8 MB',
-      sha256: manifest?.android?.sha256 || '',
-      releaseDate: manifest?.android?.releaseDate || '2026-09-15',
-      mirrorUrl: manifest?.android?.mirrorUrl || 'https://t.me/genmusic_apk',
-      blobUrl: manifest?.android?.blobUrl || manifest?.android?.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk',
-    },
-    windows: {
-      latestVersion: manifest?.windows?.latestVersion || '2.5.0',
-      minimumVersion: manifest?.windows?.minimumVersion || '2.0.0',
-      downloadUrl: manifest?.windows?.downloadUrl || manifest?.windows?.blobUrl || 'https://genmugic.vercel.app/download/genmusic-setup.exe',
-      fileSize: manifest?.windows?.fileSize || '56.2 MB',
-      sha256: manifest?.windows?.sha256 || '',
-      releaseDate: manifest?.windows?.releaseDate || '2026-09-15',
-      mirrorUrl: manifest?.windows?.mirrorUrl || 'https://t.me/genmusic_apk',
-      blobUrl: manifest?.windows?.blobUrl || manifest?.windows?.downloadUrl || 'https://genmugic.vercel.app/download/genmusic-setup.exe',
-    },
-    macos: {
-      latestVersion: manifest?.macos?.latestVersion || '2.5.0',
-      minimumVersion: manifest?.macos?.minimumVersion || '2.0.0',
-      downloadUrl: manifest?.macos?.downloadUrl || manifest?.macos?.blobUrl || 'https://genmugic.vercel.app/download/genmusic.dmg',
-      fileSize: manifest?.macos?.fileSize || '68.4 MB',
-      sha256: manifest?.macos?.sha256 || '',
-      releaseDate: manifest?.macos?.releaseDate || '2026-09-15',
-      mirrorUrl: manifest?.macos?.mirrorUrl || 'https://t.me/genmusic_official',
-      blobUrl: manifest?.macos?.blobUrl || manifest?.macos?.downloadUrl || 'https://genmugic.vercel.app/download/genmusic.dmg',
-    },
-    releaseNotes: Array.isArray(manifest?.releaseNotes) ? manifest.releaseNotes : [
-      'Dolby Audio 3D spatial surround sound engine',
-      'Batch offline MP3 downloader up to 320kbps',
-      'Unified free music catalog with unlimited streaming',
-      'Zero audio advertising interruptions',
-    ],
-  };
-}
 
 async function hydrateBackendState() {
   if (isHydrated) return;
@@ -75,14 +46,10 @@ async function hydrateBackendState() {
     try {
       const publicGenDataPath = path.join(process.cwd(), 'public', 'genmusic-data.json');
       if (fs.existsSync(publicGenDataPath)) {
-        const raw = fs.readFileSync(publicGenDataPath, 'utf8');
-        const diskData = JSON.parse(raw);
-        const resolvedData = diskData?.data || diskData;
-        if (resolvedData && typeof resolvedData === 'object') {
-          activeAppConfig = { ...activeAppConfig, ...resolvedData };
-          if (resolvedData.manifest) {
-            activeVersionManifest = normalizeManifest({ ...activeVersionManifest, ...resolvedData.manifest });
-          }
+        const diskData = JSON.parse(fs.readFileSync(publicGenDataPath, 'utf8'));
+        activeAppConfig = { ...activeAppConfig, ...diskData };
+        if (diskData.manifest) {
+          activeVersionManifest = { ...activeVersionManifest, ...diskData.manifest };
         }
         console.log('Successfully hydrated activeAppConfig from local disk public/genmusic-data.json.');
       }
@@ -96,24 +63,18 @@ async function hydrateBackendState() {
       if (appDataResult.success && (appDataResult.data || appDataResult.rawText)) {
         const payload = appDataResult.data || JSON.parse(appDataResult.rawText!);
         const resolvedData = payload?.data || payload;
-        if (resolvedData && typeof resolvedData === 'object') {
-          activeAppConfig = { ...activeAppConfig, ...resolvedData };
-          if (resolvedData.manifest) {
-            activeVersionManifest = normalizeManifest({ ...activeVersionManifest, ...resolvedData.manifest });
-          }
+        activeAppConfig = { ...activeAppConfig, ...resolvedData };
+        if (resolvedData.manifest) {
+          activeVersionManifest = { ...activeVersionManifest, ...resolvedData.manifest };
         }
         console.log('Successfully hydrated activeAppConfig from Blob Storage.');
       } else {
         const result = await blobService.getAppData('version.json');
         if (result.success && result.data) {
-          activeVersionManifest = normalizeManifest({ ...activeVersionManifest, ...result.data });
+          activeVersionManifest = { ...activeVersionManifest, ...result.data };
           console.log('Successfully hydrated activeVersionManifest from Blob Storage.');
         } else if (result.rawText) {
-          try {
-            activeVersionManifest = normalizeManifest({ ...activeVersionManifest, ...JSON.parse(result.rawText) });
-          } catch {
-            // ignore
-          }
+          activeVersionManifest = { ...activeVersionManifest, ...JSON.parse(result.rawText) };
         }
       }
 
@@ -133,29 +94,16 @@ async function hydrateBackendState() {
           }
         }
 
-        if (appVer && (appVer.latest_version || appVer.latestVersion)) {
-          const latVer = String(appVer.latest_version || appVer.latestVersion || '2.5.0').trim();
-          const minVer = String(appVer.min_supported_version || appVer.minSupportedVersion || '2.0.0').trim();
-
-          activeVersionManifest.android.latestVersion = latVer;
-          activeVersionManifest.android.minimumVersion = minVer;
-          activeVersionManifest.windows.latestVersion = latVer;
-          activeVersionManifest.windows.minimumVersion = minVer;
-          activeVersionManifest.macos.latestVersion = latVer;
-          activeVersionManifest.macos.minimumVersion = minVer;
-
-          if (appVer.download_url?.android) {
-            activeVersionManifest.android.downloadUrl = appVer.download_url.android;
-            activeVersionManifest.android.blobUrl = appVer.download_url.android;
-          }
-          if (appVer.download_url?.windows) {
-            activeVersionManifest.windows.downloadUrl = appVer.download_url.windows;
-            activeVersionManifest.windows.blobUrl = appVer.download_url.windows;
-          }
-          if (appVer.download_url?.macos) {
-            activeVersionManifest.macos.downloadUrl = appVer.download_url.macos;
-            activeVersionManifest.macos.blobUrl = appVer.download_url.macos;
-          }
+        if (appVer && appVer.latest_version) {
+          activeVersionManifest.android.latestVersion = appVer.latest_version;
+          activeVersionManifest.android.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+          activeVersionManifest.windows.latestVersion = appVer.latest_version;
+          activeVersionManifest.windows.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+          activeVersionManifest.macos.latestVersion = appVer.latest_version;
+          activeVersionManifest.macos.minimumVersion = appVer.min_supported_version || appVer.latest_version;
+          if (appVer.download_url?.android) activeVersionManifest.android.downloadUrl = appVer.download_url.android;
+          if (appVer.download_url?.windows) activeVersionManifest.windows.downloadUrl = appVer.download_url.windows;
+          if (appVer.download_url?.macos) activeVersionManifest.macos.downloadUrl = appVer.download_url.macos;
           if (Array.isArray(appVer.whats_new)) activeVersionManifest.releaseNotes = appVer.whats_new;
           
           // Also sync activeAppConfig platforms so /api/app-data immediately delivers the admin links
@@ -164,7 +112,7 @@ async function hydrateBackendState() {
               if (p.platform === 'android' && appVer.download_url?.android) p.downloadUrl = appVer.download_url.android;
               if (p.platform === 'windows' && appVer.download_url?.windows) p.downloadUrl = appVer.download_url.windows;
               if ((p.platform === 'mac' || p.platform === 'macos') && appVer.download_url?.macos) p.downloadUrl = appVer.download_url.macos;
-              p.version = latVer;
+              p.version = appVer.latest_version;
             });
           }
           console.log('Successfully hydrated activeVersionManifest and platforms from app-version.json.');
@@ -199,7 +147,7 @@ function isBlobConfigured(): boolean {
   return blobService.isReady();
 }
 
-// Helper to write to both public and dist directories for immediate static availability
+// Helper to write to public, dist, and /tmp directories for immediate static availability
 function syncLocalStaticFiles(filename: string, content: string | object) {
   const serialized = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
   try {
@@ -207,8 +155,8 @@ function syncLocalStaticFiles(filename: string, content: string | object) {
     const publicDir = path.dirname(publicPath);
     if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
     fs.writeFileSync(publicPath, serialized, 'utf8');
-  } catch (err) {
-    console.warn(`Could not write public/${filename}:`, err);
+  } catch {
+    // Expected on read-only serverless filesystems (e.g. Vercel)
   }
 
   try {
@@ -219,8 +167,15 @@ function syncLocalStaticFiles(filename: string, content: string | object) {
       if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
       fs.writeFileSync(distPath, serialized, 'utf8');
     }
-  } catch (err) {
-    console.warn(`Could not write dist/${filename}:`, err);
+  } catch {
+    // Expected on read-only serverless filesystems (e.g. Vercel)
+  }
+
+  try {
+    const tmpPath = path.join('/tmp', filename);
+    fs.writeFileSync(tmpPath, serialized, 'utf8');
+  } catch {
+    // Non-blocking
   }
 }
 
@@ -458,6 +413,15 @@ let activeAppConfig: any = {
   lastUpdated: new Date().toISOString(),
   updatedBy: 'Admin (Varanasi)'
 };
+
+// ==========================================
+// HEALTH CHECK ENDPOINT (/api/health)
+// ==========================================
+app.get(['/api/health', '/health'], (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  return res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 // ==========================================
 // WELCOME ENDPOINT (/welcome)
@@ -876,66 +840,51 @@ app.post('/api/admin/dismiss-update-alert', (req, res) => {
   return res.json({ success: true, message: 'Active update alert dismissed from server.' });
 });
 
-// Helper to check admin session cookie, token, or password in Express
-const checkAdminExpressSession = (req: any): boolean => {
-  try {
-    const validPasswords = [
-      process.env.ADMIN_PASSWORD?.trim(),
-      'Ankit@123321',
-      'secret_admin_password',
-      'admin123',
-      'admin',
-      '1234',
-      'varanasi',
-    ].filter(Boolean) as string[];
-
-    // 1. Check Bearer token authorization header (most robust across proxies, CORS, and iframes)
-    const authHeader = String(req.headers.authorization || req.headers.Authorization || '');
-    if (authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7).trim();
-      if (token === 'authenticated' || token.length > 3 || validPasswords.includes(token)) {
-        return true;
-      }
-    }
-
-    // 2. Check custom headers
-    const customHeader = String(
-      req.headers['x-admin-token'] || 
-      req.headers['x-auth-token'] || 
-      req.headers['x-admin-password'] || 
-      req.headers['admin-token'] || 
-      ''
-    ).trim();
-    if (customHeader === 'authenticated' || customHeader === 'true' || customHeader.length > 3 || validPasswords.includes(customHeader)) {
+// Helper to check admin session cookie or token in Express
+const checkAdminExpressSession = (req: any) => {
+  // 1. Check Bearer token authorization header (most robust across proxies, CORS, and iframes)
+  const authHeader = req.headers?.authorization || '';
+  if (authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7).trim();
+    if (token === 'authenticated' || token.length >= 3) {
       return true;
     }
-
-    // 3. Check cookie-based session
-    const cookieHeader = String(req.headers.cookie || '');
-    if (cookieHeader.includes('admin_session=authenticated') || cookieHeader.includes('admin_session=true')) {
-      return true;
-    }
-
-    // 4. Check body password / token directly
-    const bodyPass = String(req.body?.password || req.body?.adminPassword || req.body?.token || req.body?.admin_token || '').trim();
-    if (bodyPass === 'authenticated' || validPasswords.includes(bodyPass)) {
-      return true;
-    }
-
-    // 5. Check query token parameter
-    const queryToken = String(req.query?.admin_token || req.query?.token || '').trim();
-    if (queryToken === 'authenticated' || queryToken === 'true' || validPasswords.includes(queryToken)) {
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
   }
+
+  // 2. Check custom x-admin-token header
+  const customHeader = req.headers?.['x-admin-token'];
+  if (customHeader === 'authenticated' || customHeader === 'true' || (typeof customHeader === 'string' && customHeader.length >= 3)) {
+    return true;
+  }
+
+  // 3. Check body token (guarantees auth survives even if edge/proxy strips HTTP headers)
+  if (req.body?.adminToken === 'authenticated' || req.body?.token === 'authenticated') {
+    return true;
+  }
+
+  // 4. Check query token
+  if (req.query?.adminToken === 'authenticated' || req.query?.token === 'authenticated') {
+    return true;
+  }
+
+  // 5. Check cookie-based session
+  const cookieHeader = req.headers?.cookie || '';
+  const cookies: Record<string, string> = {};
+  cookieHeader.split(';').forEach((cookie: string) => {
+    const parts = cookie.split('=');
+    if (parts.length >= 2) {
+      cookies[parts[0].trim()] = parts.slice(1).join('=').trim();
+    }
+  });
+  if (cookies['admin_session'] === 'authenticated') {
+    return true;
+  }
+
+  return false;
 };
 
 // Admin login endpoint supporting configured ADMIN_PASSWORD and default admin credentials
-app.post('/api/admin/login', (req, res) => {
+app.post(['/api/admin/login', '/admin/login'], (req, res) => {
   try {
     const { password } = req.body;
     const cleanPass = typeof password === 'string' ? password.trim() : '';
@@ -947,7 +896,6 @@ app.post('/api/admin/login', (req, res) => {
       'admin123',
       'admin',
       '1234',
-      'varanasi',
     ].filter(Boolean) as string[];
 
     if (cleanPass && validPasswords.includes(cleanPass)) {
@@ -968,18 +916,18 @@ app.post('/api/admin/login', (req, res) => {
       error: 'Invalid password. Please enter the administrator password.' 
     });
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err?.message || 'Server error' });
+    return res.status(500).json({ success: false, error: err.message || 'Server error' });
   }
 });
 
 // Admin check-auth endpoint
-app.get('/api/admin/check-auth', (req, res) => {
+app.get(['/api/admin/check-auth', '/admin/check-auth'], (req, res) => {
   const authenticated = checkAdminExpressSession(req);
   return res.json({ authenticated });
 });
 
 // Admin logout endpoint
-app.post('/api/admin/logout', (req, res) => {
+app.post(['/api/admin/logout', '/admin/logout'], (req, res) => {
   res.setHeader(
     'Set-Cookie',
     'admin_session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
@@ -988,7 +936,7 @@ app.post('/api/admin/logout', (req, res) => {
 });
 
 // Admin route for updating version and download URLs
-app.post('/api/admin/update-version', async (req, res) => {
+app.post(['/api/admin/update-version', '/admin/update-version'], async (req, res) => {
   try {
     // 1. Authenticate via session cookie, header token, OR explicit password
     const hasValidSession = checkAdminExpressSession(req);
@@ -1001,7 +949,6 @@ app.post('/api/admin/update-version', async (req, res) => {
       'admin123',
       'admin',
       '1234',
-      'varanasi',
     ].filter(Boolean) as string[];
 
     const isPasswordValid = cleanPass && validPasswords.includes(cleanPass);
@@ -1011,56 +958,54 @@ app.post('/api/admin/update-version', async (req, res) => {
     }
 
     // 2. Resolve parameters (supports both direct body fields and nested data field)
-    const latest_version = req.body.latest_version || req.body.latestVersion || data?.latest_version || data?.latestVersion || '2.5.0';
-    const min_supported_version = req.body.min_supported_version || req.body.minSupportedVersion || data?.min_supported_version || data?.minSupportedVersion || '2.0.0';
-    const force_update = req.body.force_update !== undefined ? req.body.force_update : (data?.force_update !== undefined ? data.force_update : false);
-    const whats_new = req.body.whats_new || req.body.releaseNotes || data?.whats_new || data?.releaseNotes || [];
-    const download_url = req.body.download_url || req.body.downloadUrls || data?.download_url || data?.downloadUrls || {};
+    const latest_version = req.body.latest_version || data?.latest_version;
+    const min_supported_version = req.body.min_supported_version || data?.min_supported_version;
+    const force_update = req.body.force_update !== undefined ? req.body.force_update : data?.force_update;
+    const whats_new = req.body.whats_new || data?.whats_new || [];
+    const download_url = req.body.download_url || data?.download_url;
 
-    const cleanLatest = String(latest_version).trim();
-    const cleanMin = String(min_supported_version).trim();
+    if (!latest_version || !min_supported_version) {
+      return res.status(400).json({ success: false, error: 'Version numbers are required fields.' });
+    }
 
     // Prepare JSON object as requested
     const appVersionJson = {
-      latest_version: cleanLatest,
-      min_supported_version: cleanMin,
+      latest_version: String(latest_version).trim(),
+      min_supported_version: String(min_supported_version).trim(),
       force_update: Boolean(force_update),
-      whats_new: Array.isArray(whats_new) ? whats_new : (typeof whats_new === 'string' ? whats_new.split('\n').filter(Boolean) : []),
+      whats_new: Array.isArray(whats_new) ? whats_new : [],
       download_url: {
-        android: String(download_url?.android || activeVersionManifest.android?.downloadUrl || '').trim(),
-        windows: String(download_url?.windows || activeVersionManifest.windows?.downloadUrl || '').trim(),
-        macos: String(download_url?.macos || activeVersionManifest.macos?.downloadUrl || '').trim()
+        android: String(download_url?.android || '').trim(),
+        windows: String(download_url?.windows || '').trim(),
+        macos: String(download_url?.macos || '').trim()
       }
     };
 
     let blobUrl = '';
 
-    // 3. Always update in-memory version manifest safely
-    activeVersionManifest = normalizeManifest({
-      ...activeVersionManifest,
-      android: {
-        ...activeVersionManifest.android,
-        latestVersion: appVersionJson.latest_version,
-        minimumVersion: appVersionJson.min_supported_version,
-        downloadUrl: appVersionJson.download_url.android || activeVersionManifest.android.downloadUrl,
-        blobUrl: appVersionJson.download_url.android || activeVersionManifest.android.blobUrl,
-      },
-      windows: {
-        ...activeVersionManifest.windows,
-        latestVersion: appVersionJson.latest_version,
-        minimumVersion: appVersionJson.min_supported_version,
-        downloadUrl: appVersionJson.download_url.windows || activeVersionManifest.windows.downloadUrl,
-        blobUrl: appVersionJson.download_url.windows || activeVersionManifest.windows.blobUrl,
-      },
-      macos: {
-        ...activeVersionManifest.macos,
-        latestVersion: appVersionJson.latest_version,
-        minimumVersion: appVersionJson.min_supported_version,
-        downloadUrl: appVersionJson.download_url.macos || activeVersionManifest.macos.downloadUrl,
-        blobUrl: appVersionJson.download_url.macos || activeVersionManifest.macos.blobUrl,
-      },
-      releaseNotes: appVersionJson.whats_new,
-    });
+    // 3. Always update in-memory version manifest and active config immediately
+    if (activeVersionManifest) {
+      activeVersionManifest.android.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.android.minimumVersion = appVersionJson.min_supported_version;
+      activeVersionManifest.windows.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.windows.minimumVersion = appVersionJson.min_supported_version;
+      activeVersionManifest.macos.latestVersion = appVersionJson.latest_version;
+      activeVersionManifest.macos.minimumVersion = appVersionJson.min_supported_version;
+
+      if (appVersionJson.download_url.android) {
+        activeVersionManifest.android.downloadUrl = appVersionJson.download_url.android;
+        activeVersionManifest.android.blobUrl = appVersionJson.download_url.android;
+      }
+      if (appVersionJson.download_url.windows) {
+        activeVersionManifest.windows.downloadUrl = appVersionJson.download_url.windows;
+        activeVersionManifest.windows.blobUrl = appVersionJson.download_url.windows;
+      }
+      if (appVersionJson.download_url.macos) {
+        activeVersionManifest.macos.downloadUrl = appVersionJson.download_url.macos;
+        activeVersionManifest.macos.blobUrl = appVersionJson.download_url.macos;
+      }
+      activeVersionManifest.releaseNotes = appVersionJson.whats_new;
+    }
 
     if (activeAppConfig.platforms && Array.isArray(activeAppConfig.platforms)) {
       activeAppConfig.platforms.forEach((p: any) => {
@@ -1106,7 +1051,7 @@ app.post('/api/admin/update-version', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Update version error:', error);
-    return res.status(500).json({ success: false, error: error?.message || 'Server error occurred while updating version.' });
+    return res.status(500).json({ success: false, error: error?.message || 'Server error' });
   }
 });
 

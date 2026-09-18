@@ -181,12 +181,13 @@ export const AdminPage: React.FC = () => {
 
   // Get authorization header fallback for iframe testing
   const getAuthHeaders = (baseHeaders: Record<string, string> = {}): Record<string, string> => {
-    const token = localStorage.getItem('admin_session_token') || 'authenticated';
-    return {
-      ...baseHeaders,
-      'Authorization': `Bearer ${token}`,
-      'x-admin-token': token,
-    };
+    const token = localStorage.getItem('admin_session_token') || (isStoredAdminLoggedIn() || isAuthenticated ? 'authenticated' : '');
+    const headers = { ...baseHeaders };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      headers['x-admin-token'] = token;
+    }
+    return headers;
   };
 
   // Check auth session on mount
@@ -432,22 +433,36 @@ export const AdminPage: React.FC = () => {
 
       const appVerPayload = {
         ...getAppVersionPayload(syncedPlatforms),
-        password: ADMIN_CREDENTIALS.password,
+        adminToken: 'authenticated',
+        password: password.trim() || undefined
       };
 
       // 2. Post to /api/admin/update-version (writes app-version.json & version.json)
       const verRes = await fetch('/api/admin/update-version', {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        credentials: 'include',
         body: JSON.stringify(appVerPayload)
       });
 
       if (!verRes.ok) {
-        const verErr = await verRes.json().catch(() => ({}));
+        let errorMsg = '';
+        try {
+          const text = await verRes.text();
+          try {
+            const errJson = JSON.parse(text);
+            errorMsg = errJson.error || errJson.message || '';
+          } catch {
+            errorMsg = text.slice(0, 150);
+          }
+        } catch {
+          errorMsg = verRes.statusText;
+        }
+
+        const reason = errorMsg ? `: ${errorMsg}` : '';
+        const authHint = verRes.status === 401 ? ' Please verify your administrator password or log in again.' : '';
         setSaveStatus({
           success: false,
-          message: `Server update failed (${verRes.status}): ${verErr.error || verRes.statusText || 'Unable to update version'}. Please verify authentication.`
+          message: `Server update failed (${verRes.status})${reason}.${authHint}`
         });
         return;
       }
@@ -1284,6 +1299,8 @@ export const AdminPage: React.FC = () => {
                             method: 'POST',
                             headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
                             body: JSON.stringify({
+                              adminToken: 'authenticated',
+                              password: password.trim() || undefined,
                               latest_version: latestVersion.trim(),
                               min_supported_version: minSupportedVersion.trim(),
                               force_update: forceUpdate,

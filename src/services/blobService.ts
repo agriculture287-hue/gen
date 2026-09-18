@@ -119,6 +119,34 @@ export function computeSha256(buffer: Buffer | string): string {
   return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
+// Check if running in a serverless / read-only filesystem environment (e.g. Vercel, AWS Lambda)
+export const isServerlessEnv = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.LAMBDA_TASK_ROOT
+);
+
+export function getSafeStorageBaseDir(): string {
+  if (isServerlessEnv) {
+    return path.join('/tmp', 'storage', 'blobs');
+  }
+  return path.join(process.cwd(), 'public', 'storage', 'blobs');
+}
+
+export function getSafeCatalogPath(): string {
+  if (isServerlessEnv) {
+    return path.join('/tmp', 'storage', 'blobs-manifest.json');
+  }
+  return path.join(process.cwd(), 'public', 'storage', 'blobs-manifest.json');
+}
+
+export function getSafeDataDir(): string {
+  if (isServerlessEnv) {
+    return path.join('/tmp', '.data');
+  }
+  return path.join(process.cwd(), '.data');
+}
+
 // ==========================================
 // 3. LOCAL DISK BLOB STORAGE PROVIDER
 // ==========================================
@@ -129,8 +157,8 @@ export class LocalDiskBlobProvider {
   private catalog: Record<string, BlobItem> = {};
 
   constructor(baseDir?: string) {
-    this.baseDir = baseDir || path.join(process.cwd(), 'public', 'storage', 'blobs');
-    this.catalogPath = path.join(process.cwd(), 'public', 'storage', 'blobs-manifest.json');
+    this.baseDir = baseDir || getSafeStorageBaseDir();
+    this.catalogPath = isServerlessEnv ? getSafeCatalogPath() : path.join(process.cwd(), 'public', 'storage', 'blobs-manifest.json');
     this.init();
   }
 
@@ -390,7 +418,7 @@ export class LocalDiskBlobProvider {
 // ==========================================
 
 export class VercelBlobProvider {
-  private persistentTokenPath = path.join(process.cwd(), '.data', 'blob_token.json');
+  private persistentTokenPath = path.join(getSafeDataDir(), 'blob_token.json');
 
   public setToken(token: string, storeId?: string): boolean {
     try {
@@ -693,7 +721,7 @@ export class VercelBlobProvider {
 export class UnifiedBlobStorageEngine {
   public local: LocalDiskBlobProvider;
   public vercel: VercelBlobProvider;
-  private knownUrlsPath = path.join(process.cwd(), '.data', 'blob_urls.json');
+  private knownUrlsPath = path.join(getSafeDataDir(), 'blob_urls.json');
   private knownBlobUrls: Map<string, string> = new Map();
 
   constructor() {

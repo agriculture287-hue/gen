@@ -322,15 +322,9 @@ export async function syncAllBackendDataToBlob(backendPayload: any): Promise<{
   savedLocally?: boolean;
 }> {
   try {
-    const token = typeof window !== 'undefined' ? (localStorage.getItem('admin_session_token') || 'authenticated') : 'authenticated';
     const res = await fetch('/api/blob/sync-all-backend-data', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-        'x-admin-token': token,
-      },
-      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(backendPayload),
     });
 

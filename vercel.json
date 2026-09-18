@@ -35,11 +35,11 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/welcome", "destination": "/api/index.ts" },
-    { "source": "/version.json", "destination": "/api/index.ts" },
-    { "source": "/app-version.json", "destination": "/api/index.ts" },
-    { "source": "/download/(.*)", "destination": "/api/index.ts" },
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/welcome", "destination": "/api" },
+    { "source": "/version.json", "destination": "/api" },
+    { "source": "/app-version.json", "destination": "/api" },
+    { "source": "/download/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
