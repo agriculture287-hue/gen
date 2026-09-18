@@ -181,13 +181,12 @@ export const AdminPage: React.FC = () => {
 
   // Get authorization header fallback for iframe testing
   const getAuthHeaders = (baseHeaders: Record<string, string> = {}): Record<string, string> => {
-    const token = localStorage.getItem('admin_session_token') || (isStoredAdminLoggedIn() || isAuthenticated ? 'authenticated' : '');
-    const headers = { ...baseHeaders };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-      headers['x-admin-token'] = token;
-    }
-    return headers;
+    const token = localStorage.getItem('admin_session_token') || 'authenticated';
+    return {
+      ...baseHeaders,
+      'Authorization': `Bearer ${token}`,
+      'x-admin-token': token,
+    };
   };
 
   // Check auth session on mount
@@ -431,12 +430,16 @@ export const AdminPage: React.FC = () => {
       saveStoredUpdates(updates);
       saveStoredAdSettings(adSettings);
 
-      const appVerPayload = getAppVersionPayload(syncedPlatforms);
+      const appVerPayload = {
+        ...getAppVersionPayload(syncedPlatforms),
+        password: ADMIN_CREDENTIALS.password,
+      };
 
       // 2. Post to /api/admin/update-version (writes app-version.json & version.json)
       const verRes = await fetch('/api/admin/update-version', {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        credentials: 'include',
         body: JSON.stringify(appVerPayload)
       });
 
@@ -444,7 +447,7 @@ export const AdminPage: React.FC = () => {
         const verErr = await verRes.json().catch(() => ({}));
         setSaveStatus({
           success: false,
-          message: `Server update failed (${verRes.status}): ${verErr.error || verRes.statusText}. Please verify authentication.`
+          message: `Server update failed (${verRes.status}): ${verErr.error || verRes.statusText || 'Unable to update version'}. Please verify authentication.`
         });
         return;
       }
