@@ -107,7 +107,7 @@ export const BetaModal: React.FC<BetaModalProps> = ({ isOpen, onClose, onShowToa
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-sm text-neutral-300 leading-relaxed">
-              Become an official beta tester for <strong>GEN MUSIC {APP_RELEASE_INFO.version}</strong>. Experience new Dolby spatial presets, YouTube live search optimizations, and give feedback directly to developers.
+              Become an official beta tester for <strong>GEN MUSIC {APP_RELEASE_INFO.version}</strong>. Experience new Dolby spatial presets, free music search optimizations, and give feedback directly to developers.
             </p>
 
             <div className="space-y-3">

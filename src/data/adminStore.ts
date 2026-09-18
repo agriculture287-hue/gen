@@ -23,7 +23,7 @@ export const DEFAULT_PLATFORMS: AppPlatformRelease[] = [
     changelog: [
       'Dolby Audio 3D spatial surround sound engine',
       'Batch offline MP3 downloader up to 320kbps',
-      'Unified YouTube Music and Spotify catalogs',
+      'Unified free music catalog with unlimited streaming',
       'Zero audio advertising interruptions'
     ],
     isFeatured: true,

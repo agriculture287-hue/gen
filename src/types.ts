@@ -46,7 +46,7 @@ export interface Track {
   duration: string;
   durationSec?: number;
   coverUrl: string;
-  source: 'youtube' | 'spotify';
+  source?: 'free_music' | 'freemusic' | 'streaming' | string;
   audioUrl?: string;
   isDolby?: boolean;
   dolbyReady?: boolean;

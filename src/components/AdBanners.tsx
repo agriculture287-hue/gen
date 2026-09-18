@@ -518,60 +518,7 @@ export const AdSideSkyscrapers: React.FC = () => {
  * Floats anchored at the bottom of the viewport so ads are 100% visible while scrolling.
  */
 export const AdStickyBottomBar: React.FC = () => {
-  const [minimized, setMinimized] = useState(false);
-  const adSettings = useAdSettings();
-
-  if (!adSettings.enableAds) return null;
-
-  if (minimized) {
-    return (
-      <div className="fixed bottom-3 right-3 z-40">
-        <button
-          onClick={() => setMinimized(false)}
-          id="ad-sticky-reopen-btn"
-          className="px-3 py-1.5 rounded-full bg-slate-900/90 text-white text-[11px] font-bold shadow-xl border border-slate-700 hover:bg-slate-800 transition flex items-center gap-1.5 cursor-pointer backdrop-blur-md"
-        >
-          <Sparkles className="w-3 h-3 text-amber-400" />
-          <span>Sponsored Ad</span>
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      id="ad-sticky-bottom-bar"
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-2xl py-1.5 px-3 flex flex-col items-center justify-center transition-all duration-300"
-    >
-      <div className="w-full max-w-5xl flex items-center justify-between gap-2 px-2 -mb-1">
-        <div className="flex items-center gap-2">
-          <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest">
-            Sponsored Partner
-          </span>
-          <AdDirectSponsorLink label="Fast Mirror" className="text-[10px] py-0.5 px-2" />
-        </div>
-        <button
-          onClick={() => setMinimized(true)}
-          id="ad-sticky-dismiss-btn"
-          className="text-slate-400 hover:text-slate-700 p-1 text-xs font-bold rounded-md hover:bg-slate-100 cursor-pointer"
-          title="Minimize Ad"
-          aria-label="Minimize Ad"
-        >
-          ✕
-        </button>
-      </div>
-      
-      {/* Mobile 320x50 Banner */}
-      <div className="sm:hidden flex justify-center w-full my-0.5">
-        <AdBanner320x50 className="my-0" />
-      </div>
-
-      {/* Desktop 728x90 Leaderboard */}
-      <div className="hidden sm:flex justify-center w-full my-0.5">
-        <AdLeaderboard728x90 className="my-0" />
-      </div>
-    </div>
-  );
+  return null;
 };
 
 /**

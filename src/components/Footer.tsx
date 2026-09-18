@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Youtube, 
+  Music, 
   Instagram, 
   Send, 
   ArrowUp,
@@ -55,13 +55,13 @@ export const Footer: React.FC<FooterProps> = ({
             </div>
 
             <p className="text-xs sm:text-sm text-slate-600 max-w-sm leading-relaxed">
-              The modern music client uniting YouTube Music and Spotify catalogs. Also known as Echomusic & Remix GEN MUSIC with high-speed direct APK releases for Android, Windows, and Mac.
+              The modern free music streaming client with high-speed direct APK releases for Android, Windows, and Mac.
             </p>
 
             <div className="flex items-center gap-3 text-xs text-slate-600 pt-1">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-mono font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Echomusic APK Ready
+                GEN MUSIC APK Ready
               </span>
               <span>• Free Forever</span>
             </div>
@@ -157,14 +157,14 @@ export const Footer: React.FC<FooterProps> = ({
               </a>
 
               <a
-                href="https://youtube.com/@GENMusicApp"
+                href={telegramUrl || "https://t.me/genmusic_apk"}
                 target="_blank"
                 rel="noreferrer"
-                id="footer-social-youtube"
-                className="flex items-center gap-2 text-xs text-slate-600 hover:text-red-600 transition p-1.5 rounded-lg hover:bg-red-50"
+                id="footer-social-community"
+                className="flex items-center gap-2 text-xs text-slate-600 hover:text-blue-600 transition p-1.5 rounded-lg hover:bg-blue-50"
               >
-                <Youtube className="w-4 h-4 text-red-500" />
-                <span>YouTube Updates</span>
+                <Music className="w-4 h-4 text-blue-500" />
+                <span>Free Music Community</span>
               </a>
             </div>
 
@@ -188,7 +188,7 @@ export const Footer: React.FC<FooterProps> = ({
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <p className="text-slate-500 text-center sm:text-left">
-            © {new Date().getFullYear()} Remix GEN MUSIC & Echomusic. "Music For Every Mood". Direct APK & app packages. Not affiliated with Google LLC, YouTube, or Spotify AB.
+            © {new Date().getFullYear()} Remix GEN MUSIC. "Music For Every Mood". Direct APK & app packages. Free music for everyone.
           </p>
 
           <button

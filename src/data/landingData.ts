@@ -17,7 +17,7 @@ export const WHY_CHOOSE_CARDS: WhyChooseItem[] = [
   {
     id: 'wc-1',
     title: 'All Music In One Place',
-    description: 'Unify YouTube Music and Spotify into a single seamless audio interface. Search once, discover everywhere.',
+    description: 'Discover millions of free music tracks in a single seamless audio interface. Search once, discover everywhere.',
     icon: 'Layers',
     accent: 'cyan',
   },
@@ -76,19 +76,19 @@ export const FEATURES_LIST: FeatureItem[] = [
     neonColor: 'purple',
   },
   {
-    id: 'feat-yt',
-    title: 'YouTube Music Support',
-    description: 'Access the entire YouTube music ecosystem including studio tracks, rare acoustic sessions, remixes, and live bootlegs.',
+    id: 'feat-freemusic',
+    title: 'Free Music Streaming',
+    description: 'Access millions of free music tracks including studio masters, rare acoustic sessions, remixes, and live performances.',
     icon: 'PlaySquare',
-    badge: 'Native Audio',
+    badge: 'Free Audio',
     neonColor: 'pink',
   },
   {
-    id: 'feat-spotify',
-    title: 'Spotify Music Support',
-    description: 'Connect Spotify playlists, artist catalogs, and top viral charts with high-speed playback synchronization.',
+    id: 'feat-discovery',
+    title: 'Free Music Discovery',
+    description: 'Explore top viral charts, trending artists, and curated playlists with high-speed free playback synchronization.',
     icon: 'Radio',
-    badge: 'Full Catalog',
+    badge: 'Viral Charts',
     neonColor: 'cyan',
   },
   {
@@ -126,7 +126,7 @@ export const FEATURES_LIST: FeatureItem[] = [
   {
     id: 'feat-playlists',
     title: 'Playlist Management',
-    description: 'Create, organize, and reorder custom playlists. Easily merge tracks from both YouTube and Spotify into one playlist.',
+    description: 'Create, organize, and reorder custom playlists. Easily save and organize all your favorite free music tracks into custom playlists.',
     icon: 'ListMusic',
     badge: 'Smart Lists',
     neonColor: 'blue',
@@ -201,7 +201,7 @@ export const APP_SCREENSHOTS: AppScreenshot[] = [
   {
     id: 'ss-search',
     title: 'Unified Search & Discovery',
-    subtitle: 'Search millions of tracks simultaneously across YouTube and Spotify with instant audio previews and zero delay.',
+    subtitle: 'Search millions of free music tracks simultaneously with instant audio previews and zero delay.',
     category: 'Search',
     accent: '#8A2BE2',
     mockupContent: 'search',
@@ -234,14 +234,14 @@ export const APP_SCREENSHOTS: AppScreenshot[] = [
 
 export const FAQ_LIST: FAQItem[] = [
   {
-    id: 'faq-echomusic',
-    question: 'What is Echomusic and how is it related to GEN MUSIC?',
-    answer: 'Echomusic (also known as Remix GEN MUSIC or Echo Music) is our flagship streaming audio player. It combines YouTube Music and Spotify catalogs into one lightweight app with 320kbps offline MP3 downloads, binaural Dolby spatial audio, and zero audio subscription fees on Android, Windows, and Mac.',
+    id: 'faq-genmusic',
+    question: 'What is Remix GEN MUSIC?',
+    answer: 'Remix GEN MUSIC is our flagship free music streaming audio player. It provides unlimited music in one lightweight app with 320kbps offline MP3 downloads, binaural Dolby spatial audio, and zero subscription fees on Android, Windows, and Mac.',
   },
   {
     id: 'faq-1',
-    question: 'Is GEN MUSIC / Echomusic free?',
-    answer: 'Yes, Echomusic and GEN MUSIC are 100% free forever. There are no subscriptions, no monthly charges, no hidden paywalls, and no credit card required. You get complete access to unlimited streaming, offline downloads, and studio audio features without paying a single cent.',
+    question: 'Is Remix GEN MUSIC free?',
+    answer: 'Yes, Remix GEN MUSIC is 100% free forever. There are no subscriptions, no monthly charges, no hidden paywalls, and no credit card required. You get complete access to unlimited streaming, offline downloads, and studio audio features without paying a single cent.',
   },
   {
     id: 'faq-2',
@@ -282,7 +282,7 @@ export const ANNOUNCEMENT_UPDATES: UpdateItem[] = [
     tag: 'Latest Release',
     highlights: [
       'Added next-gen Dolby Audio 3D binaural spatial engine with expanded soundstage',
-      'Enhanced dual search algorithm uniting YouTube Music live sessions & Spotify tracks',
+      'Enhanced search algorithm for free music live sessions & trending tracks',
       'Implemented real-time synchronized karaoke lyrics with ultra-low latency',
       'Optimized background audio service for 40% reduced battery drain on Android 14/15',
     ],
@@ -302,7 +302,7 @@ export const ANNOUNCEMENT_UPDATES: UpdateItem[] = [
     releaseDate: 'July 2026',
     tag: 'Major Feature',
     highlights: [
-      'Introduced instant Spotify & YouTube playlist URL importer',
+      'Introduced instant free music playlist importer',
       'Added customizable sleep timer with smooth audio fade-out',
       'Full-screen lockscreen audio visualizer with neon glow controls',
     ],
@@ -341,13 +341,13 @@ export const CONTACT_CHANNELS = [
     badge: 'Visual Updates',
   },
   {
-    id: 'youtube',
-    name: 'YouTube Channel',
+    id: 'community',
+    name: 'Free Music Hub',
     handle: '@GENMusicApp',
-    link: 'https://youtube.com/@GENMusicApp',
-    icon: 'Youtube',
+    link: 'https://t.me/GenMusicApp',
+    icon: 'Radio',
     desc: 'Feature walkthroughs, installation tutorials, and Dolby Audio sound tests.',
     accent: 'blue',
-    badge: 'Video Guides',
+    badge: 'Guides',
   },
 ];

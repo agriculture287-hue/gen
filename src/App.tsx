@@ -12,8 +12,6 @@ import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { BetaModal } from './components/BetaModal';
 import { DownloadsPage } from './components/DownloadsPage';
-import { InAppUpdateModal } from './components/InAppUpdateModal';
-import { AddUpdateByLinkModal } from './components/AddUpdateByLinkModal';
 import { 
   AdLeaderboard728x90, 
   AdBanner468x60, 
@@ -23,7 +21,6 @@ import {
   AdBanner160x300,
   AdBanner160x600,
   AdSideSkyscrapers,
-  AdStickyBottomBar,
   AdResponsiveLeaderboard,
   AdShowcaseSection,
   AdMultiplyMatrix10x,
@@ -53,7 +50,6 @@ export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
   const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [betaModalOpen, setBetaModalOpen] = useState(false);
-  const [addUpdateByLinkModalOpen, setAddUpdateByLinkModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Admin dynamic state persisted in localStorage
@@ -190,40 +186,11 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Dynamically load Adsterra Popunder / Social Bar scripts if enabled
+  // Ensure any popup/popunder ad scripts are completely removed
   useEffect(() => {
-    if (!adSettings.enableAds) {
-      // Remove any existing script elements with our custom ad-scripts attribute
-      const existing = document.querySelectorAll('script[data-ad-type="popunder"]');
-      existing.forEach(el => el.remove());
-      return;
-    }
-
-    const scriptsToLoad = [adSettings.popunderScriptUrl1, adSettings.popunderScriptUrl2].filter(Boolean);
-
-    scriptsToLoad.forEach(url => {
-      // Avoid duplicates
-      if (document.querySelector(`script[src="${url}"]`)) return;
-
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.src = url;
-      script.async = true;
-      script.setAttribute('data-ad-type', 'popunder');
-      
-      script.onerror = () => {
-        console.warn(`Dynamic ad script failed to load: ${url}`);
-      };
-
-      document.head.appendChild(script);
-    });
-
-    return () => {
-      // Cleanup on unmount or setting changes
-      const existing = document.querySelectorAll('script[data-ad-type="popunder"]');
-      existing.forEach(el => el.remove());
-    };
-  }, [adSettings.enableAds, adSettings.popunderScriptUrl1, adSettings.popunderScriptUrl2]);
+    const existing = document.querySelectorAll('script[data-ad-type="popunder"]');
+    existing.forEach(el => el.remove());
+  }, []);
 
   const handleOpenLegalModal = (type: 'privacy' | 'terms' | 'support' | 'contact') => {
     showToast(`Opening ${type.toUpperCase()} policy document...`);
@@ -479,7 +446,6 @@ export const App: React.FC = () => {
         <UpdatesSection 
           updates={updates}
           onDownloadClick={scrollToDownload}
-          onOpenAddUpdateByLink={() => setAddUpdateByLinkModalOpen(true)}
         />
 
         {/* Second Sponsored Native In-Feed Unit */}
@@ -505,32 +471,11 @@ export const App: React.FC = () => {
         telegramUrl={telegramConfig.contactUrl}
       />
 
-      {/* Persistent Floating Sticky Bottom Ad Banner (Always visible while scrolling) */}
-      <AdStickyBottomBar />
-
       {/* Beta Modal */}
       <BetaModal
         isOpen={betaModalOpen}
         onClose={() => setBetaModalOpen(false)}
         onShowToast={showToast}
-      />
-
-      {/* In-App Update Trigger & Notification Modal */}
-      <InAppUpdateModal
-        telegramUrl={telegramConfig.contactUrl}
-      />
-
-      {/* Add App Update by Link Modal */}
-      <AddUpdateByLinkModal
-        isOpen={addUpdateByLinkModalOpen}
-        onClose={() => setAddUpdateByLinkModalOpen(false)}
-        onShowToast={showToast}
-        onSuccess={(newVer, plat) => {
-          showToast(`Published v${newVer} (${plat}) update by link!`);
-          // Refresh local releases & manifest
-          setPlatforms(getStoredReleases());
-          setUpdates(getStoredUpdates());
-        }}
       />
 
       {/* Floating Toast Notification */}

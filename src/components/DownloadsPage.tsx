@@ -86,7 +86,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       sysReq: 'Android 8.0 Oreo or later (Android 8 - 15+)',
       arch: 'ARM64-v8a / Universal',
       icon: <Smartphone className="w-8 h-8 text-emerald-600" />,
-      features: ['Background Audio Playback', 'Lossless 320kbps MP3 Saver', 'Dolby Surround Sound', 'Spotify & YouTube Sync'],
+      features: ['Background Audio Playback', 'Lossless 320kbps MP3 Saver', 'Dolby Surround Sound', 'Unlimited Free Music Sync'],
       isRecommended: deviceInfo.platform === 'android',
     },
     {

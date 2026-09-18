@@ -169,7 +169,7 @@ let activeAppConfig: any = {
       changelog: [
         'Dolby Audio 3D spatial surround sound engine',
         'Batch offline MP3 downloader up to 320kbps',
-        'Unified YouTube Music and Spotify catalogs',
+        'Unified free music catalog with unlimited streaming',
         'Zero audio advertising interruptions'
       ],
       isFeatured: true,
@@ -290,7 +290,7 @@ let activeAppConfig: any = {
       highlights: [
         'Added Dolby Audio 3D spatial surround sound engine',
         'Batch offline MP3 downloader up to 320kbps with album art',
-        'Unified YouTube Music and Spotify catalog search',
+        'Unified free music catalog search and streaming',
         'Zero audio commercials and uninterrupted playback'
       ]
     },
@@ -368,9 +368,20 @@ app.get('/googleffb6688cb72a513a.html', (req, res) => {
 // SITEMAP & ROBOTS.TXT (SEO)
 // ==========================================
 app.get('/sitemap.xml', (req, res) => {
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const host = req.get('host') || 'localhost:3000';
-  const baseUrl = `${protocol}://${host}`;
+  const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'https');
+  const rawHost = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
+  const defaultHost = 'ais-pre-l3oufanucpgycv3hl2qrl5-712504858875.asia-southeast1.run.app';
+  
+  let host = rawHost;
+  if (!host || host.includes('localhost') || host.includes('127.0.0.1')) {
+    if (process.env.APP_URL && !process.env.APP_URL.includes('localhost') && !process.env.APP_URL.includes('127.0.0.1')) {
+      host = process.env.APP_URL.replace(/^https?:\/\//, '');
+    } else {
+      host = defaultHost;
+    }
+  }
+
+  const baseUrl = `${protocol}://${host}`.replace(/\/$/, '');
   const today = new Date().toISOString().split('T')[0];
 
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -391,10 +402,10 @@ app.get('/sitemap.xml', (req, res) => {
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>${baseUrl}/downloads</loc>
+    <loc>${baseUrl}/admin</loc>
     <lastmod>${today}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.5</priority>
   </url>
 </urlset>`;
 
@@ -404,8 +415,19 @@ app.get('/sitemap.xml', (req, res) => {
 });
 
 app.get('/robots.txt', (req, res) => {
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const host = req.get('host') || 'localhost:3000';
+  const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'https');
+  const rawHost = (req.headers['x-forwarded-host'] as string) || req.get('host') || '';
+  const defaultHost = 'ais-pre-l3oufanucpgycv3hl2qrl5-712504858875.asia-southeast1.run.app';
+  
+  let host = rawHost;
+  if (!host || host.includes('localhost') || host.includes('127.0.0.1')) {
+    if (process.env.APP_URL && !process.env.APP_URL.includes('localhost') && !process.env.APP_URL.includes('127.0.0.1')) {
+      host = process.env.APP_URL.replace(/^https?:\/\//, '');
+    } else {
+      host = defaultHost;
+    }
+  }
+
   const sitemapUrl = `${protocol}://${host}/sitemap.xml`;
 
   const robotsTxt = `User-agent: *

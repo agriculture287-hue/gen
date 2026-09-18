@@ -166,7 +166,7 @@ export const ScreenshotsSection: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                     
                     <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded-md bg-emerald-500/90 text-white text-[10px] font-bold">
-                      Spotify Synced
+                      Free Music Synced
                     </div>
                   </div>
 
@@ -217,20 +217,20 @@ export const ScreenshotsSection: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2 text-[10px]">
-                    <span className="px-2.5 py-1 rounded-full bg-red-500/20 text-red-300 border border-red-500/30 font-bold">
-                      YouTube Music (14)
+                    <span className="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold">
+                      Free Tracks (14)
                     </span>
                     <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                      Spotify (8)
+                      High Quality (8)
                     </span>
                   </div>
 
                   <div className="space-y-2">
                     {[
-                      { title: 'Blinding Lights (Official Audio)', source: 'Spotify', time: '3:20', tag: 'Original' },
-                      { title: 'Blinding Lights (Live Acoustic)', source: 'YouTube', time: '3:45', tag: 'Live Session' },
-                      { title: 'Blinding Lights (Synthwave Remix)', source: 'YouTube', time: '4:12', tag: 'Remix 320k' },
-                      { title: 'Blinding Lights (Instrumental)', source: 'Spotify', time: '3:20', tag: 'Karaoke' },
+                      { title: 'Blinding Lights (Official Audio)', source: 'Free Music', time: '3:20', tag: 'Original' },
+                      { title: 'Blinding Lights (Live Acoustic)', source: 'Free Music', time: '3:45', tag: 'Live Session' },
+                      { title: 'Blinding Lights (Synthwave Remix)', source: 'Free Music', time: '4:12', tag: 'Remix 320k' },
+                      { title: 'Blinding Lights (Instrumental)', source: 'Free Music', time: '3:20', tag: 'Karaoke' },
                     ].map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
                         <div>

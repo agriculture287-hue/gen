@@ -6,13 +6,11 @@ import { UpdateItem } from '../types';
 interface UpdatesSectionProps {
   onDownloadClick: () => void;
   updates?: UpdateItem[];
-  onOpenAddUpdateByLink?: () => void;
 }
 
 export const UpdatesSection: React.FC<UpdatesSectionProps> = ({ 
   onDownloadClick,
   updates = ANNOUNCEMENT_UPDATES,
-  onOpenAddUpdateByLink
 }) => {
   const displayUpdates = updates && updates.length > 0 ? updates : ANNOUNCEMENT_UPDATES;
   return (
@@ -40,20 +38,6 @@ export const UpdatesSection: React.FC<UpdatesSectionProps> = ({
         <p className="text-base sm:text-lg text-slate-600">
           Regular builds, audio engine improvements, and community-driven features.
         </p>
-
-        {/* Quick Action: Add App Update by Link */}
-        {onOpenAddUpdateByLink && (
-          <div className="pt-3">
-            <button
-              onClick={onOpenAddUpdateByLink}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition shadow-sm hover:shadow cursor-pointer"
-            >
-              <Link className="w-3.5 h-3.5 text-blue-400" />
-              <span>Add App Update by Link</span>
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Updates Timeline Cards */}

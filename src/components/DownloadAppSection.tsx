@@ -119,7 +119,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       features: [
         'Dolby 3D Spatial Audio & Lossless 320kbps MP3 Saver',
         'Background Playback with Lockscreen Media Controls',
-        'Spotify & YouTube Music Playlist Auto-Sync',
+        'Unlimited Free Music & Playlist Auto-Sync',
         'Zero Commercial Audio Interruptions Forever',
       ],
       mirrorUrl: 'https://t.me/genmusic_apk',
