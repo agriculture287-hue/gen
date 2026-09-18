@@ -15,16 +15,12 @@ interface NavbarProps {
   activeNav: string;
   setActiveNav: (nav: string) => void;
   onDownloadClick: () => void;
-  telegramUrl: string;
-  isAdminLoggedIn?: boolean;
-  onOpenAdmin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeNav,
   setActiveNav,
   onDownloadClick,
-  telegramUrl,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
@@ -42,7 +38,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const navLinks = [
     { id: 'home', label: 'Home' },
     { id: 'download', label: 'Downloads' },
-    { id: 'channels', label: 'Telegram Channels' },
     { id: 'features', label: 'Features' },
     { id: 'faq', label: 'FAQ' },
   ];
@@ -115,18 +110,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
-          {/* Telegram Contact Link */}
-          <a
-            href={telegramUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition"
-            title="Chat with Admin on Telegram"
-          >
-            <Send className="w-3.5 h-3.5" />
-            <span>Telegram</span>
-          </a>
-
           {/* Primary CTA with Device Suggestion */}
           <button
             onClick={onDownloadClick}
@@ -181,16 +164,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
-            <a
-              href={telegramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 flex items-center justify-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              <span>Contact Admin on Telegram</span>
-            </a>
-
             <button
               onClick={() => {
                 setMobileMenuOpen(false);

@@ -4,11 +4,10 @@ import { GenMusicLogo } from './GenMusicLogo';
 
 interface TopBannerProps {
   onDownloadClick: () => void;
-  telegramLink: string;
   announcementText?: string;
 }
 
-export const TopBanner: React.FC<TopBannerProps> = ({ onDownloadClick, telegramLink, announcementText }) => {
+export const TopBanner: React.FC<TopBannerProps> = ({ onDownloadClick, announcementText }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   if (!isVisible) return null;
@@ -34,7 +33,7 @@ export const TopBanner: React.FC<TopBannerProps> = ({ onDownloadClick, telegramL
             ) : (
               <>
                 <strong className="text-slate-900 font-bold">GEN MUSIC Beta is Available Now</strong>
-                <span className="hidden sm:inline text-slate-600"> — Download for Android, Mac & Windows or join Telegram.</span>
+                <span className="hidden sm:inline text-slate-600"> — Download for Android, Mac & Windows.</span>
               </>
             )}
           </p>
@@ -47,16 +46,6 @@ export const TopBanner: React.FC<TopBannerProps> = ({ onDownloadClick, telegramL
             <span>Download Apps</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
-
-          <a
-            href={telegramLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold text-xs transition ml-2"
-          >
-            <Send className="w-3 h-3" />
-            <span>Telegram Channel</span>
-          </a>
         </div>
 
         <button

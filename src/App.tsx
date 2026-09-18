@@ -5,7 +5,6 @@ import { HeroSection } from './components/HeroSection';
 import { WhyChooseSection } from './components/WhyChooseSection';
 import { PremiumFeaturesSection } from './components/PremiumFeaturesSection';
 import { ScreenshotsSection } from './components/ScreenshotsSection';
-import { TelegramChannelsSection } from './components/TelegramChannelsSection';
 import { DownloadAppSection } from './components/DownloadAppSection';
 import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
@@ -43,8 +42,7 @@ import {
   resetAppToDefaults
 } from './data/adminStore';
 import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem, AdSettings } from './types';
-import { loadAppDataFromBlob, autoSaveAdminDataToBlob } from './lib/blobStorage';
-import { AdminPage } from './pages/AdminPage';
+import { loadAppDataFromBlob } from './lib/blobStorage';
 
 export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
@@ -52,7 +50,7 @@ export const App: React.FC = () => {
   const [betaModalOpen, setBetaModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Admin dynamic state persisted in localStorage
+  // App dynamic state persisted in localStorage
   const [platforms, setPlatforms] = useState<AppPlatformRelease[]>([]);
   const [telegramConfig, setTelegramConfig] = useState<TelegramConfig>({
     contactUsername: '@genmusic_admin',
@@ -62,7 +60,6 @@ export const App: React.FC = () => {
   });
   const [channels, setChannels] = useState<TelegramChannel[]>([]);
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
   const [adSettings, setAdSettings] = useState(() => getStoredAdSettings());
 
   // Load from adminStore on mount and sync with Vercel Blob
@@ -73,7 +70,6 @@ export const App: React.FC = () => {
     setTelegramConfig(getStoredTelegramConfig());
     setChannels(getStoredChannels());
     setUpdates(getStoredUpdates());
-    setIsAdminLoggedIn(isStoredAdminLoggedIn());
     setAdSettings(getStoredAdSettings());
 
     // 2. Fetch latest live cloud state from Vercel Blob & app-version.json
@@ -174,9 +170,7 @@ export const App: React.FC = () => {
     const checkAdminRoute = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      if (path === '/admin' || path.startsWith('/admin/') || hash === '#/admin' || hash === '#admin') {
-        setCurrentPath('/admin');
-      } else if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
+      if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
       } else {
         setCurrentPath(path);
@@ -229,126 +223,17 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleSavePlatforms = (updated: AppPlatformRelease[]) => {
-    setPlatforms(updated);
-    saveStoredReleases(updated);
-    autoSaveAdminDataToBlob({
-      platforms: updated,
-      telegramConfig,
-      channels,
-      updates,
-      adSettings,
-      manifest: getLocalVersionManifest(),
-    });
-  };
 
-  const handleSaveTelegram = (updated: TelegramConfig) => {
-    setTelegramConfig(updated);
-    saveStoredTelegramConfig(updated);
-    autoSaveAdminDataToBlob({
-      platforms,
-      telegramConfig: updated,
-      channels,
-      updates,
-      adSettings,
-      manifest: getLocalVersionManifest(),
-    });
-  };
-
-  const handleSaveChannels = (updated: TelegramChannel[]) => {
-    setChannels(updated);
-    saveStoredChannels(updated);
-    autoSaveAdminDataToBlob({
-      platforms,
-      telegramConfig,
-      channels: updated,
-      updates,
-      adSettings,
-      manifest: getLocalVersionManifest(),
-    });
-  };
-
-  const handleSaveUpdates = (updated: UpdateItem[]) => {
-    setUpdates(updated);
-    saveStoredUpdates(updated);
-    autoSaveAdminDataToBlob({
-      platforms,
-      telegramConfig,
-      channels,
-      updates: updated,
-      adSettings,
-      manifest: getLocalVersionManifest(),
-    });
-  };
-
-  const handleSaveAdSettings = (updated: AdSettings) => {
-    setAdSettings(updated);
-    saveStoredAdSettings(updated);
-    autoSaveAdminDataToBlob({
-      platforms,
-      telegramConfig,
-      channels,
-      updates,
-      adSettings: updated,
-      manifest: getLocalVersionManifest(),
-    });
-    window.dispatchEvent(new Event('genmusic_ads_updated'));
-  };
-
-  const handleResetDefaults = () => {
-    resetAppToDefaults();
-    const defPlatforms = getStoredReleases();
-    const defTg = getStoredTelegramConfig();
-    const defChannels = getStoredChannels();
-    const defUpdates = getStoredUpdates();
-    const defAds = getStoredAdSettings();
-    const defManifest = DEFAULT_VERSION_MANIFEST;
-
-    setPlatforms(defPlatforms);
-    setTelegramConfig(defTg);
-    setChannels(defChannels);
-    setUpdates(defUpdates);
-    setAdSettings(defAds);
-
-    autoSaveAdminDataToBlob({
-      platforms: defPlatforms,
-      telegramConfig: defTg,
-      channels: defChannels,
-      updates: defUpdates,
-      adSettings: defAds,
-      manifest: defManifest,
-    });
-    window.dispatchEvent(new Event('genmusic_ads_updated'));
-    showToast('Reset all configurations to factory defaults and saved to Vercel Blob!');
-  };
-
-  const handleLoginStateChange = (loggedIn: boolean) => {
-    setIsAdminLoggedIn(loggedIn);
-    setStoredAdminLoggedIn(loggedIn);
-    if (loggedIn) {
-      showToast('Admin logged in: Welcome Varanasi Admin!');
-    } else {
-      showToast('Admin logged out.');
-    }
-  };
-
-  if (currentPath === '/admin' || currentPath.startsWith('/admin/')) {
-    return <AdminPage />;
-  }
 
   if (currentPath === '/download' || currentPath === '/downloads') {
     return (
       <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
         <DownloadsPage 
           manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
-          isAdminLoggedIn={isAdminLoggedIn} 
         />
         <Footer 
           onOpenLegalModal={handleOpenLegalModal}
           onDownloadClick={() => {}}
-          onOpenAdmin={() => {}}
-          isAdminLoggedIn={isAdminLoggedIn}
-          telegramUrl={telegramConfig.contactUrl}
         />
       </div>
     );
@@ -363,8 +248,7 @@ export const App: React.FC = () => {
       {/* 1. Top Announcement Bar */}
       <TopBanner 
         onDownloadClick={scrollToDownload} 
-        telegramLink={telegramConfig.contactUrl} 
-        announcementText={telegramConfig.announcementText}
+        announcementText="Remix GEN MUSIC Beta is Available Now — Download for Android, Mac & Windows."
       />
 
       {/* 2. Navigation with Brand, Multi-platform links & Telegram (Admin triggers hidden from UI) */}
@@ -372,7 +256,6 @@ export const App: React.FC = () => {
         activeNav={activeNav}
         setActiveNav={setActiveNav}
         onDownloadClick={scrollToDownload}
-        telegramUrl={telegramConfig.contactUrl}
       />
 
       {/* Main Content Sections */}
@@ -385,7 +268,6 @@ export const App: React.FC = () => {
             scrollToDownload();
           }}
           onViewFeatures={scrollToFeatures}
-          telegramUrl={telegramConfig.contactUrl}
         />
 
         {/* Top Responsive Leaderboard (728x90 on desktop / 320x50 on mobile) */}
@@ -394,20 +276,12 @@ export const App: React.FC = () => {
         {/* 4. Unified Multi-Platform Download & Release Hub */}
         <DownloadAppSection 
           platforms={platforms}
-          telegramConfig={telegramConfig}
           manifest={getLocalVersionManifest() || DEFAULT_VERSION_MANIFEST}
-          isAdminLoggedIn={isAdminLoggedIn}
           onOpenBetaModal={() => setBetaModalOpen(true)}
         />
 
         {/* Sponsored Native In-Feed Container */}
         <AdNativeContainer />
-
-        {/* 5. Official Telegram Channels & Contact Section */}
-        <TelegramChannelsSection 
-          telegramConfig={telegramConfig}
-          channels={channels}
-        />
 
         {/* Sponsored Medium Rectangle (300x250) & Vertical Banner (160x300) Cluster */}
         <div className="w-full max-w-6xl mx-auto px-4 my-8">
@@ -475,9 +349,6 @@ export const App: React.FC = () => {
       <Footer 
         onOpenLegalModal={handleOpenLegalModal}
         onDownloadClick={scrollToDownload}
-        onOpenAdmin={() => { window.location.pathname = '/admin'; }}
-        isAdminLoggedIn={isAdminLoggedIn}
-        telegramUrl={telegramConfig.contactUrl}
       />
 
       {/* Beta Modal */}

@@ -28,14 +28,12 @@ interface HeroSectionProps {
   platforms: AppPlatformRelease[];
   onSelectPlatformDownload: (platformId?: string) => void;
   onViewFeatures: () => void;
-  telegramUrl: string;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   platforms,
   onSelectPlatformDownload,
   onViewFeatures,
-  telegramUrl,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -169,8 +167,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-white border border-blue-200 shadow-sm text-xs font-semibold text-slate-700">
             <GenMusicLogo size="xs" glow={false} />
             <span className="text-blue-700 font-bold">Remix GEN MUSIC • Android, macOS & Windows</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-emerald-700 font-bold">Latest {androidApp?.version || 'v2.5.0'}</span>
           </div>
 
           {/* EXACT TITLE */}
@@ -190,7 +186,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <DeviceSuggestionBanner 
             deviceInfo={deviceInfo}
             downloadUrl={suggestedApp?.downloadUrl}
-            version={suggestedApp?.version || 'v2.5.0'}
             fileSize={suggestedApp?.fileSize || '24.8 MB'}
             onDownload={() => handlePlatformDownloadClick(deviceInfo.platform === 'ios' ? 'android' : deviceInfo.platform)}
             onViewAllPlatforms={() => onSelectPlatformDownload()}
@@ -209,9 +204,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                  deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
                  'Download Free App'}
               </span>
-              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-mono font-bold">
-                {suggestedApp?.version || 'v2.5.0'}
-              </span>
             </button>
 
             <button
@@ -220,17 +212,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             >
               <span>Explore Features</span>
             </button>
-
-            <a
-              href={telegramUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 font-bold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Send className="w-4 h-4 text-blue-600" />
-              <span>Telegram Community</span>
-              <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
-            </a>
           </div>
 
           {/* Supported Platforms Indicators */}

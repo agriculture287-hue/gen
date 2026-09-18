@@ -19,13 +19,10 @@ import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 interface DownloadsPageProps {
   manifest?: VersionManifest;
   onOpenBetaModal?: () => void;
-  telegramContactUrl?: string;
-  isAdminLoggedIn?: boolean;
 }
 
 export const DownloadsPage: React.FC<DownloadsPageProps> = ({
   manifest = DEFAULT_VERSION_MANIFEST,
-  isAdminLoggedIn = false,
 }) => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
@@ -73,9 +70,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'Android App',
       tagline: 'Direct APK Package for Phones & Tablets',
       fileFormat: '.apk',
-      version: appVerData?.latest_version || manifest.android.latestVersion,
       downloadUrl: appVerData?.download_url?.android || manifest.android.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
-      mirrorUrl: 'https://t.me/genmusic_apk',
       fileSize: manifest.android.fileSize || '24.8 MB',
       sysReq: 'Android 8.0 Oreo or later (Android 8 - 15+)',
       arch: 'ARM64-v8a / Universal',
@@ -88,9 +83,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'Windows Desktop',
       tagline: 'Standard 64-bit Installer with Auto-Updates',
       fileFormat: '.exe',
-      version: appVerData?.latest_version || manifest.windows.latestVersion,
       downloadUrl: appVerData?.download_url?.windows || manifest.windows.downloadUrl || '/download/genmusic-setup.exe',
-      mirrorUrl: 'https://t.me/genmusic_apk',
       fileSize: manifest.windows.fileSize || '56.2 MB',
       sysReq: 'Windows 10 / 11 (64-bit architecture)',
       arch: 'x64 / ARM64',
@@ -103,9 +96,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       name: 'macOS Desktop',
       tagline: 'Universal DMG for Apple Silicon & Intel Macs',
       fileFormat: '.dmg',
-      version: appVerData?.latest_version || manifest.macos.latestVersion,
       downloadUrl: appVerData?.download_url?.macos || manifest.macos.downloadUrl || '/download/genmusic.dmg',
-      mirrorUrl: 'https://t.me/genmusic_official',
       fileSize: manifest.macos.fileSize || '68.4 MB',
       sysReq: 'macOS 12.0 Monterey or later (M1/M2/M3/M4 & Intel)',
       arch: 'Universal (Apple Silicon + Intel)',
@@ -170,10 +161,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
                     {p.icon}
                   </div>
                   <div className="text-right">
-                    <span className="text-xs font-mono font-bold text-blue-400 px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-800/60">
-                      v{p.version}
-                    </span>
-                    <span className="block text-[11px] text-slate-400 mt-1">{p.fileSize}</span>
+                    <span className="block text-xs font-bold text-slate-300">{p.fileSize}</span>
                   </div>
                 </div>
 
@@ -216,18 +204,6 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
                   <Download className="w-4 h-4" />
                   <span>Download {p.fileFormat.toUpperCase()}</span>
                 </a>
-
-                <div className="mt-3 flex items-center justify-center text-xs">
-                  <a
-                    href={p.mirrorUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-cyan-400 transition flex items-center gap-1.5"
-                  >
-                    <Send className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>Telegram Mirror</span>
-                  </a>
-                </div>
               </div>
             </div>
           ))}

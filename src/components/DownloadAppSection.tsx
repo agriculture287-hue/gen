@@ -15,7 +15,7 @@ import {
   ArrowDownToLine
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { AppPlatformRelease, TelegramConfig } from '../types';
+import { AppPlatformRelease } from '../types';
 import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { AdDirectSponsorLink } from './AdBanners';
@@ -23,16 +23,12 @@ import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
-  telegramConfig: TelegramConfig;
   manifest?: VersionManifest;
-  isAdminLoggedIn?: boolean;
-  onOpenAdmin?: () => void;
   onOpenBetaModal?: () => void;
 }
 
 export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
   platforms: initialPlatforms,
-  telegramConfig,
   manifest = DEFAULT_VERSION_MANIFEST,
   onOpenBetaModal,
 }) => {
@@ -105,10 +101,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       shortName: 'Android',
       tagline: 'Direct APK Package for Phones, Tablets & Android TV',
       fileFormat: '.apk',
-      version: liveVersion,
       fileSize: manifest.android.fileSize || androidPlatform?.fileSize || '24.8 MB',
       downloadUrl: appVerData?.download_url?.android || androidPlatform?.downloadUrl || manifest.android.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
-      filename: `GEN-Music-${liveVersion}.apk`,
+      filename: `GEN-Music.apk`,
       minSystem: 'Android 8.0 Oreo or later (Android 8 - 15+)',
       architecture: 'ARM64-v8a & Universal (All Devices)',
       badge: 'Most Popular',
@@ -122,7 +117,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
         'Unlimited Free Music & Playlist Auto-Sync',
         'Zero Commercial Audio Interruptions Forever',
       ],
-      mirrorUrl: 'https://t.me/genmusic_apk',
     },
     {
       id: 'windows',
@@ -131,10 +125,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       shortName: 'Windows',
       tagline: 'Standard 64-bit Installer with Auto-Update Support',
       fileFormat: '.exe',
-      version: liveVersion,
       fileSize: manifest.windows.fileSize || windowsPlatform?.fileSize || '56.2 MB',
       downloadUrl: appVerData?.download_url?.windows || windowsPlatform?.downloadUrl || manifest.windows.downloadUrl || '/download/genmusic-setup.exe',
-      filename: `GEN-Music-Setup-${liveVersion}.exe`,
+      filename: `GEN-Music-Setup.exe`,
       minSystem: 'Windows 10 / Windows 11 (64-bit)',
       architecture: 'x64 & ARM64 Architecture',
       badge: 'Desktop Edition',
@@ -148,7 +141,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
         'Local Audio File Importer with Automatic Tag Match',
         'Silent Background Auto-Updater Engine',
       ],
-      mirrorUrl: 'https://t.me/genmusic_apk',
     },
     {
       id: 'macos',
@@ -157,10 +149,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       shortName: 'macOS',
       tagline: 'Universal DMG for Apple Silicon (M1/M2/M3/M4) & Intel Macs',
       fileFormat: '.dmg',
-      version: liveVersion,
       fileSize: manifest.macos.fileSize || macPlatform?.fileSize || '68.4 MB',
       downloadUrl: appVerData?.download_url?.macos || macPlatform?.downloadUrl || manifest.macos.downloadUrl || '/download/genmusic.dmg',
-      filename: `GEN-Music-${liveVersion}.dmg`,
+      filename: `GEN-Music.dmg`,
       minSystem: 'macOS 12.0 Monterey or later (Sonoma & Sequoia Ready)',
       architecture: 'Universal (Apple Silicon + Intel x86_64)',
       badge: 'Apple Silicon Ready',
@@ -174,7 +165,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
         'Menu Bar Mini-Player with Track Preview',
         'Digitally Signed & Sandboxed for Gatekeeper',
       ],
-      mirrorUrl: 'https://t.me/genmusic_official',
     },
   ];
 
@@ -325,10 +315,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                         </span>
                       )}
                     </div>
-
-                    <span className="text-xs font-mono font-extrabold text-slate-800 px-2.5 py-1 rounded-lg bg-white/90 border border-slate-200 shadow-xs">
-                      {card.version}
-                    </span>
                   </div>
 
                   {/* Card Main Info */}
@@ -404,15 +390,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                       <span className="truncate max-w-[200px]" title={card.downloadUrl}>
                         {card.downloadUrl.startsWith('http') ? 'External link' : 'Local mirror'}
                       </span>
-                      <a
-                        href={card.mirrorUrl || telegramConfig.contactUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-700 flex items-center gap-1 font-sans font-semibold"
-                      >
-                        <Send className="w-3 h-3 text-blue-500" />
-                        <span>Telegram Mirror</span>
-                      </a>
                     </div>
                   </div>
                 </div>
@@ -455,10 +432,10 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
             </div>
 
             <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-              <Send className="w-4 h-4 text-pink-600 flex-shrink-0 mt-0.5" />
+              <Sparkles className="w-4 h-4 text-pink-600 flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-slate-800 block">Official Community</strong>
-                <span>Direct APK releases, beta updates, and support on Telegram.</span>
+                <strong className="text-slate-800 block">Seamless Experience</strong>
+                <span>Continuous updates, optimized performance, and custom player settings.</span>
               </div>
             </div>
           </div>

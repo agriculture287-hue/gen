@@ -15,17 +15,11 @@ import { GenMusicLogo } from './GenMusicLogo';
 interface FooterProps {
   onOpenLegalModal: (type: 'privacy' | 'terms' | 'support' | 'contact') => void;
   onDownloadClick: () => void;
-  onOpenAdmin: () => void;
-  isAdminLoggedIn: boolean;
-  telegramUrl: string;
 }
 
 export const Footer: React.FC<FooterProps> = ({ 
   onOpenLegalModal, 
   onDownloadClick,
-  onOpenAdmin,
-  isAdminLoggedIn,
-  telegramUrl,
 }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -120,7 +114,6 @@ export const Footer: React.FC<FooterProps> = ({
             <ul className="space-y-2 text-xs">
               <li><a href="#home" className="hover:text-blue-600 transition">Home</a></li>
               <li><a href="#download" className="hover:text-blue-600 transition">Download Mobile APK</a></li>
-              <li><a href="#channels" className="hover:text-blue-600 transition">Telegram Channels</a></li>
               <li><a href="#features" className="hover:text-blue-600 transition">Features</a></li>
               <li><a href="#screenshots" className="hover:text-blue-600 transition">Screenshots</a></li>
               <li><a href="#faq" className="hover:text-blue-600 transition">FAQ</a></li>
@@ -131,20 +124,9 @@ export const Footer: React.FC<FooterProps> = ({
           {/* Social Community & Admin Access */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Community & Admin
+              Community & Social
             </h3>
             <div className="flex flex-col space-y-2">
-              <a
-                href={telegramUrl}
-                target="_blank"
-                rel="noreferrer"
-                id="footer-social-telegram"
-                className="flex items-center gap-2 text-xs text-blue-700 hover:text-blue-900 transition p-1.5 rounded-lg hover:bg-blue-50"
-              >
-                <Send className="w-4 h-4 text-blue-600" />
-                <span>Official Telegram</span>
-              </a>
-
               <a
                 href="https://instagram.com/genmusic.official"
                 target="_blank"
@@ -157,7 +139,7 @@ export const Footer: React.FC<FooterProps> = ({
               </a>
 
               <a
-                href={telegramUrl || "https://t.me/genmusic_apk"}
+                href="https://instagram.com/genmusic.official"
                 target="_blank"
                 rel="noreferrer"
                 id="footer-social-community"
@@ -167,20 +149,6 @@ export const Footer: React.FC<FooterProps> = ({
                 <span>Free Music Community</span>
               </a>
             </div>
-
-            {/* Admin shortcut if logged in */}
-            {isAdminLoggedIn && (
-              <div className="pt-2 border-t border-slate-200">
-                <a
-                  href="/admin"
-                  id="footer-admin-btn"
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-bold transition cursor-pointer border bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Control Console</span>
-                </a>
-              </div>
-            )}
           </div>
 
         </div>

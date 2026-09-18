@@ -32,11 +32,6 @@ export function generateSitemapXml(baseUrl: string = getBaseUrl()): string {
       changefreq: 'weekly',
       priority: '0.9',
     },
-    {
-      path: '/admin',
-      changefreq: 'weekly',
-      priority: '0.5',
-    },
   ];
 
   const xmlEntries = routes.map((route) => {

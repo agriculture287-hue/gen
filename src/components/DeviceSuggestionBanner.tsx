@@ -14,7 +14,6 @@ import { DeviceInfo } from '../utils/deviceDetector';
 interface DeviceSuggestionBannerProps {
   deviceInfo: DeviceInfo;
   downloadUrl?: string;
-  version?: string;
   fileSize?: string;
   onDownload: () => void;
   onViewAllPlatforms: () => void;
@@ -23,7 +22,6 @@ interface DeviceSuggestionBannerProps {
 export const DeviceSuggestionBanner: React.FC<DeviceSuggestionBannerProps> = ({
   deviceInfo,
   downloadUrl,
-  version = 'v2.5.0',
   fileSize = '24.8 MB',
   onDownload,
   onViewAllPlatforms,
@@ -93,9 +91,6 @@ export const DeviceSuggestionBanner: React.FC<DeviceSuggestionBannerProps> = ({
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download {deviceInfo.recommendedFileFormat}</span>
-              <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] font-mono">
-                {version}
-              </span>
             </button>
           ) : (
             <button
