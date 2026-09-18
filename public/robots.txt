@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://ais-dev-l3oufanucpgycv3hl2qrl5-712504858875.asia-southeast1.run.app/sitemap.xml
+Sitemap: https://ais-dev-5xsrksf5mzacy7nmqyow2w-842022636455.asia-southeast1.run.app/sitemap.xml

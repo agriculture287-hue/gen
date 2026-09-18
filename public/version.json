@@ -1,9 +1,9 @@
 {
   "android": {
     "latestVersion": "2.5.0",
-    "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk",
+    "downloadUrl": "https://test.apk",
     "minimumVersion": "2.0.0",
-    "blobUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk"
+    "blobUrl": "https://test.apk"
   },
   "windows": {
     "latestVersion": "2.5.0",
@@ -17,7 +17,5 @@
     "minimumVersion": "2.0.0",
     "blobUrl": "https://genmugic.vercel.app/download/genmusic.dmg"
   },
-  "releaseNotes": [
-    "New sound engine"
-  ]
+  "releaseNotes": []
 }

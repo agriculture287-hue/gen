@@ -438,11 +438,27 @@ export const AdminPage: React.FC = () => {
       };
 
       // 2. Post to /api/admin/update-version (writes app-version.json & version.json)
-      const verRes = await fetch('/api/admin/update-version', {
+      let verRes = await fetch('/api/admin/update-version', {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(appVerPayload)
       });
+
+      // If rewrite had an issue or invocation failed, attempt fallback /admin/update-version
+      if (!verRes.ok && verRes.status !== 401) {
+        try {
+          const fallbackRes = await fetch('/admin/update-version', {
+            method: 'POST',
+            headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify(appVerPayload)
+          });
+          if (fallbackRes.ok) {
+            verRes = fallbackRes;
+          }
+        } catch {
+          // ignore fallback error
+        }
+      }
 
       if (!verRes.ok) {
         let errorMsg = '';
