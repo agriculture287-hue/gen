@@ -60,6 +60,7 @@ import {
   syncAllBackendDataToBlob,
   uploadAppFileToBlob
 } from '../lib/blobStorage';
+import { BlobDiagnosticModal } from '../components/BlobDiagnosticModal';
 
 type AdminTab = 'versions' | 'platforms' | 'telegram' | 'ads' | 'updates' | 'storage';
 
@@ -97,6 +98,9 @@ export const AdminPage: React.FC = () => {
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
   const [editingUpdate, setEditingUpdate] = useState<UpdateItem | null>(null);
   const [isAddingUpdate, setIsAddingUpdate] = useState<boolean>(false);
+
+  // Tab 6: Blob Storage Diagnostic
+  const [isDiagnosticOpen, setIsDiagnosticOpen] = useState<boolean>(false);
 
   // File Upload States
   const [uploadTargetPlatform, setUploadTargetPlatform] = useState<'android' | 'windows' | 'macos'>('android');
@@ -1582,22 +1586,31 @@ export const AdminPage: React.FC = () => {
                   <p className="text-xs text-slate-500 mt-0.5">Inspect payload structures and backup configuration files</p>
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to reset all admin configurations to initial factory defaults?')) {
-                      resetAppToDefaults();
-                      setPlatforms(DEFAULT_PLATFORMS);
-                      setTelegramConfig(DEFAULT_TELEGRAM_CONFIG);
-                      setChannels(DEFAULT_CHANNELS);
-                      setAdSettings(DEFAULT_AD_SETTINGS);
-                      setSaveStatus({ success: true, message: 'All settings have been reset to factory defaults.' });
-                    }
-                  }}
-                  className="px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                  <span>Reset Factory Defaults</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setIsDiagnosticOpen(true)}
+                    className="px-3 py-1.5 border border-blue-200 text-blue-600 hover:bg-blue-50 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>Run Blob Diagnostic</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm('Are you sure you want to reset all admin configurations to initial factory defaults?')) {
+                        resetAppToDefaults();
+                        setPlatforms(DEFAULT_PLATFORMS);
+                        setTelegramConfig(DEFAULT_TELEGRAM_CONFIG);
+                        setChannels(DEFAULT_CHANNELS);
+                        setAdSettings(DEFAULT_AD_SETTINGS);
+                        setSaveStatus({ success: true, message: 'All settings have been reset to factory defaults.' });
+                      }
+                    }}
+                    className="px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Reset Factory Defaults</span>
+                  </button>
+                </div>
               </div>
 
               {/* app-version.json preview */}
@@ -1637,6 +1650,11 @@ export const AdminPage: React.FC = () => {
           </div>
         )}
       </main>
+
+      <BlobDiagnosticModal
+        isOpen={isDiagnosticOpen}
+        onClose={() => setIsDiagnosticOpen(false)}
+      />
     </div>
   );
 };
