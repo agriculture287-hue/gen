@@ -107,7 +107,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       fileFormat: '.apk',
       version: liveVersion,
       fileSize: manifest.android.fileSize || androidPlatform?.fileSize || '24.8 MB',
-      downloadUrl: appVerData?.download_url?.android || androidPlatform?.downloadUrl || manifest.android.downloadUrl || '/download/genmusic.apk',
+      downloadUrl: appVerData?.download_url?.android || androidPlatform?.downloadUrl || manifest.android.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
       filename: `GEN-Music-${liveVersion}.apk`,
       minSystem: 'Android 8.0 Oreo or later (Android 8 - 15+)',
       architecture: 'ARM64-v8a & Universal (All Devices)',

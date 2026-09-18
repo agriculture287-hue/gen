@@ -4,8 +4,8 @@
   "force_update": false,
   "whats_new": [],
   "download_url": {
-    "android": "https://test.apk",
-    "windows": "",
-    "macos": ""
+    "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk",
+    "windows": "https://genmugic.vercel.app/download/genmusic-setup.exe",
+    "macos": "https://genmugic.vercel.app/download/genmusic.dmg"
   }
 }

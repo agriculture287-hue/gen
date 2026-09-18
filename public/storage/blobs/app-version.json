@@ -6,7 +6,7 @@
     "New sound engine"
   ],
   "download_url": {
-    "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk",
+    "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk",
     "windows": "https://genmugic.vercel.app/download/genmusic-setup.exe",
     "macos": "https://genmugic.vercel.app/download/genmusic.dmg"
   }

@@ -4,9 +4,9 @@ export const CURRENT_CLIENT_APP_VERSION = '1.0.0'; // Installed base version for
 
 export const DEFAULT_VERSION_MANIFEST: VersionManifest = {
   android: {
-    latestVersion: '1.0.1',
+    latestVersion: '2.0.4',
     minimumVersion: '1.0.0',
-    downloadUrl: 'https://genmugic.vercel.app/download/genmusic.apk',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
     fileSize: '24.8 MB',
     sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     releaseDate: '2026-09-15',

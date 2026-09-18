@@ -74,7 +74,7 @@ export const DownloadsPage: React.FC<DownloadsPageProps> = ({
       tagline: 'Direct APK Package for Phones & Tablets',
       fileFormat: '.apk',
       version: appVerData?.latest_version || manifest.android.latestVersion,
-      downloadUrl: appVerData?.download_url?.android || manifest.android.downloadUrl || '/download/genmusic.apk',
+      downloadUrl: appVerData?.download_url?.android || manifest.android.downloadUrl || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
       mirrorUrl: 'https://t.me/genmusic_apk',
       fileSize: manifest.android.fileSize || '24.8 MB',
       sysReq: 'Android 8.0 Oreo or later (Android 8 - 15+)',

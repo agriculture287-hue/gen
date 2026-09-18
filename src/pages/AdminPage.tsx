@@ -85,7 +85,7 @@ export const AdminPage: React.FC = () => {
   const [minSupportedVersion, setMinSupportedVersion] = useState<string>('v1.0.0');
   const [forceUpdate, setForceUpdate] = useState<boolean>(false);
   const [whatsNew, setWhatsNew] = useState<string>('Dolby Audio 3D spatial surround sound\nBatch offline MP3 downloader up to 320kbps\nUnified free music catalog & unlimited streaming\nZero audio advertising interruptions');
-  const [androidUrl, setAndroidUrl] = useState<string>('/download/genmusic.apk');
+  const [androidUrl, setAndroidUrl] = useState<string>('https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk');
   const [windowsUrl, setWindowsUrl] = useState<string>('/download/genmusic-setup.exe');
   const [macosUrl, setMacosUrl] = useState<string>('/download/genmusic.dmg');
 

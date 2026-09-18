@@ -16,7 +16,7 @@ export const DEFAULT_PLATFORMS: AppPlatformRelease[] = [
     fileSize: '24.8 MB',
     releaseDate: 'September 2026',
     minSystem: 'Android 8.0 or later (Oreo to Android 15+)',
-    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
     mirrorUrl: 'https://t.me/genmusic_apk',
     architecture: 'ARM64-v8a & Universal (All Devices)',
     badge: 'Most Popular',

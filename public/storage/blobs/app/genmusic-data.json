@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-09-18T16:52:42.500Z",
+  "timestamp": "2026-09-18T17:14:55.731Z",
   "version": "2.5",
   "data": {
     "platforms": [
@@ -12,7 +12,7 @@
         "fileSize": "63.8 MB",
         "releaseDate": "September 2026",
         "minSystem": "Android 8.0 or later (Oreo to 15)",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk",
+        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk",
         "mirrorUrl": "https://t.me/genmusic_apk",
         "architecture": "ARM64-v8a & Universal",
         "badge": "Direct APK",
@@ -198,9 +198,9 @@
     "manifest": {
       "android": {
         "latestVersion": "2.5.0",
-        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk",
+        "downloadUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk",
         "minimumVersion": "2.0.0",
-        "blobUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.5.0.apk"
+        "blobUrl": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk"
       },
       "windows": {
         "latestVersion": "2.5.0",
@@ -500,14 +500,14 @@
           "UI enhancements with updated player bar and dark theme contrast"
         ],
         "download_url": {
-          "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk",
+          "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk",
           "windows": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg",
           "macos": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg"
         }
       }
     },
     "appVersion": {
-      "latest_version": "2.0.2",
+      "latest_version": "2.0.4",
       "min_supported_version": "v1.0.0",
       "force_update": true,
       "whats_new": [
@@ -517,7 +517,7 @@
         "UI enhancements with updated player bar and dark theme contrast"
       ],
       "download_url": {
-        "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk",
+        "android": "https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk",
         "windows": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg",
         "macos": "https://github.com/agriculture287-hue/gen/releases/download/Win/GenMusic-v2.0.0-macOS.dmg"
       }

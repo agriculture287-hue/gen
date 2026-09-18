@@ -184,12 +184,12 @@ let activeVersionManifest = {
   android: {
     latestVersion: '2.5.0',
     minimumVersion: '2.0.0',
-    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk',
+    downloadUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
     fileSize: '24.8 MB',
     sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     releaseDate: '2026-09-15',
     mirrorUrl: 'https://t.me/genmusic_apk',
-    blobUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk',
+    blobUrl: 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk',
   },
   windows: {
     latestVersion: '2.5.0',
@@ -1106,7 +1106,7 @@ app.get('/download/genmusic.apk', async (req, res) => {
     return res.download(localApk, `GEN-Music-${activeVersionManifest.android.latestVersion}.apk`);
   }
 
-  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.3.apk';
+  const target = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk';
   return res.redirect(302, target);
 });
 
