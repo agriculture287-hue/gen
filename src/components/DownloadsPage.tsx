@@ -11,10 +11,12 @@ import {
   FileCode2, 
   Send,
   Zap,
-  Car
+  Car,
+  ArrowDownToLine
 } from 'lucide-react';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
+import { triggerSamePageDownload, triggerDownloadCelebration } from '../utils/downloadHelper';
 
 export const DownloadsPage: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
@@ -24,16 +26,27 @@ export const DownloadsPage: React.FC = () => {
     isMobile: true,
     rawOS: 'Android',
   });
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
 
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
   }, []);
 
-  const handleDownload = (e: React.MouseEvent, downloadUrl: string, fileFormat: string) => {
-    if (!downloadUrl) {
-      e.preventDefault();
-      return;
-    }
+  const handleDownload = (e: React.MouseEvent, downloadUrl: string, filename: string, id: string) => {
+    e.preventDefault();
+    if (!downloadUrl) return;
+
+    setDownloadingId(id);
+    setDownloadSuccessId(id);
+    triggerDownloadCelebration();
+    
+    // Download directly on same page
+    triggerSamePageDownload(downloadUrl, filename);
+
+    setTimeout(() => {
+      setDownloadingId(null);
+    }, 2500);
   };
 
   const platformsList = [
@@ -172,13 +185,13 @@ export const DownloadsPage: React.FC = () => {
                 </div>
               </div>
 
-              <div>
+              <div className="space-y-3">
                 <a
                   href={p.downloadUrl}
-                  target={p.downloadUrl.startsWith('http') ? '_blank' : '_self'}
+                  target="_self"
                   rel="noopener noreferrer"
-                  download={p.downloadUrl.startsWith('http') ? undefined : `GEN-MUSIC-${p.name}${p.fileFormat}`}
-                  onClick={(e) => handleDownload(e, p.downloadUrl, p.fileFormat)}
+                  download={p.id === 'android' ? 'GEN-Music.apk' : p.id === 'car' ? 'GEN-Music-Car.apk' : p.id === 'windows' ? 'Gen-Music.exe' : 'Gen-Music.dmg'}
+                  onClick={(e) => handleDownload(e, p.downloadUrl, p.id === 'android' ? 'GEN-Music.apk' : p.id === 'car' ? 'GEN-Music-Car.apk' : p.id === 'windows' ? 'Gen-Music.exe' : 'Gen-Music.dmg', p.id)}
                   id={`btn-download-${p.id}`}
                   className={`w-full py-4 px-6 rounded-2xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 text-white shadow-lg cursor-pointer ${
                     p.isRecommended
@@ -186,9 +199,22 @@ export const DownloadsPage: React.FC = () => {
                       : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
                   }`}
                 >
-                  <Download className="w-4 h-4" />
-                  <span>Download {p.fileFormat.toUpperCase()}</span>
+                  {downloadingId === p.id ? (
+                    <ArrowDownToLine className="w-4 h-4 animate-bounce" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                  <span>
+                    {downloadingId === p.id ? 'Downloading...' : `Download ${p.fileFormat.toUpperCase()}`}
+                  </span>
                 </a>
+
+                {downloadSuccessId === p.id && (
+                  <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-2 font-medium animate-fadeIn">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <span>Download started! Check your browser downloads.</span>
+                  </div>
+                )}
               </div>
             </div>
           ))}

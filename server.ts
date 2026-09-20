@@ -74,6 +74,27 @@ app.all('/api/sponsor-click', (req, res) => {
   return res.redirect(302, '/');
 });
 
+// Direct binary download endpoints with attachment headers to start downloads on same page
+app.get(['/download/android', '/download/apk', '/download/GEN-Music.apk', '/download/genmusic.apk'], (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="GEN-Music.apk"');
+  return res.redirect(302, DOWNLOAD_LINKS.android.downloadUrl);
+});
+
+app.get(['/download/android-car', '/download/car', '/download/GEN-Music-Car.apk', '/download/genmusic-car.apk'], (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="GEN-Music-Car.apk"');
+  return res.redirect(302, DOWNLOAD_LINKS.androidCar.downloadUrl);
+});
+
+app.get(['/download/windows', '/download/win', '/download/Gen-Music.exe', '/download/genmusic.exe', '/download/genmusic-setup.exe'], (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="Gen-Music.exe"');
+  return res.redirect(302, DOWNLOAD_LINKS.windows.downloadUrl);
+});
+
+app.get(['/download/macos', '/download/mac', '/download/Gen-Music.dmg', '/download/genmusic.dmg'], (req, res) => {
+  res.setHeader('Content-Disposition', 'attachment; filename="Gen-Music.dmg"');
+  return res.redirect(302, DOWNLOAD_LINKS.macos.downloadUrl);
+});
+
 // Explicit service worker routes for ad/monetization validation
 const serviceWorkerContent = `self.options = {
     "domain": "3nbf4.com",

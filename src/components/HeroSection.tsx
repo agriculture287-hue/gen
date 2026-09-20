@@ -18,13 +18,15 @@ import {
   Send,
   ExternalLink,
   Apple,
-  Car
+  Car,
+  ArrowDownToLine
 } from 'lucide-react';
 import { AppPlatformRelease } from '../types';
 import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 import { HolographicAudio3D } from './HolographicAudio3D';
+import { triggerSamePageDownload, triggerDownloadCelebration } from '../utils/downloadHelper';
 
 interface HeroSectionProps {
   platforms: AppPlatformRelease[];
@@ -104,6 +106,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     isMobile: true,
     rawOS: 'Android',
   });
+  const [isHeroDownloading, setIsHeroDownloading] = useState(false);
+  const [heroSuccessMsg, setHeroSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
@@ -121,27 +125,40 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
   const handlePlatformDownloadClick = (platformId?: string) => {
     let target = suggestedApp?.downloadUrl;
-    if (platformId === 'android' && androidApp?.downloadUrl) target = androidApp.downloadUrl;
-    if (platformId === 'windows' && winApp?.downloadUrl) target = winApp.downloadUrl;
-    if ((platformId === 'mac' || platformId === 'macos') && macApp?.downloadUrl) target = macApp.downloadUrl;
+    let filename = 'GEN-Music.apk';
+
+    if (platformId === 'android' && androidApp?.downloadUrl) {
+      target = androidApp.downloadUrl;
+      filename = 'GEN-Music.apk';
+    } else if (platformId === 'windows' && winApp?.downloadUrl) {
+      target = winApp.downloadUrl;
+      filename = 'Gen-Music.exe';
+    } else if ((platformId === 'mac' || platformId === 'macos') && macApp?.downloadUrl) {
+      target = macApp.downloadUrl;
+      filename = 'Gen-Music.dmg';
+    } else if (suggestedApp?.downloadUrl) {
+      target = suggestedApp.downloadUrl;
+      filename = suggestedApp.platform === 'windows' ? 'Gen-Music.exe' :
+                 (suggestedApp.platform === 'mac' || suggestedApp.platform === 'macos') ? 'Gen-Music.dmg' :
+                 'GEN-Music.apk';
+    }
 
     if (target && target !== '#') {
-      const a = document.createElement('a');
-      a.href = target;
-      if (target.startsWith('http') && !target.includes(window.location.host)) {
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-      } else {
-        a.target = '_self';
-      }
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      if (!target.startsWith('http')) {
-        window.location.href = target;
-      }
+      setIsHeroDownloading(true);
+      setHeroSuccessMsg(`Download initiated: ${filename} is downloading...`);
+      triggerDownloadCelebration();
+      
+      // Start download directly on the SAME page - never throws to new window/page
+      triggerSamePageDownload(target, filename);
+
+      setTimeout(() => {
+        setIsHeroDownloading(false);
+      }, 2500);
+
+      setTimeout(() => {
+        setHeroSuccessMsg(null);
+      }, 7000);
     }
-    onSelectPlatformDownload(platformId);
   };
 
   return (
@@ -196,27 +213,46 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           />
 
           {/* Primary Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-1">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-1">
             <button
               onClick={() => handlePlatformDownloadClick(deviceInfo.platform === 'ios' ? 'android' : deviceInfo.platform)}
-              className="px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-2xl hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer"
+              id="hero-primary-download-btn"
+              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-2xl hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
             >
-              <Download className="w-5 h-5" />
+              {isHeroDownloading ? (
+                <ArrowDownToLine className="w-5 h-5 animate-bounce text-cyan-200" />
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
               <span>
-                {deviceInfo.platform === 'android' ? 'Download Android APK' :
-                 deviceInfo.platform === 'windows' ? 'Download Windows EXE' :
-                 deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
-                 'Download Free App'}
+                {isHeroDownloading
+                  ? 'Starting Download...'
+                  : deviceInfo.platform === 'android' ? 'Download Android APK' :
+                    deviceInfo.platform === 'windows' ? 'Download Windows EXE' :
+                    deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
+                    'Download Free App'}
               </span>
             </button>
 
             <button
               onClick={onViewFeatures}
-              className="px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:bg-white/[0.08] font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+              id="hero-explore-features-btn"
+              className="w-full sm:w-auto px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:bg-white/[0.08] font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
             >
               <span>Explore Features</span>
             </button>
           </div>
+
+          {/* In-page download confirmation notice */}
+          {heroSuccessMsg && (
+            <div 
+              id="hero-download-feedback"
+              className="w-full max-w-lg p-3 rounded-xl bg-cyan-500/10 border border-cyan-400/40 text-cyan-300 text-xs font-medium flex items-center gap-2.5 animate-fadeIn"
+            >
+              <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+              <span>{heroSuccessMsg}</span>
+            </div>
+          )}
 
           {/* Supported Platforms Indicators */}
           <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 text-xs text-slate-400 pt-1">

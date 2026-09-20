@@ -22,6 +22,7 @@ import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { AdDirectSponsorLink } from './AdBanners';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
+import { triggerSamePageDownload } from '../utils/downloadHelper';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -160,15 +161,16 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
   ];
 
   const handleDownloadClick = (e: React.MouseEvent, card: typeof downloadCards[0]) => {
+    e.preventDefault();
     const targetUrl = card.downloadUrl;
-    if (!targetUrl) {
-      e.preventDefault();
-      return;
-    }
+    if (!targetUrl) return;
 
     setDownloadingPlatformId(card.id);
     setDownloadSuccessId(card.id);
     triggerCelebration();
+
+    // Trigger file download directly on the same page without navigating or opening a new tab
+    triggerSamePageDownload(targetUrl, card.filename);
 
     setTimeout(() => {
       setDownloadingPlatformId(null);
@@ -363,9 +365,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                   <div className="space-y-3 pt-6 mt-4 border-t border-white/10">
                     <a
                       href={card.downloadUrl}
-                      target={card.downloadUrl.startsWith('http') ? '_blank' : '_self'}
+                      target="_self"
                       rel="noopener noreferrer"
-                      download={card.downloadUrl.startsWith('http') ? undefined : card.filename}
+                      download={card.filename}
                       id={`btn-download-${card.id}`}
                       onClick={(e) => handleDownloadClick(e, card)}
                       className={`w-full py-4 px-4 rounded-2xl font-extrabold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 text-white shadow-lg cursor-pointer bg-gradient-to-r ${card.accentColor} hover:opacity-95 active:scale-[0.98] shadow-cyan-500/20`}
