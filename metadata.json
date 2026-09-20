@@ -1,6 +1,6 @@
 {
-  "name": "Remix GEN MUSIC",
-  "description": "Music For Every Mood. Free unlimited music experience uniting YouTube and Spotify music in one app with offline downloads, EQ controls, and Dolby support.",
+  "name": "GEN MUSIC",
+  "description": "Music For Every Mood. Free unlimited music experience with offline downloads, EQ controls, and Dolby support.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

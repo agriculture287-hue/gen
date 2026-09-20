@@ -3,7 +3,7 @@ import { FeatureItem, WhyChooseItem, FAQItem, UpdateItem, AppScreenshot } from '
 export const APP_RELEASE_INFO = {
   appName: 'GEN MUSIC',
   tagline: 'Music For Every Mood',
-  version: 'v2.5.0-beta',
+  version: 'v2.5.0',
   apkSize: '24.8 MB',
   releaseDate: 'September 2026',
   minAndroid: 'Android 8.0 (Oreo) or later',
@@ -78,7 +78,7 @@ export const FEATURES_LIST: FeatureItem[] = [
   {
     id: 'feat-freemusic',
     title: 'Free Music Streaming',
-    description: 'Access millions of free music tracks including studio masters, rare acoustic sessions, remixes, and live performances.',
+    description: 'Access millions of free music tracks including studio masters, rare acoustic sessions, exclusive releases, and live performances.',
     icon: 'PlaySquare',
     badge: 'Free Audio',
     neonColor: 'pink',
@@ -235,13 +235,13 @@ export const APP_SCREENSHOTS: AppScreenshot[] = [
 export const FAQ_LIST: FAQItem[] = [
   {
     id: 'faq-genmusic',
-    question: 'What is Remix GEN MUSIC?',
-    answer: 'Remix GEN MUSIC is our flagship free music streaming audio player. It provides unlimited music in one lightweight app with 320kbps offline MP3 downloads, binaural Dolby spatial audio, and zero subscription fees on Android, Windows, and Mac.',
+    question: 'What is GEN MUSIC?',
+    answer: 'GEN MUSIC is our flagship free music streaming audio player. It provides unlimited music in one lightweight app with 320kbps offline MP3 downloads, binaural Dolby spatial audio, and zero subscription fees on Android, Windows, and Mac.',
   },
   {
     id: 'faq-1',
-    question: 'Is Remix GEN MUSIC free?',
-    answer: 'Yes, Remix GEN MUSIC is 100% free forever. There are no subscriptions, no monthly charges, no hidden paywalls, and no credit card required. You get complete access to unlimited streaming, offline downloads, and studio audio features without paying a single cent.',
+    question: 'Is GEN MUSIC free?',
+    answer: 'Yes, GEN MUSIC is 100% free forever. There are no subscriptions, no monthly charges, no hidden paywalls, and no credit card required. You get complete access to unlimited streaming, offline downloads, and studio audio features without paying a single cent.',
   },
   {
     id: 'faq-2',
@@ -277,7 +277,7 @@ export const FAQ_LIST: FAQItem[] = [
 
 export const ANNOUNCEMENT_UPDATES: UpdateItem[] = [
   {
-    version: 'v2.5.0-beta',
+    version: 'v2.5.0',
     releaseDate: 'September 2026',
     tag: 'Latest Release',
     highlights: [
@@ -321,14 +321,14 @@ export const CONTACT_CHANNELS = [
     badge: 'Response < 24h',
   },
   {
-    id: 'telegram',
-    name: 'Telegram Community',
-    handle: '@GenMusicApp',
-    link: 'https://t.me/GenMusicApp',
-    icon: 'Send',
-    desc: 'Join the community for instant APK updates, beta testing, and community chat.',
+    id: 'github',
+    name: 'GitHub Releases',
+    handle: 'agriculture287-hue/gen',
+    link: 'https://github.com/agriculture287-hue/gen/releases',
+    icon: 'Download',
+    desc: 'Official source builds, signed APK binaries, and release archives.',
     accent: 'purple',
-    badge: 'Active Chat',
+    badge: 'Official Releases',
   },
   {
     id: 'instagram',
@@ -344,7 +344,7 @@ export const CONTACT_CHANNELS = [
     id: 'community',
     name: 'Free Music Hub',
     handle: '@GENMusicApp',
-    link: 'https://t.me/GenMusicApp',
+    link: 'https://github.com/agriculture287-hue/gen/releases',
     icon: 'Radio',
     desc: 'Feature walkthroughs, installation tutorials, and Dolby Audio sound tests.',
     accent: 'blue',

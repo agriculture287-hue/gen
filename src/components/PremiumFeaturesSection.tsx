@@ -29,47 +29,47 @@ export const PremiumFeaturesSection: React.FC<PremiumFeaturesSectionProps> = ({
 }) => {
   const getFeatureIcon = (iconName: string) => {
     switch (iconName) {
-      case 'ShieldCheck': return <ShieldCheck className="w-5 h-5 text-emerald-600" />;
-      case 'Infinity': return <InfinityIcon className="w-5 h-5 text-blue-600" />;
-      case 'PlaySquare': return <PlaySquare className="w-5 h-5 text-red-600" />;
-      case 'Radio': return <Radio className="w-5 h-5 text-emerald-600" />;
-      case 'Download': return <Download className="w-5 h-5 text-blue-600" />;
-      case 'FileAudio': return <FileAudio className="w-5 h-5 text-purple-600" />;
-      case 'Headphones': return <Headphones className="w-5 h-5 text-indigo-600" />;
-      case 'Sliders': return <Sliders className="w-5 h-5 text-pink-600" />;
-      case 'ListMusic': return <ListMusic className="w-5 h-5 text-blue-600" />;
-      case 'Heart': return <Heart className="w-5 h-5 text-pink-600" />;
-      case 'History': return <History className="w-5 h-5 text-amber-600" />;
-      case 'MonitorSmartphone': return <MonitorSmartphone className="w-5 h-5 text-purple-600" />;
-      case 'Smartphone': return <Smartphone className="w-5 h-5 text-blue-600" />;
-      case 'Sparkles': return <Sparkles className="w-5 h-5 text-indigo-600" />;
-      case 'Compass': return <Compass className="w-5 h-5 text-teal-600" />;
-      case 'Zap': return <Zap className="w-5 h-5 text-amber-600" />;
-      default: return <Sparkles className="w-5 h-5 text-blue-600" />;
+      case 'ShieldCheck': return <ShieldCheck className="w-5 h-5 text-emerald-400" />;
+      case 'Infinity': return <InfinityIcon className="w-5 h-5 text-cyan-400" />;
+      case 'PlaySquare': return <PlaySquare className="w-5 h-5 text-rose-400" />;
+      case 'Radio': return <Radio className="w-5 h-5 text-emerald-400" />;
+      case 'Download': return <Download className="w-5 h-5 text-blue-400" />;
+      case 'FileAudio': return <FileAudio className="w-5 h-5 text-purple-400" />;
+      case 'Headphones': return <Headphones className="w-5 h-5 text-indigo-400" />;
+      case 'Sliders': return <Sliders className="w-5 h-5 text-pink-400" />;
+      case 'ListMusic': return <ListMusic className="w-5 h-5 text-cyan-400" />;
+      case 'Heart': return <Heart className="w-5 h-5 text-pink-400" />;
+      case 'History': return <History className="w-5 h-5 text-amber-400" />;
+      case 'MonitorSmartphone': return <MonitorSmartphone className="w-5 h-5 text-purple-400" />;
+      case 'Smartphone': return <Smartphone className="w-5 h-5 text-blue-400" />;
+      case 'Sparkles': return <Sparkles className="w-5 h-5 text-indigo-400" />;
+      case 'Compass': return <Compass className="w-5 h-5 text-teal-400" />;
+      case 'Zap': return <Zap className="w-5 h-5 text-amber-400" />;
+      default: return <Sparkles className="w-5 h-5 text-cyan-400" />;
     }
   };
 
   return (
     <section 
       aria-label="Features Section"
-      className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
+      className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-white"
     >
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-          <span>Feature Capabilities</span>
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <span>SPECIFICATIONS & CAPABILITIES</span>
         </div>
 
-        <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight font-heading">
+        <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-heading">
           All Built In.{' '}
-          <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
             Nothing Held Back.
           </span>
         </h2>
 
-        <p className="text-base sm:text-lg text-slate-600">
-          Everything you need for an uncompromising music experience across your Android, Mac, and Windows devices.
+        <p className="text-base sm:text-lg text-slate-400">
+          Everything you need for an uncompromising music experience across Android, Android Car, Mac, and Windows devices.
         </p>
       </div>
 
@@ -80,17 +80,17 @@ export const PremiumFeaturesSection: React.FC<PremiumFeaturesSectionProps> = ({
             key={feat.id}
             id={`feature-card-${feat.id}`}
             onClick={onDownloadClick}
-            className="group relative rounded-3xl bg-white p-5 border border-slate-200 hover:border-blue-300 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between hover:-translate-y-1 cursor-pointer"
+            className="group relative rounded-3xl bg-[#0c0f1e]/90 p-5 border border-white/10 hover:border-cyan-500/40 shadow-xl hover:shadow-[0_0_25px_rgba(0,240,255,0.12)] transition-all duration-200 flex flex-col justify-between hover:-translate-y-1 cursor-pointer backdrop-blur-xl"
           >
             <div className="space-y-3.5">
               {/* Icon & Badge */}
               <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 group-hover:scale-105 transition">
+                <div className="p-3 rounded-2xl bg-white/[0.04] border border-white/10 group-hover:scale-105 transition shadow-xs">
                   {getFeatureIcon(feat.icon)}
                 </div>
 
                 {feat.badge && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wider">
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/[0.05] text-cyan-300 border border-white/10 uppercase tracking-wider">
                     {feat.badge}
                   </span>
                 )}
@@ -98,20 +98,20 @@ export const PremiumFeaturesSection: React.FC<PremiumFeaturesSectionProps> = ({
 
               {/* Feature Title & Description */}
               <div>
-                <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition font-heading flex items-center gap-1.5">
-                  <span className="text-emerald-600 text-sm">✓</span>
+                <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition font-heading flex items-center gap-1.5">
+                  <span className="text-cyan-400 text-sm">✓</span>
                   <span>{feat.title}</span>
                 </h3>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
+                <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
                   {feat.description}
                 </p>
               </div>
             </div>
 
             {/* Bottom Indicator */}
-            <div className="pt-3.5 mt-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <span className="font-medium text-slate-600">Cross-Platform</span>
-              <span className="text-emerald-600 font-bold group-hover:translate-x-0.5 transition-transform">✓ Free</span>
+            <div className="pt-3.5 mt-3.5 border-t border-white/10 flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span className="text-slate-500">Universal Matrix</span>
+              <span className="text-cyan-400 font-bold group-hover:translate-x-0.5 transition-transform">Included Free</span>
             </div>
           </div>
         ))}

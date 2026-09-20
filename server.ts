@@ -67,6 +67,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: cleanVersion });
 });
 
+// Sponsor dynamic redirect endpoint
+// Redirects to homepage
+app.all('/api/sponsor-click', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  return res.redirect(302, '/');
+});
+
 // Explicit service worker routes for ad/monetization validation
 const serviceWorkerContent = `self.options = {
     "domain": "3nbf4.com",
@@ -105,3 +112,5 @@ async function startServer() {
 }
 
 startServer();
+
+export default app;

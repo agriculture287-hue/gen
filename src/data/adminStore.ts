@@ -116,11 +116,11 @@ export const DEFAULT_CHANNELS: TelegramChannel[] = [
   },
   {
     id: 'ch-3',
-    title: 'GEN MUSIC Beta Testers Club',
-    description: 'Early preview builds, experimental spatial sound patches, and direct developer feedback.',
-    link: 'https://t.me/genmusic_beta',
-    badge: 'Beta Testing',
-    memberCount: 'Beta Testers',
+    title: 'GEN MUSIC Audio Lab',
+    description: 'Upcoming features roadmap, experimental spatial sound patches, and community feedback.',
+    link: 'https://github.com/agriculture287-hue/gen/releases',
+    badge: 'Audio Lab',
+    memberCount: 'Contributors',
     isPrimary: false,
   },
   {

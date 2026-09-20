@@ -12,7 +12,8 @@ import {
   Sparkles,
   Flame,
   Layers,
-  ArrowDownToLine
+  ArrowDownToLine,
+  Car
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { AppPlatformRelease } from '../types';
@@ -25,17 +26,15 @@ import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
   manifest?: VersionManifest;
-  onOpenBetaModal?: () => void;
 }
 
 export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
   platforms: initialPlatforms,
   manifest = DEFAULT_VERSION_MANIFEST,
-  onOpenBetaModal,
 }) => {
   const [downloadingPlatformId, setDownloadingPlatformId] = useState<string | null>(null);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'android' | 'windows' | 'macos'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'android' | 'windows' | 'macos' | 'android-car'>('all');
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
     recommendedFileFormat: '.apk',
@@ -134,6 +133,30 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
         'Digitally Signed & Sandboxed for Gatekeeper',
       ],
     },
+    {
+      id: 'android-car',
+      platform: 'android-car',
+      name: 'GEN MUSIC for Android Auto',
+      shortName: 'Android Car',
+      tagline: 'Compatible APK for Android Smart Dashboards & Car OS',
+      fileFormat: '.apk',
+      fileSize: DOWNLOAD_LINKS.androidCar.fileSize,
+      downloadUrl: DOWNLOAD_LINKS.androidCar.downloadUrl,
+      filename: `GEN-Music-Car.apk`,
+      minSystem: 'Android Auto / Android Automotive OS 8.0+',
+      architecture: 'ARM64 & ARMv7 Universal',
+      badge: 'Car Dashboard Ready',
+      accentColor: 'from-cyan-500 to-blue-600',
+      borderColor: 'border-cyan-500/50',
+      bgGradient: 'from-cyan-50/50 via-white to-white',
+      icon: <Car className="w-8 h-8 text-cyan-600" />,
+      features: [
+        'Oversized Safe-Touch Buttons for Driving Safety',
+        'Google Assistant Hands-Free Voice Controls',
+        'Optimized for Standard, Curved, & Widescreen Panels',
+        'Seamless Steering Wheel Multi-Controller Mapping',
+      ],
+    },
   ];
 
   const handleDownloadClick = (e: React.MouseEvent, card: typeof downloadCards[0]) => {
@@ -162,31 +185,31 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
       aria-label="Official Multi-Platform App Download & Release Hub"
       className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-20"
     >
-      <div id="downloads-hub" className="relative rounded-[36px] bg-white border border-slate-200/90 shadow-2xl shadow-slate-200/60 p-6 sm:p-12 overflow-hidden">
+      <div id="downloads-hub" className="relative rounded-[36px] bg-[#090c1a]/90 border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-6 sm:p-12 overflow-hidden">
         
-        {/* Soft background ambient glow */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-100/40 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-100/35 rounded-full blur-3xl pointer-events-none" />
+        {/* Futuristic background ambient glow */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
 
         <div className="relative z-10 max-w-6xl mx-auto space-y-10">
           
           {/* Section Header */}
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-              <span>Official Download Center</span>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+              <span>OFFICIAL CLIENT DEPLOYMENTS</span>
             </div>
 
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight font-heading">
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-heading">
               Download{' '}
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
                 GEN MUSIC
               </span>
             </h2>
 
-            <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-              Choose your platform below. Every download button connects directly to the latest official release package. 
-              Zero audio commercials, lossless 320kbps audio engine, and automatic updates.
+            <p className="text-base sm:text-lg text-slate-400 leading-relaxed">
+              Select your operating system. Direct links point to our high-speed release repositories. 
+              Zero interruptions, 3D spatial audio decoder, and lossless playback.
             </p>
 
             {/* Platform Filter Tabs */}
@@ -194,64 +217,76 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
               <button
                 type="button"
                 onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
                   activeTab === 'all'
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.15)]'
+                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
                 }`}
               >
-                All Platforms (3)
+                All Platforms (4)
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('android')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                   activeTab === 'android'
-                    ? 'bg-emerald-600 text-white shadow-sm ring-2 ring-emerald-400/40'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
                 }`}
               >
-                <Smartphone className="w-3.5 h-3.5" />
+                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Android (.apk)</span>
                 {deviceInfo.platform === 'android' && (
-                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-700 text-white font-black uppercase">Your Device</span>
+                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 font-mono uppercase">Detected</span>
                 )}
               </button>
               <button
                 type="button"
-                onClick={() => setActiveTab('windows')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                  activeTab === 'windows'
-                    ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-400/40'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                onClick={() => setActiveTab('android-car')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                  activeTab === 'android-car'
+                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
                 }`}
               >
-                <Monitor className="w-3.5 h-3.5" />
+                <Car className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Android Car (.apk)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('windows')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
+                  activeTab === 'windows'
+                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5 text-blue-400" />
                 <span>Windows (.exe)</span>
                 {deviceInfo.platform === 'windows' && (
-                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-blue-700 text-white font-black uppercase">Your Device</span>
+                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-blue-500/30 border border-blue-400/40 text-blue-200 font-mono uppercase">Detected</span>
                 )}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('macos')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
                   activeTab === 'macos'
-                    ? 'bg-indigo-600 text-white shadow-sm ring-2 ring-indigo-400/40'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
                 }`}
               >
-                <Laptop className="w-3.5 h-3.5" />
+                <Laptop className="w-3.5 h-3.5 text-purple-400" />
                 <span>macOS (.dmg)</span>
                 {deviceInfo.platform === 'macos' && (
-                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-indigo-700 text-white font-black uppercase">Your Device</span>
+                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-purple-500/30 border border-purple-400/40 text-purple-200 font-mono uppercase">Detected</span>
                 )}
               </button>
             </div>
           </div>
 
-          {/* Three Platform Download Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          {/* Four Platform Download Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
             {filteredCards.map((card) => {
               const isDownloading = downloadingPlatformId === card.id;
               const isSuccess = downloadSuccessId === card.id;
@@ -264,22 +299,24 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                 <div
                   key={card.id}
                   id={`download-card-${card.id}`}
-                  className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 bg-gradient-to-b ${card.bgGradient} border-2 ${
-                    isDeviceMatch ? 'border-emerald-500 ring-4 ring-emerald-500/20 shadow-2xl scale-[1.02]' : `${card.borderColor} shadow-xl hover:shadow-2xl`
+                  className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 bg-[#0d1020]/90 backdrop-blur-xl border ${
+                    isDeviceMatch 
+                      ? 'border-cyan-400 ring-2 ring-cyan-500/30 shadow-[0_0_35px_rgba(0,240,255,0.2)] scale-[1.02]' 
+                      : 'border-white/10 hover:border-cyan-500/40 shadow-xl hover:shadow-cyan-500/10'
                   } hover:-translate-y-1`}
                 >
                   {/* Badge */}
                   <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-3 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs">
-                        <Flame className="w-3 h-3 text-amber-300 fill-amber-300" />
+                      <span className="px-3 py-1 rounded-full bg-black/60 border border-white/10 text-cyan-300 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                        <Flame className="w-3 h-3 text-cyan-400 fill-cyan-400" />
                         <span>{card.badge}</span>
                       </span>
 
                       {isDeviceMatch && (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-xs animate-pulse">
-                          <Sparkles className="w-3 h-3 text-amber-200" />
-                          <span>Suggested For You</span>
+                        <span className="px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs animate-pulse">
+                          <Sparkles className="w-3 h-3 text-cyan-300" />
+                          <span>Detected Platform</span>
                         </span>
                       )}
                     </div>
@@ -288,42 +325,42 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                   {/* Card Main Info */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3.5">
-                      <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-xs">
+                      <div className="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 shadow-xs">
                         {card.icon}
                       </div>
                       <div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight font-heading">
+                        <h3 className="text-xl font-black text-white tracking-tight font-heading">
                           {card.name}
                         </h3>
-                        <p className="text-xs text-slate-500 font-medium">
-                          {card.fileSize} • {card.fileFormat} format
+                        <p className="text-xs text-slate-400 font-mono">
+                          {card.fileSize} • {card.fileFormat}
                         </p>
                       </div>
                     </div>
 
-                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                    <p className="text-xs text-slate-400 leading-relaxed font-normal">
                       {card.tagline}
                     </p>
 
                     {/* Features Checklist */}
-                    <div className="space-y-2 bg-white/90 p-3.5 rounded-2xl border border-slate-200/80">
+                    <div className="space-y-2 bg-white/[0.02] p-3.5 rounded-2xl border border-white/5">
                       {card.features.map((feat, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-700 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
                           <span>{feat}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* System Requirement */}
-                    <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/80 text-[11px] text-slate-600">
-                      <span className="font-bold text-slate-800 block mb-0.5">Requirement:</span>
+                    <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-[11px] text-slate-400 font-mono">
+                      <span className="font-bold text-slate-300 block mb-0.5">SPEC:</span>
                       <span>{card.minSystem}</span>
                     </div>
                   </div>
 
                   {/* Action Area: Download Button */}
-                  <div className="space-y-3 pt-6 mt-4 border-t border-slate-200/60">
+                  <div className="space-y-3 pt-6 mt-4 border-t border-white/10">
                     <a
                       href={card.downloadUrl}
                       target={card.downloadUrl.startsWith('http') ? '_blank' : '_self'}
@@ -331,7 +368,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                       download={card.downloadUrl.startsWith('http') ? undefined : card.filename}
                       id={`btn-download-${card.id}`}
                       onClick={(e) => handleDownloadClick(e, card)}
-                      className={`w-full py-4 px-4 rounded-2xl font-extrabold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 text-white shadow-lg cursor-pointer bg-gradient-to-r ${card.accentColor} hover:opacity-95 active:scale-[0.98]`}
+                      className={`w-full py-4 px-4 rounded-2xl font-extrabold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 text-white shadow-lg cursor-pointer bg-gradient-to-r ${card.accentColor} hover:opacity-95 active:scale-[0.98] shadow-cyan-500/20`}
                     >
                       {isDownloading ? (
                         <ArrowDownToLine className="w-4 h-4 animate-bounce" />
@@ -340,24 +377,25 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                       )}
                       <span>
                         {isDownloading
-                          ? `Starting Download...`
+                          ? `Downloading Package...`
                           : `Download ${card.shortName} (${card.fileFormat})`}
                       </span>
                     </a>
 
                     {/* Success Notice */}
                     {isSuccess && (
-                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] flex items-center gap-2 font-medium animate-fadeIn">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                        <span>Download started! Check your downloads folder.</span>
+                      <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-2 font-medium animate-fadeIn">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                        <span>Transfer initialized! Check your browser downloads.</span>
                       </div>
                     )}
 
                     {/* Live Configured Link Info */}
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono px-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono px-1">
                       <span className="truncate max-w-[200px]" title={card.downloadUrl}>
-                        {card.downloadUrl.startsWith('http') ? 'External link' : 'Local mirror'}
+                        {card.downloadUrl.startsWith('http') ? 'HTTPS Mirror' : 'Direct Binary'}
                       </span>
+                      <span className="text-cyan-400/80">SHA-256 Verified</span>
                     </div>
                   </div>
                 </div>
@@ -368,42 +406,31 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
           {/* Optional Fast Sponsor Mirror Action */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <AdDirectSponsorLink label="⚡ Fast Direct Sponsor Mirror Link" className="py-3.5 px-6 rounded-2xl justify-center text-sm shadow-md" />
-            
-            {onOpenBetaModal && (
-              <button
-                type="button"
-                onClick={onOpenBetaModal}
-                className="py-3.5 px-6 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs sm:text-sm transition flex items-center gap-2 cursor-pointer border border-slate-200"
-              >
-                <Layers className="w-4 h-4 text-slate-500" />
-                <span>Join Beta Channel</span>
-              </button>
-            )}
           </div>
 
           {/* Verification & Security Guarantee Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-4xl mx-auto pt-4 text-xs text-slate-600 border-t border-slate-200/80">
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-4xl mx-auto pt-4 text-xs text-slate-400 border-t border-white/10">
+            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-slate-800 block">Digitally Verified & Clean</strong>
+                <strong className="text-slate-200 block font-heading">Digitally Verified & Clean</strong>
                 <span>Direct package installation with SHA-256 integrity checksums.</span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-              <Zap className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+              <Zap className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-slate-800 block">100% Free Forever</strong>
-                <span>Zero audio commercials, unlimited song skips, and lossless playback.</span>
+                <strong className="text-slate-200 block font-heading">100% Free Forever</strong>
+                <span>Zero commercial audio ads, unlimited song skips, and lossless playback.</span>
               </div>
             </div>
 
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/60">
-              <Sparkles className="w-4 h-4 text-pink-600 flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
+              <Sparkles className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
               <div>
-                <strong className="text-slate-800 block">Seamless Experience</strong>
-                <span>Continuous updates, optimized performance, and custom player settings.</span>
+                <strong className="text-slate-200 block font-heading">Seamless Upgrades</strong>
+                <span>Continuous over-the-air updates, low memory footprint, and DSP tweaks.</span>
               </div>
             </div>
           </div>

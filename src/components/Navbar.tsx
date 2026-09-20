@@ -3,7 +3,6 @@ import {
   Menu, 
   X, 
   Download, 
-  Send,
   Smartphone,
   Monitor,
   Laptop
@@ -55,7 +54,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <nav 
       id="main-navbar" 
       aria-label="Main Navigation"
-      className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/90 border-b border-slate-200/90 transition-all shadow-xs"
+      className="sticky top-0 z-40 w-full backdrop-blur-2xl bg-[#070912]/85 border-b border-white/10 transition-all shadow-md"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
         
@@ -66,40 +65,40 @@ export const Navbar: React.FC<NavbarProps> = ({
           id="navbar-brand-logo"
         >
           <div className="relative">
-            <GenMusicLogo size="md" glow={false} />
+            <GenMusicLogo size="md" glow={true} />
             <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5 pointer-events-none">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-cyan-500"></span>
             </span>
           </div>
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 font-heading">
-                GEN <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 bg-clip-text text-transparent">MUSIC</span>
+              <span className="text-xl sm:text-2xl font-black tracking-tight text-white font-heading">
+                GEN <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">MUSIC</span>
               </span>
-              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                Apps
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                v2.4
               </span>
             </div>
-            <span className="text-[11px] font-medium text-slate-500 tracking-tight -mt-0.5 hidden sm:block">
-              Music For Every Mood
+            <span className="text-[11px] font-mono text-slate-400 tracking-wider -mt-0.5 hidden sm:block uppercase">
+              Spatial Audio System
             </span>
           </div>
         </div>
 
         {/* Center Nav Links - Desktop */}
-        <div className="hidden lg:flex items-center gap-1.5 p-1 rounded-2xl bg-slate-100/80 border border-slate-200/80">
+        <div className="hidden lg:flex items-center gap-1.5 p-1 rounded-2xl bg-white/[0.03] border border-white/10">
           {navLinks.map((link) => {
             const isActive = activeNav === link.id;
             return (
               <button
                 key={link.id}
                 onClick={() => handleNavClick(link.id)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${
+                className={`px-4 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer ${
                   isActive
-                    ? 'bg-white text-blue-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                    ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 shadow-[0_0_15px_rgba(0,240,255,0.15)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
                 }`}
               >
                 {link.label}
@@ -114,14 +113,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             onClick={onDownloadClick}
             id="navbar-download-cta"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 text-white font-bold text-xs shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 hover:opacity-95 transition transform hover:-translate-y-0.5 cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-2 px-4.5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 cursor-pointer"
           >
             {deviceInfo.platform === 'android' ? (
-              <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
+              <Smartphone className="w-3.5 h-3.5 text-cyan-200" />
             ) : deviceInfo.platform === 'windows' ? (
               <Monitor className="w-3.5 h-3.5 text-blue-200" />
             ) : deviceInfo.platform === 'macos' ? (
-              <Laptop className="w-3.5 h-3.5 text-indigo-200" />
+              <Laptop className="w-3.5 h-3.5 text-purple-200" />
             ) : (
               <Download className="w-3.5 h-3.5" />
             )}
@@ -136,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition cursor-pointer"
+            className="lg:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition cursor-pointer border border-white/10"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -146,7 +145,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-6 space-y-3 shadow-lg">
+        <div className="lg:hidden bg-[#0a0d18] border-b border-white/10 px-4 pt-2 pb-6 space-y-3 shadow-2xl">
           <div className="flex flex-col space-y-1">
             {navLinks.map((link) => (
               <button
@@ -154,8 +153,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => handleNavClick(link.id)}
                 className={`w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold transition cursor-pointer ${
                   activeNav === link.id
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-700 hover:bg-slate-50'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                    : 'text-slate-300 hover:bg-white/[0.06] hover:text-white'
                 }`}
               >
                 {link.label}
@@ -163,20 +162,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             ))}
           </div>
 
-          <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+          <div className="pt-2 border-t border-white/10 flex flex-col gap-2">
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 onDownloadClick();
               }}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-pink-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer"
+              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer"
             >
               {deviceInfo.platform === 'android' ? (
-                <Smartphone className="w-4 h-4 text-emerald-300" />
+                <Smartphone className="w-4 h-4 text-cyan-200" />
               ) : deviceInfo.platform === 'windows' ? (
                 <Monitor className="w-4 h-4 text-blue-200" />
               ) : deviceInfo.platform === 'macos' ? (
-                <Laptop className="w-4 h-4 text-indigo-200" />
+                <Laptop className="w-4 h-4 text-purple-200" />
               ) : (
                 <Download className="w-4 h-4" />
               )}

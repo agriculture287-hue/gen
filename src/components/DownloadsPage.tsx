@@ -10,7 +10,8 @@ import {
   ExternalLink, 
   FileCode2, 
   Send,
-  Zap
+  Zap,
+  Car
 } from 'lucide-react';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
@@ -75,6 +76,19 @@ export const DownloadsPage: React.FC = () => {
       features: ['Menu Bar Mini Player', 'Native Apple Silicon Decoding', 'AirPlay & Spatial Audio', 'Auto-Updater Integration'],
       isRecommended: deviceInfo.platform === 'macos',
     },
+    {
+      id: 'android-car',
+      name: 'Android Auto / Car OS',
+      tagline: 'Compatible APK for Android Smart Dashboards',
+      fileFormat: '.apk',
+      downloadUrl: DOWNLOAD_LINKS.androidCar.downloadUrl,
+      fileSize: DOWNLOAD_LINKS.androidCar.fileSize,
+      sysReq: 'Android Auto Core / Android Automotive OS 8.0+',
+      arch: 'ARM64 & ARMv7 Universal',
+      icon: <Car className="w-8 h-8 text-cyan-400" />,
+      features: ['Large Touch Interface', 'Hands-Free Voice Search', 'Continuous Offline Buffer', 'Steering Controls Compatibility'],
+      isRecommended: false,
+    },
   ];
 
   return (
@@ -109,7 +123,7 @@ export const DownloadsPage: React.FC = () => {
         </div>
 
         {/* Platform Download Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {platformsList.map((p) => (
             <div
               key={p.id}
