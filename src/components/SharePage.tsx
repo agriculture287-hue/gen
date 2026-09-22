@@ -2,26 +2,43 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Download, 
-  Music, 
   Check, 
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Copy,
+  ExternalLink,
+  ChevronDown,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
 
 interface SharePageProps {
-  videoId: string;
+  videoId?: string;
   type?: string;
   onNavigateHome?: () => void;
+  onNavigateDownload?: () => void;
 }
 
-export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome }) => {
+export const SharePage: React.FC<SharePageProps> = ({ 
+  videoId = 'B8uJqlSiJQ4', 
+  onNavigateDownload 
+}) => {
+  const [currentId, setCurrentId] = useState(videoId || 'B8uJqlSiJQ4');
   const [showInstallOptions, setShowInstallOptions] = useState(false);
+  const [copied, setCopied] = useState(false);
   const attemptedLaunch = useRef(false);
 
-  // Pure deep link with id parameter as requested: genmusic://play?id={id}
-  const cleanId = encodeURIComponent(videoId || '');
+  // Sync state if prop changes
+  useEffect(() => {
+    if (videoId) {
+      setCurrentId(videoId);
+    }
+  }, [videoId]);
+
+  // Clean deep link parameters
+  const cleanId = encodeURIComponent(currentId || 'B8uJqlSiJQ4');
+  const shareUrl = `https://genmusics.vercel.app/share/${cleanId}`;
   const deepLinkUrl = `genmusic://play?id=${cleanId}`;
   const androidIntentUrl = `intent://play?id=${cleanId}#Intent;scheme=genmusic;package=in.gen.agrigence;end`;
 
@@ -30,7 +47,7 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
     try {
       const payload = {
         eventType,
-        id: videoId,
+        id: currentId,
         timestamp: new Date().toISOString()
       };
       if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
@@ -55,15 +72,30 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
 
     window.location.href = targetUrl;
 
-    // If focus is not lost or user remains on page after 1.5s, reveal install card
+    // If user remains on page after 1.5s, reveal install card
     setTimeout(() => {
       setShowInstallOptions(true);
     }, 1500);
   };
 
-  const handleDownloadClick = () => {
+  const handleDownloadClick = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     trackEvent('download_clicks');
-    window.location.href = 'https://genmusics.vercel.app/download';
+    if (onNavigateDownload) {
+      onNavigateDownload();
+    } else {
+      window.open('https://genmusics.vercel.app/download', '_blank');
+    }
+  };
+
+  const copyShareLink = () => {
+    try {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
   };
 
   // On page load: 1. Wait 1 second, 2. Attempt auto-launch, 3. Show install if not opened
@@ -89,13 +121,40 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-slate-100 flex flex-col justify-between items-center px-4 py-8 font-sans relative overflow-hidden selection:bg-[#00E676] selection:text-black">
-      {/* Background ambient lighting */}
+    <div className="min-h-screen bg-[#0A0A0A] text-slate-100 flex flex-col justify-between items-center px-4 py-6 font-sans relative overflow-x-hidden selection:bg-[#00E676] selection:text-black">
+      {/* Ambient background lighting */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#00E676]/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-10 right-1/4 w-72 h-72 bg-[#1DB954]/10 rounded-full blur-[120px] pointer-events-none" />
 
+      {/* Top simulated URL bar banner */}
+      <div className="w-full max-w-md z-20 mb-4">
+        <div className="flex items-center justify-between px-3 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md text-[11px] text-slate-300">
+          <div className="flex items-center gap-1.5 overflow-hidden">
+            <Globe className="w-3.5 h-3.5 text-[#00E676] shrink-0" />
+            <span className="font-mono truncate">https://genmusics.vercel.app/share/<strong className="text-white">{cleanId}</strong></span>
+          </div>
+          <button 
+            onClick={copyShareLink}
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 transition-all cursor-pointer shrink-0 ml-2"
+            title="Copy share link"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3 h-3 text-[#00E676]" />
+                <span className="text-[#00E676] font-medium">Copied</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3 h-3 text-slate-400" />
+                <span>Copy</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Header Branding */}
-      <header className="w-full max-w-md flex flex-col items-center gap-2 pt-2 z-10">
+      <header className="w-full max-w-md flex flex-col items-center gap-2 z-10">
         <div className="flex items-center gap-3">
           <GenMusicLogo size="md" />
           <div className="text-left">
@@ -105,7 +164,7 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
         </div>
       </header>
 
-      {/* Main Card */}
+      {/* Main Glassmorphism Card */}
       <main className="w-full max-w-md my-auto py-6 z-10 flex flex-col items-center">
         <motion.div 
           initial={{ opacity: 0, y: 15, scale: 0.98 }}
@@ -134,7 +193,7 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
 
           {/* Action Buttons */}
           <div className="w-full space-y-3">
-            {/* Primary Button */}
+            {/* Primary: Open GEN Music */}
             <button
               onClick={launchApp}
               id="btn-open-gen-music"
@@ -144,16 +203,28 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
               <span>Open GEN Music</span>
             </button>
 
-            {/* Secondary Button */}
-            <button
+            {/* Secondary: Download GEN Music */}
+            <a
+              href="https://genmusics.vercel.app/download"
               onClick={handleDownloadClick}
               id="btn-download-gen-music"
               className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-white/[0.05] hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-sm transition-all cursor-pointer"
             >
               <Download className="w-4 h-4 text-[#00E676]" />
               <span>Download GEN Music</span>
-            </button>
+            </a>
           </div>
+
+          {/* Prompt toggle if install card not yet open */}
+          {!showInstallOptions && (
+            <button
+              onClick={() => setShowInstallOptions(true)}
+              className="mt-4 flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            >
+              <span>App not opening? View install options</span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#00E676]" />
+            </button>
+          )}
 
           {/* Install Card */}
           <AnimatePresence>
@@ -181,13 +252,14 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
                   ))}
                 </div>
 
-                <button
+                <a
+                  href="https://genmusics.vercel.app/download"
                   onClick={handleDownloadClick}
-                  className="w-full py-3 px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-[#00E676]/30 text-[#00E676] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+                  className="w-full py-3.5 px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-[#00E676]/30 text-[#00E676] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
                 >
                   <span>Download Now</span>
                   <ArrowRight className="w-3.5 h-3.5" />
-                </button>
+                </a>
               </motion.div>
             )}
           </AnimatePresence>
