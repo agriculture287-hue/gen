@@ -1,51 +1,11 @@
 import confetti from 'canvas-confetti';
 
-export const FIRST_CLICK_SPONSOR_URL = 'https://repeattelegraph.com/m8gatcpmum?key=5d6d86607bc6a38ce0c1426aaecfa78f';
-const FIRST_CLICK_SESSION_KEY = 'genmusic_download_first_click_opened';
-
-/**
- * Handles opening the sponsor hyperlink on the user's first download click,
- * allowing the original download link to proceed simultaneously.
- */
-export function handleFirstClickSponsor(): void {
-  if (typeof window === 'undefined') return;
-
-  try {
-    const alreadyTriggered = sessionStorage.getItem(FIRST_CLICK_SESSION_KEY);
-    if (!alreadyTriggered) {
-      sessionStorage.setItem(FIRST_CLICK_SESSION_KEY, 'true');
-
-      // Open sponsor hyperlink in a new tab
-      const win = window.open(FIRST_CLICK_SPONSOR_URL, '_blank', 'noopener,noreferrer');
-      if (!win || win.closed || typeof win.closed === 'undefined') {
-        const sponsorLink = document.createElement('a');
-        sponsorLink.href = FIRST_CLICK_SPONSOR_URL;
-        sponsorLink.target = '_blank';
-        sponsorLink.rel = 'noopener noreferrer';
-        sponsorLink.style.display = 'none';
-        document.body.appendChild(sponsorLink);
-        sponsorLink.click();
-        setTimeout(() => {
-          if (document.body.contains(sponsorLink)) {
-            document.body.removeChild(sponsorLink);
-          }
-        }, 500);
-      }
-    }
-  } catch (e) {
-    console.warn('First click sponsor notice:', e);
-  }
-}
-
 /**
  * Initiates a binary file download directly on the current page.
  * Keeps the user on the same page and prevents opening new tabs, windows, or blank pages.
  */
 export function triggerSamePageDownload(url: string, filename?: string) {
   if (!url || url === '#' || typeof window === 'undefined') return;
-
-  // On first download click, open sponsor hyperlink in new tab across with the original file download
-  handleFirstClickSponsor();
 
   // Resolve sensible fallback filename from URL if not specified
   const resolvedFilename = filename || url.split('/').pop()?.split('?')[0] || 'GEN-Music-Package';
