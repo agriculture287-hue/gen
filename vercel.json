@@ -35,12 +35,14 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/welcome", "destination": "/api" },
-    { "source": "/version.json", "destination": "/api" },
-    { "source": "/app-version.json", "destination": "/api" },
-    { "source": "/download/(.*)", "destination": "/api" },
-    { "source": "/share/(.*)", "destination": "/api" },
+    { "source": "/api/(.*)", "destination": "/api?origPath=/api/$1" },
+    { "source": "/welcome", "destination": "/api?origPath=/welcome" },
+    { "source": "/version.json", "destination": "/api?origPath=/version.json" },
+    { "source": "/app-version.json", "destination": "/api?origPath=/app-version.json" },
+    { "source": "/download/(.*)", "destination": "/api?origPath=/download/$1" },
+    { "source": "/share/(.*)", "destination": "/api?origPath=/share/$1" },
+    { "source": "/sw.js", "destination": "/api?origPath=/sw.js" },
+    { "source": "/service-worker.js", "destination": "/api?origPath=/service-worker.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

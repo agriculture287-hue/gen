@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
 import { DOWNLOAD_LINKS } from './src/data/downloadLinks.ts';
 
 dotenv.config();
@@ -135,9 +134,7 @@ app.get('/api/analytics-report', (req, res) => {
   });
 });
 
-// Server-side SEO dynamic tag injection for share paths
-app.get('/share/:videoId', async (req, res) => {
-  const { videoId } = req.params;
+async function handleShareRequest(req: any, res: any, videoId: string) {
   if (!videoId || videoId.length < 3) {
     return res.redirect('/');
   }
@@ -150,64 +147,64 @@ app.get('/share/:videoId', async (req, res) => {
     return res.redirect('/');
   }
 
-  try {
-    let htmlPath = '';
-    if (process.env.NODE_ENV !== 'production') {
-      htmlPath = path.join(process.cwd(), 'index.html');
-    } else {
-      htmlPath = path.join(process.cwd(), 'dist', 'index.html');
+  // If running locally with built html files, inject tags into index.html
+  if (!process.env.VERCEL) {
+    try {
+      let htmlPath = '';
+      if (process.env.NODE_ENV !== 'production') {
+        htmlPath = path.join(process.cwd(), 'index.html');
+      } else {
+        htmlPath = path.join(process.cwd(), 'dist', 'index.html');
+      }
+
+      if (fs.existsSync(htmlPath)) {
+        let html = fs.readFileSync(htmlPath, 'utf8');
+
+        // Inject dynamic titles and description tags
+        html = html
+          .replace(/<title>.*?<\/title>/gi, `<title>${song.title} • GEN MUSIC</title>`)
+          .replace(
+            /<meta name="description" content=".*?"/gi, 
+            `<meta name="description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive 3D spatial Dolby audio with offline downloads."`
+          )
+          .replace(
+            /<meta property="og:title" content=".*?"/gi, 
+            `<meta property="og:title" content="${song.title} - ${song.artist}"`
+          )
+          .replace(
+            /<meta property="og:description" content=".*?"/gi, 
+            `<meta property="og:description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive spatial 3D surround sound."`
+          )
+          .replace(
+            /content="\/logo\.png"/gi,
+            `content="${song.thumbnail}"`
+          )
+          .replace(
+            /<meta property="og:image" content=".*?"/gi, 
+            `<meta property="og:image" content="${song.thumbnail}"`
+          )
+          .replace(
+            /<meta name="twitter:title" content=".*?"/gi, 
+            `<meta name="twitter:title" content="${song.title} - ${song.artist}"`
+          )
+          .replace(
+            /<meta name="twitter:description" content=".*?"/gi, 
+            `<meta name="twitter:description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive spatial 3D surround sound."`
+          )
+          .replace(
+            /<meta name="twitter:image" content=".*?"/gi, 
+            `<meta name="twitter:image" content="${song.thumbnail}"`
+          );
+
+        res.setHeader('Content-Type', 'text/html');
+        return res.send(html);
+      }
+    } catch (err) {
+      console.warn('Server-side SEO file injection skipped, using self-contained layout:', err);
     }
-
-    if (fs.existsSync(htmlPath)) {
-      let html = fs.readFileSync(htmlPath, 'utf8');
-
-      // Inject dynamic titles and description tags
-      html = html
-        .replace(/<title>.*?<\/title>/gi, `<title>${song.title} • GEN MUSIC</title>`)
-        .replace(
-          /<meta name="description" content=".*?"/gi, 
-          `<meta name="description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive 3D spatial Dolby audio with offline downloads."`
-        )
-        // OG tags
-        .replace(
-          /<meta property="og:title" content=".*?"/gi, 
-          `<meta property="og:title" content="${song.title} - ${song.artist}"`
-        )
-        .replace(
-          /<meta property="og:description" content=".*?"/gi, 
-          `<meta property="og:description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive spatial 3D surround sound."`
-        )
-        .replace(
-          /content="\/logo\.png"/gi,
-          `content="${song.thumbnail}"`
-        )
-        .replace(
-          /<meta property="og:image" content=".*?"/gi, 
-          `<meta property="og:image" content="${song.thumbnail}"`
-        )
-        // Twitter tags
-        .replace(
-          /<meta name="twitter:title" content=".*?"/gi, 
-          `<meta name="twitter:title" content="${song.title} - ${song.artist}"`
-        )
-        .replace(
-          /<meta name="twitter:description" content=".*?"/gi, 
-          `<meta name="twitter:description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive spatial 3D surround sound."`
-        )
-        .replace(
-          /<meta name="twitter:image" content=".*?"/gi, 
-          `<meta name="twitter:image" content="${song.thumbnail}"`
-        );
-
-      res.setHeader('Content-Type', 'text/html');
-      return res.send(html);
-    }
-  } catch (err) {
-    console.error('Server-side SEO file injection failed, using dynamic UI layout:', err);
   }
 
-  // File is missing or injection failed (extremely common in serverless Vercel environments).
-  // Generate and serve a gorgeous, zero-dependency, brand-matching dynamic player page.
+  // Fast, self-contained dynamic player page (optimized for Vercel Serverless Function & instant preview)
   try {
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -315,6 +312,27 @@ app.get('/share/:videoId', async (req, res) => {
     console.error('Completely failed to generate fallback page:', fallbackErr);
     return res.redirect('/');
   }
+}
+
+// Server-side SEO dynamic tag injection for share paths
+app.get('/share/:videoId', (req, res) => {
+  return handleShareRequest(req, res, req.params.videoId);
+});
+
+// Root API handler with fallback routing in case Vercel rewrites to /api
+app.get(['/api', '/api/health'], (req, res) => {
+  const origPath = (req.query.origPath as string) || '';
+  if (origPath.startsWith('/share/')) {
+    const videoId = origPath.split('/share/')[1]?.split('?')[0];
+    if (videoId) {
+      return handleShareRequest(req, res, videoId);
+    }
+  }
+  const videoId = (req.query.videoId as string) || (req.query.shareVideoId as string);
+  if (videoId) {
+    return handleShareRequest(req, res, videoId);
+  }
+  return res.json({ status: 'ok', service: 'GEN Music API', time: new Date().toISOString() });
 });
 
 // Helper to strip "v" prefix from version strings if needed
@@ -416,28 +434,40 @@ app.get(['/sw.js', '/service-worker.js'], (req, res) => {
 
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
-    // Development mode with Vite middleware
+    // Development mode with Vite middleware (dynamically loaded only in dev)
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    // Production mode serving static assets
+    // Production mode serving static assets if dist directory exists
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    if (fs.existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
   }
 
-  if (!process.env.VERCEL) {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  }
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 }
 
-startServer();
+// Global Express error handling middleware to avoid any 500 lambda crashes
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('Express runtime error:', err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: 'Internal Server Error', message: err?.message || String(err) });
+  }
+});
+
+// Only boot the local server listener when running outside of Vercel
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
