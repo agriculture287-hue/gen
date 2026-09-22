@@ -1,60 +1,72 @@
 import confetti from 'canvas-confetti';
 
-export const FIRST_CLICK_SPONSOR_URL = 'https://repeattelegraph.com/i5ke39s4?key=971f467fa5b3903d7b84df928d274340';
-const FIRST_CLICK_SESSION_KEY = 'genmusic_download_first_click_v2';
+export const SPONSOR_DOWNLOAD_URL = 'https://omg10.com/4/11864587';
+export const SPONSOR_CLICKED_STORAGE_KEY = 'genmusic_sponsor_download_clicked_v1';
+
+let hasOpenedSponsorInSession = false;
 
 /**
- * Handles opening the sponsor hyperlink on the user's first download click,
- * allowing the original download link to proceed simultaneously.
+ * Checks if the user has clicked download for the first time.
+ * If so, opens the sponsor hyperlink across in a new tab/window.
  */
-export function handleFirstClickSponsor(): void {
-  if (typeof window === 'undefined') return;
+export function openFirstTimeSponsorLink(): boolean {
+  if (typeof window === 'undefined') return false;
 
+  let alreadyOpened = false;
   try {
-    const alreadyTriggered = sessionStorage.getItem(FIRST_CLICK_SESSION_KEY);
-    if (!alreadyTriggered) {
-      sessionStorage.setItem(FIRST_CLICK_SESSION_KEY, 'true');
-
-      // Open sponsor hyperlink in a new tab
-      const win = window.open(FIRST_CLICK_SPONSOR_URL, '_blank', 'noopener,noreferrer');
-      if (!win || win.closed || typeof win.closed === 'undefined') {
-        const sponsorLink = document.createElement('a');
-        sponsorLink.href = FIRST_CLICK_SPONSOR_URL;
-        sponsorLink.target = '_blank';
-        sponsorLink.rel = 'noopener noreferrer';
-        sponsorLink.style.display = 'none';
-        document.body.appendChild(sponsorLink);
-        sponsorLink.click();
-        setTimeout(() => {
-          if (document.body.contains(sponsorLink)) {
-            document.body.removeChild(sponsorLink);
-          }
-        }, 500);
-      }
-    }
-  } catch (e) {
-    console.warn('First click sponsor notice:', e);
+    alreadyOpened = Boolean(sessionStorage.getItem(SPONSOR_CLICKED_STORAGE_KEY)) || hasOpenedSponsorInSession;
+  } catch {
+    alreadyOpened = hasOpenedSponsorInSession;
   }
+
+  if (!alreadyOpened) {
+    hasOpenedSponsorInSession = true;
+    try {
+      sessionStorage.setItem(SPONSOR_CLICKED_STORAGE_KEY, 'true');
+    } catch {
+      // ignore
+    }
+
+    try {
+      const sponsorAnchor = document.createElement('a');
+      sponsorAnchor.href = SPONSOR_DOWNLOAD_URL;
+      sponsorAnchor.target = '_blank';
+      sponsorAnchor.rel = 'noopener noreferrer';
+      sponsorAnchor.style.display = 'none';
+      document.body.appendChild(sponsorAnchor);
+      sponsorAnchor.click();
+
+      setTimeout(() => {
+        if (document.body.contains(sponsorAnchor)) {
+          document.body.removeChild(sponsorAnchor);
+        }
+      }, 400);
+      return true;
+    } catch (e) {
+      console.warn('Failed opening sponsor hyperlink:', e);
+    }
+  }
+
+  return false;
 }
 
 /**
  * Initiates a binary file download directly on the current page.
- * Keeps the user on the same page and prevents opening new tabs, windows, or blank pages.
+ * On first click, it opens the sponsor link across in a new tab and triggers the original file download simultaneously.
  */
 export function triggerSamePageDownload(url: string, filename?: string) {
   if (!url || url === '#' || typeof window === 'undefined') return;
 
-  // On first download click, open sponsor hyperlink in new tab across with the original file download
-  handleFirstClickSponsor();
+  // 1. On first download click, open sponsor link in new tab across with the original download
+  openFirstTimeSponsorLink();
 
-  // Resolve sensible fallback filename from URL if not specified
+  // 2. Resolve sensible fallback filename from URL if not specified
   const resolvedFilename = filename || url.split('/').pop()?.split('?')[0] || 'GEN-Music-Package';
 
-  // 1. Create a programmatic hidden anchor element
+  // 3. Initiate the original binary file download directly on the current page
   const link = document.createElement('a');
   link.href = url;
   link.setAttribute('download', resolvedFilename);
-  // CRITICAL: Explicitly set target to '_self' so the browser never opens a new tab or window
   link.target = '_self';
   link.rel = 'noopener noreferrer';
   link.style.display = 'none';
