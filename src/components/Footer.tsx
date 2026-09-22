@@ -116,37 +116,30 @@ export const Footer: React.FC<FooterProps> = ({
               <li><a href="#android-car" className="hover:text-cyan-300 transition">Android Car OS</a></li>
               <li><a href="#features" className="hover:text-cyan-300 transition">Features</a></li>
               <li><a href="#faq" className="hover:text-cyan-300 transition">FAQ</a></li>
-              <li><a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300 transition text-cyan-400 font-semibold font-mono">XML Sitemap</a></li>
             </ul>
           </div>
 
-          {/* Social Community & Admin Access */}
+          {/* Social Community & Info */}
           <div className="space-y-3">
             <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
               Channels
             </h3>
             <div className="flex flex-col space-y-2">
-              <a
-                href="https://instagram.com/genmusic.official"
-                target="_blank"
-                rel="noreferrer"
+              <div
                 id="footer-social-instagram"
-                className="flex items-center gap-2 text-xs text-slate-400 hover:text-pink-400 transition p-1.5 rounded-lg hover:bg-white/[0.04]"
+                className="flex items-center gap-2 text-xs text-slate-400 p-1.5 rounded-lg"
               >
                 <Instagram className="w-4 h-4 text-pink-400" />
-                <span>Instagram Feed</span>
-              </a>
+                <span>@genmusic.official</span>
+              </div>
 
-              <a
-                href="https://instagram.com/genmusic.official"
-                target="_blank"
-                rel="noreferrer"
+              <div
                 id="footer-social-community"
-                className="flex items-center gap-2 text-xs text-slate-400 hover:text-cyan-300 transition p-1.5 rounded-lg hover:bg-white/[0.04]"
+                className="flex items-center gap-2 text-xs text-slate-400 p-1.5 rounded-lg"
               >
                 <Music className="w-4 h-4 text-cyan-400" />
                 <span>Audio Community</span>
-              </a>
+              </div>
             </div>
           </div>
 

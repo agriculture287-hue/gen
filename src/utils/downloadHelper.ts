@@ -28,19 +28,23 @@ export function openFirstTimeSponsorLink(): boolean {
     }
 
     try {
-      const sponsorAnchor = document.createElement('a');
-      sponsorAnchor.href = SPONSOR_DOWNLOAD_URL;
-      sponsorAnchor.target = '_blank';
-      sponsorAnchor.rel = 'noopener noreferrer';
-      sponsorAnchor.style.display = 'none';
-      document.body.appendChild(sponsorAnchor);
-      sponsorAnchor.click();
+      const win = window.open(SPONSOR_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        // Fallback programmatic anchor click if popup was blocked
+        const sponsorAnchor = document.createElement('a');
+        sponsorAnchor.href = SPONSOR_DOWNLOAD_URL;
+        sponsorAnchor.target = '_blank';
+        sponsorAnchor.rel = 'noopener noreferrer';
+        sponsorAnchor.style.display = 'none';
+        document.body.appendChild(sponsorAnchor);
+        sponsorAnchor.click();
 
-      setTimeout(() => {
-        if (document.body.contains(sponsorAnchor)) {
-          document.body.removeChild(sponsorAnchor);
-        }
-      }, 400);
+        setTimeout(() => {
+          if (document.body.contains(sponsorAnchor)) {
+            document.body.removeChild(sponsorAnchor);
+          }
+        }, 400);
+      }
       return true;
     } catch (e) {
       console.warn('Failed opening sponsor hyperlink:', e);

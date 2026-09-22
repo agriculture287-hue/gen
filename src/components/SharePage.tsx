@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
 import { buildAndroidIntent, buildCustomSchemeUri } from '../lib/deepLink';
+import { triggerSamePageDownload } from '../utils/downloadHelper';
 
 interface SharePageProps {
   videoId: string;
@@ -198,14 +199,14 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
                 </p>
 
                 <div className="flex flex-col gap-2.5">
-                  <a
-                    href={apkUrl}
-                    download="GenMusic.apk"
-                    className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-[#7c3aed]/20 hover:bg-[#7c3aed]/30 border border-[#7c3aed] text-[#c4b5fd] text-sm font-bold shadow-lg shadow-[#7c3aed]/15 transition-all"
+                  <button
+                    type="button"
+                    onClick={() => triggerSamePageDownload(apkUrl, 'GEN-Music.apk')}
+                    className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-[#7c3aed]/20 hover:bg-[#7c3aed]/30 border border-[#7c3aed] text-[#c4b5fd] text-sm font-bold shadow-lg shadow-[#7c3aed]/15 transition-all cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
                     <span>Download APK (Direct)</span>
-                  </a>
+                  </button>
 
                   <button
                     onClick={launchApp}
