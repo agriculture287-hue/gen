@@ -181,7 +181,7 @@ export const App: React.FC = () => {
 
   if (isShareRoute && shareId) {
     return (
-      <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative">
+      <div className="min-h-screen bg-[#0A0A0A] text-slate-100 flex flex-col font-sans selection:bg-[#00E676] selection:text-black relative">
         <SharePage 
           videoId={shareId}
           type={shareType}

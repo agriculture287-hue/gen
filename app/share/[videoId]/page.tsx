@@ -1,4 +1,3 @@
-import { fetchShareMetadata } from '../../../src/lib/shareCore';
 import ShareClientView from './ShareClientView';
 
 export const revalidate = 86400;
@@ -7,27 +6,9 @@ interface PageProps {
   params: Promise<{ videoId: string }> | { videoId: string };
 }
 
-export async function generateMetadata({ params }: PageProps) {
-  const resolvedParams = await Promise.resolve(params);
-  const videoId = resolvedParams?.videoId;
-  
-  if (!videoId) {
-    return {
-      title: 'Share • GEN Music',
-      description: 'Listen to your favorite songs on GEN Music with Dolby 3D spatial surround sound.'
-    };
-  }
-
-  const song = await fetchShareMetadata(videoId, 'song');
-  if (!song) {
-    return {
-      title: 'Content Not Available • GEN Music',
-      description: 'The requested song could not be found or has been removed.'
-    };
-  }
-
-  const title = `${song.title} • GEN Music`;
-  const description = `Listen to ${song.title} on GEN Music.`;
+export async function generateMetadata() {
+  const title = 'Open in GEN Music';
+  const description = 'This content was shared using GEN Music.';
 
   return {
     title,
@@ -35,35 +16,34 @@ export async function generateMetadata({ params }: PageProps) {
     openGraph: {
       title,
       description,
-      url: `https://genmusics.vercel.app/share/${videoId}`,
+      url: 'https://genmusics.vercel.app/share',
       siteName: 'GEN Music',
       images: [
         {
-          url: song.thumbnail,
-          width: 1280,
-          height: 720,
-          alt: song.title
+          url: 'https://genmusics.vercel.app/logo.png',
+          width: 512,
+          height: 512,
+          alt: 'GEN Music Logo'
         }
       ],
-      type: 'music.song'
+      type: 'website'
     },
     twitter: {
-      card: 'summary_large_image',
+      card: 'summary',
       title,
       description,
-      images: [song.thumbnail]
+      images: ['https://genmusics.vercel.app/logo.png']
     }
   };
 }
 
 export default async function SharePage({ params }: PageProps) {
   const resolvedParams = await Promise.resolve(params);
-  const videoId = resolvedParams?.videoId;
-  const songData = videoId ? await fetchShareMetadata(videoId, 'song') : null;
+  const videoId = resolvedParams?.videoId || '';
 
   return (
     <main>
-      <ShareClientView initialData={songData} videoId={videoId} />
+      <ShareClientView videoId={videoId} />
     </main>
   );
 }

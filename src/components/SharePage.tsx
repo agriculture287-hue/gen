@@ -1,327 +1,201 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Download, 
   Play, 
-  ExternalLink, 
-  AlertCircle, 
+  Download, 
   Music, 
-  ShieldCheck, 
-  Sparkles, 
-  ArrowLeft,
-  Check
+  Check, 
+  Sparkles,
+  ArrowRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
-import { buildAndroidIntentUri } from '../lib/shareCore';
-
-interface SongMetadata {
-  videoId: string;
-  title: string;
-  artist: string;
-  thumbnail: string;
-  duration: string;
-  description: string;
-  sourceUrl: string;
-  deepLink?: string;
-  type?: 'song' | 'album' | 'playlist' | 'artist';
-}
 
 interface SharePageProps {
   videoId: string;
-  type?: 'song' | 'album' | 'playlist' | 'artist';
-  onNavigateHome: () => void;
+  type?: string;
+  onNavigateHome?: () => void;
 }
 
-export const SharePage: React.FC<SharePageProps> = ({ videoId, type = 'song', onNavigateHome }) => {
-  const [song, setSong] = useState<SongMetadata | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // App detection states
+export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome }) => {
   const [showInstallOptions, setShowInstallOptions] = useState(false);
-  const [attemptedAutoLaunch, setAttemptedAutoLaunch] = useState(false);
+  const attemptedLaunch = useRef(false);
 
-  // Send analytics event helper
-  const trackEvent = async (eventType: string) => {
+  // Pure deep link with id parameter as requested: genmusic://play?id={id}
+  const cleanId = encodeURIComponent(videoId || '');
+  const deepLinkUrl = `genmusic://play?id=${cleanId}`;
+  const androidIntentUrl = `intent://play?id=${cleanId}#Intent;scheme=genmusic;package=in.gen.agrigence;end`;
+
+  // Analytics event tracker
+  const trackEvent = (eventType: string) => {
     try {
-      let platform = 'web';
-      if (typeof window !== 'undefined') {
-        const ua = window.navigator.userAgent.toLowerCase();
-        if (/android/.test(ua)) platform = 'android';
-        else if (/iphone|ipad|ipod/.test(ua)) platform = 'ios';
-        else if (/win/.test(ua)) platform = 'windows';
-        else if (/mac/.test(ua)) platform = 'macos';
-        else if (/linux/.test(ua)) platform = 'linux';
+      const payload = {
+        eventType,
+        id: videoId,
+        timestamp: new Date().toISOString()
+      };
+      if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        navigator.sendBeacon('/api/analytics', JSON.stringify(payload));
+      } else {
+        fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          keepalive: true
+        }).catch(() => {});
       }
-
-      await fetch('/api/analytics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventType,
-          videoId,
-          platform
-        }),
-      });
     } catch {
-      // Non-blocking analytics
+      // Non-blocking
     }
   };
 
-  // Fetch song metadata dynamically from serverless API
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const endpoint = type === 'song' ? `/api/share/${videoId}` : `/api/share/${type}/${videoId}`;
-        const res = await fetch(endpoint);
-        if (!res.ok) {
-          // Fallback check on legacy song endpoint
-          const fallbackRes = await fetch(`/api/song/${videoId}`);
-          if (!fallbackRes.ok) {
-            throw new Error('Content Not Available');
-          }
-          const fallbackData = await fallbackRes.json();
-          setSong({
-            videoId: fallbackData.id || videoId,
-            title: fallbackData.title,
-            artist: fallbackData.artist,
-            thumbnail: fallbackData.thumbnail,
-            duration: fallbackData.duration || '3:45',
-            description: fallbackData.description || `Listen to ${fallbackData.title} on GEN Music.`,
-            sourceUrl: fallbackData.sourceUrl || `https://music.youtube.com/watch?v=${videoId}`,
-            deepLink: `genmusic://play?videoId=${videoId}`
-          });
-        } else {
-          const data = await res.json();
-          setSong(data);
-        }
-        
-        trackEvent('page_view');
-        trackEvent('share_open');
-      } catch (err: any) {
-        console.warn('Metadata fetch failed:', err);
-        setError('Content Not Available');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (videoId) {
-      fetchMetadata();
-    }
-  }, [videoId, type]);
-
-  // Handle deep link app launch
-  const handleOpenInApp = () => {
-    if (!song) return;
-    trackEvent('app_launch_attempt');
-
-    const deepLink = song.deepLink || `genmusic://play?videoId=${song.videoId}`;
+  const launchApp = () => {
+    trackEvent('app_launch_attempts');
     const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent);
-    const intentUrl = buildAndroidIntentUri(song.videoId, song.type || 'song');
+    const targetUrl = isAndroid ? androidIntentUrl : deepLinkUrl;
 
-    const launchTarget = isAndroid ? intentUrl : deepLink;
-    window.location.href = launchTarget;
+    window.location.href = targetUrl;
 
-    // If user remains on page after 1.2s, display install / download options
+    // If focus is not lost or user remains on page after 1.5s, reveal install card
     setTimeout(() => {
       setShowInstallOptions(true);
-    }, 1200);
+    }, 1500);
   };
 
-  // 1-second auto launch on initial mount
-  useEffect(() => {
-    if (song && !attemptedAutoLaunch) {
-      setAttemptedAutoLaunch(true);
-      const timer = setTimeout(() => {
-        handleOpenInApp();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [song, attemptedAutoLaunch]);
-
   const handleDownloadClick = () => {
-    trackEvent('download_click');
+    trackEvent('download_clicks');
     window.location.href = 'https://genmusics.vercel.app/download';
   };
 
-  const handleSourceClick = () => {
-    trackEvent('source_click');
-    if (song?.sourceUrl) {
-      window.open(song.sourceUrl, '_blank', 'noopener,noreferrer');
+  // On page load: 1. Wait 1 second, 2. Attempt auto-launch, 3. Show install if not opened
+  useEffect(() => {
+    trackEvent('share_page_opens');
+
+    if (!attemptedLaunch.current) {
+      attemptedLaunch.current = true;
+      const timer = setTimeout(() => {
+        launchApp();
+      }, 1000);
+      return () => clearTimeout(timer);
     }
-  };
+  }, []);
 
-  // Loading Screen
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col justify-center items-center px-4 py-8 font-sans relative overflow-hidden">
-        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-4 animate-pulse">
-          <Music className="w-7 h-7" />
-        </div>
-        <p className="text-sm text-slate-400 font-medium tracking-wide">Loading track details...</p>
-      </div>
-    );
-  }
-
-  // Error Page (Unavailable content)
-  if (error || !song) {
-    return (
-      <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
-        <div className="absolute inset-0 bg-radial from-cyan-950/20 via-transparent to-transparent pointer-events-none" />
-        
-        <div className="relative z-10 max-w-md w-full text-center bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-8 shadow-2xl">
-          <div className="flex justify-center mb-6">
-            <GenMusicLogo size="lg" />
-          </div>
-
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 mb-4 shadow-inner">
-            <AlertCircle className="w-7 h-7" />
-          </div>
-
-          <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Content Not Available</h1>
-          <p className="text-slate-400 text-sm leading-relaxed mb-8">
-            This track could not be loaded or may have been removed. Return home to discover and stream unlimited music with Dolby Spatial Audio.
-          </p>
-
-          <button
-            onClick={onNavigateHome}
-            className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const features = [
+    'Play Music',
+    'Offline Playback',
+    'Lyrics Support',
+    'Playlist Sync',
+    'Smart Recommendations',
+    'Fast Streaming'
+  ];
 
   return (
-    <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans selection:bg-cyan-500 selection:text-black">
-      {/* Thumbnail-based blur background */}
-      <div 
-        className="fixed inset-0 bg-cover bg-center opacity-25 filter blur-3xl scale-110 transform-gpu pointer-events-none transition-all duration-1000"
-        style={{ backgroundImage: `url(${song.thumbnail})` }}
-      />
-      <div className="fixed inset-0 bg-gradient-to-b from-[#030408]/80 via-[#030408]/90 to-[#030408] pointer-events-none" />
+    <div className="min-h-screen bg-[#0A0A0A] text-slate-100 flex flex-col justify-between items-center px-4 py-8 font-sans relative overflow-hidden selection:bg-[#00E676] selection:text-black">
+      {/* Background ambient lighting */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#00E676]/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 right-1/4 w-72 h-72 bg-[#1DB954]/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Main Glassmorphism Card */}
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.96, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 max-w-md w-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.85)] flex flex-col items-center text-center"
-      >
-        {/* Branding */}
-        <div className="flex items-center gap-2.5 mb-6">
-          <GenMusicLogo size="sm" />
+      {/* Header Branding */}
+      <header className="w-full max-w-md flex flex-col items-center gap-2 pt-2 z-10">
+        <div className="flex items-center gap-3">
+          <GenMusicLogo size="md" />
           <div className="text-left">
-            <div className="font-extrabold tracking-wider text-base text-white">GEN Music</div>
-            <div className="text-[10px] text-cyan-400 font-medium tracking-wide">Play smarter. Listen better.</div>
+            <h1 className="font-extrabold tracking-wider text-xl text-white">GEN Music</h1>
+            <p className="text-xs text-[#00E676] font-medium tracking-wide">Your music is waiting.</p>
           </div>
         </div>
+      </header>
 
-        {/* Thumbnail */}
-        <div className="relative w-full aspect-square max-w-[280px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mb-6 group">
-          <img 
-            src={song.thumbnail} 
-            alt={song.title} 
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-            referrerPolicy="no-referrer"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-          
-          <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-xs font-mono text-cyan-300 border border-white/10">
-            {song.duration}
+      {/* Main Card */}
+      <main className="w-full max-w-md my-auto py-6 z-10 flex flex-col items-center">
+        <motion.div 
+          initial={{ opacity: 0, y: 15, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="w-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.8)] text-center flex flex-col items-center"
+        >
+          {/* Animated Equalizer Graphic */}
+          <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00E676]/20 to-[#1DB954]/10 border border-[#00E676]/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,230,118,0.2)]">
+            <div className="flex items-end justify-center gap-1 h-8">
+              <span className="w-1.5 bg-[#00E676] rounded-full animate-[bounce_0.8s_infinite_ease-in-out_100ms] h-4" />
+              <span className="w-1.5 bg-[#00E676] rounded-full animate-[bounce_0.8s_infinite_ease-in-out_300ms] h-8" />
+              <span className="w-1.5 bg-[#00E676] rounded-full animate-[bounce_0.8s_infinite_ease-in-out_150ms] h-6" />
+              <span className="w-1.5 bg-[#00E676] rounded-full animate-[bounce_0.8s_infinite_ease-in-out_400ms] h-7" />
+              <span className="w-1.5 bg-[#00E676] rounded-full animate-[bounce_0.8s_infinite_ease-in-out_200ms] h-3" />
+            </div>
           </div>
-        </div>
 
-        {/* Song Details */}
-        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug line-clamp-2 mb-1.5 px-2">
-          {song.title}
-        </h1>
-        <p className="text-sm sm:text-base font-semibold text-cyan-400/95 mb-2">
-          {song.artist}
-        </p>
-
-        {song.description && (
-          <p className="text-xs text-slate-400 line-clamp-2 max-w-xs mb-6">
-            {song.description}
-          </p>
-        )}
-
-        {/* Primary Buttons */}
-        <div className="w-full space-y-3">
-          {/* Button 1: Open in GEN Music */}
-          <button
-            onClick={handleOpenInApp}
-            className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/25 cursor-pointer"
-          >
-            <Play className="w-4 h-4 fill-current" />
+          {/* Main Message */}
+          <h2 className="text-2xl font-black text-white tracking-tight mb-2">
             Open in GEN Music
-          </button>
+          </h2>
+          <p className="text-sm text-slate-300 leading-relaxed mb-6 max-w-xs">
+            This content was shared using GEN Music. Open the app to start listening.
+          </p>
 
-          {/* Button 2: Download GEN Music */}
-          <button
-            onClick={handleDownloadClick}
-            className={`w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
-              showInstallOptions
-                ? 'bg-white/15 hover:bg-white/20 text-white border border-cyan-400/40 shadow-lg shadow-cyan-500/10'
-                : 'bg-white/[0.06] hover:bg-white/10 text-slate-200 border border-white/10'
-            }`}
-          >
-            <Download className="w-4 h-4 text-cyan-400" />
-            Download GEN Music
-          </button>
-
-          {/* Button 3: Open Original Source */}
-          {song.sourceUrl && (
+          {/* Action Buttons */}
+          <div className="w-full space-y-3">
+            {/* Primary Button */}
             <button
-              onClick={handleSourceClick}
-              className="w-full flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+              onClick={launchApp}
+              id="btn-open-gen-music"
+              className="w-full flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-gradient-to-r from-[#00E676] to-[#1DB954] text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#00E676]/25 cursor-pointer"
             >
-              <span>Open Original Source</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <Play className="w-4 h-4 fill-current" />
+              <span>Open GEN Music</span>
             </button>
-          )}
-        </div>
 
-        {/* Dynamic App Install Prompt if user remained on page */}
-        <AnimatePresence>
-          {showInstallOptions && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-5 p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-left w-full overflow-hidden"
+            {/* Secondary Button */}
+            <button
+              onClick={handleDownloadClick}
+              id="btn-download-gen-music"
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-white/[0.05] hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-sm transition-all cursor-pointer"
             >
-              <div className="flex items-start gap-2.5 mb-3">
-                <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-slate-300 leading-relaxed">
-                  <span className="font-semibold text-white">App not installed yet?</span> Download the GEN Music App for Android, macOS, or Windows to experience Dolby 3D audio and offline downloads.
-                </div>
-              </div>
+              <Download className="w-4 h-4 text-[#00E676]" />
+              <span>Download GEN Music</span>
+            </button>
+          </div>
 
-              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 border-t border-white/5 pt-2">
-                <div className="flex items-center gap-1.5">
-                  <Check className="w-3 h-3 text-cyan-400" />
-                  <span>Offline 320kbps</span>
+          {/* Install Card */}
+          <AnimatePresence>
+            {showInstallOptions && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-full mt-6 pt-6 border-t border-white/10 text-left overflow-hidden"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-[#00E676]" />
+                  <h3 className="text-base font-bold text-white">Get GEN Music</h3>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Check className="w-3 h-3 text-cyan-400" />
-                  <span>3D Spatial Sound</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-      </motion.div>
+                <div className="grid grid-cols-2 gap-2.5 mb-5">
+                  {features.map((feat) => (
+                    <div key={feat} className="flex items-center gap-2 text-xs text-slate-300">
+                      <div className="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">
+                        <Check className="w-2.5 h-2.5" />
+                      </div>
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={handleDownloadClick}
+                  className="w-full py-3 px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-[#00E676]/30 text-[#00E676] font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98"
+                >
+                  <span>Download Now</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </main>
 
       {/* Footer */}
-      <footer className="relative z-10 mt-6 text-center text-xs text-slate-500">
+      <footer className="w-full max-w-md text-center text-xs text-slate-600 z-10">
         <p>© 2026 GEN Music. Play smarter. Listen better.</p>
       </footer>
     </div>

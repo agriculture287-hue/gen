@@ -1,5 +1,3 @@
-import { fetchShareMetadata, isValidContentId, revalidate as cacheDuration } from '../../src/lib/shareCore';
-
 export const config = {
   runtime: 'edge'
 };
@@ -7,58 +5,24 @@ export const config = {
 export default async function handler(req: Request) {
   try {
     const url = new URL(req.url);
-    // Extract videoId from URL path /api/share/XYZ or query parameter
     const pathSegments = url.pathname.split('/').filter(Boolean);
-    const videoId = pathSegments[pathSegments.length - 1] || url.searchParams.get('videoId') || '';
-
-    if (!videoId || !isValidContentId(videoId)) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Invalid videoId provided',
-          videoId: videoId || null
-        }),
-        {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    const metadata = await fetchShareMetadata(videoId, 'song');
-
-    if (!metadata) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Content Not Available',
-          videoId
-        }),
-        {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    const id = pathSegments[pathSegments.length - 1] || url.searchParams.get('id') || url.searchParams.get('videoId') || '';
+    const cleanId = encodeURIComponent(id);
+    const deepLink = `genmusic://play?id=${cleanId}`;
 
     return new Response(
       JSON.stringify({
         success: true,
-        videoId: metadata.videoId,
-        title: metadata.title,
-        artist: metadata.artist,
-        thumbnail: metadata.thumbnail,
-        duration: metadata.duration,
-        description: metadata.description,
-        sourceUrl: metadata.sourceUrl,
-        deepLink: metadata.deepLink
+        id: cleanId,
+        deepLink,
+        message: 'This content was shared using GEN Music. Open the app to start listening.'
       }),
       {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
-          'Cache-Control': `public, max-age=${cacheDuration}, s-maxage=${cacheDuration}, stale-while-revalidate=43200`
+          'Cache-Control': 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200'
         }
       }
     );

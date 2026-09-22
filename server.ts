@@ -17,7 +17,8 @@ app.use(express.urlencoded({ extended: true }));
 const analyticsBuffer: Array<{
   timestamp: string;
   eventType: string;
-  videoId: string;
+  id?: string;
+  videoId?: string;
   platform: string;
   userAgent: string;
   referrer: string;
@@ -101,77 +102,38 @@ app.get('/api/song/:videoId', async (req, res) => {
   return res.json(song);
 });
 
-// Vercel Serverless Function Specification: /api/share/:videoId
-app.get(['/api/share/:videoId', '/api/share/song/:videoId'], async (req, res) => {
-  const { videoId } = req.params;
-  if (!videoId || !isValidContentId(videoId)) {
-    return res.status(400).json({ success: false, error: 'Invalid videoId provided', videoId });
-  }
+// Vercel Serverless Function Specification: /api/share/:id (Zero external fetching, instant response)
+app.get(['/api/share/:id', '/api/share/song/:id', '/api/share/:type/:id'], (req, res) => {
+  const id = req.params.id || req.params.type || '';
+  const cleanId = encodeURIComponent(id);
+  const deepLink = `genmusic://play?id=${cleanId}`;
 
-  const metadata = await fetchShareMetadata(videoId, 'song');
-  if (!metadata) {
-    return res.status(404).json({ success: false, error: 'Content Not Available', videoId });
-  }
-
-  res.setHeader('Cache-Control', `public, max-age=${cacheDuration}, s-maxage=${cacheDuration}, stale-while-revalidate=43200`);
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200');
   return res.json({
     success: true,
-    videoId: metadata.videoId,
-    title: metadata.title,
-    artist: metadata.artist,
-    thumbnail: metadata.thumbnail,
-    duration: metadata.duration,
-    description: metadata.description,
-    sourceUrl: metadata.sourceUrl,
-    deepLink: metadata.deepLink
-  });
-});
-
-// Future compatible API endpoint: /api/share/:type/:id
-app.get('/api/share/:type/:id', async (req, res) => {
-  const { type, id } = req.params;
-  const validType = (['song', 'album', 'playlist', 'artist'].includes(type) ? type : 'song') as any;
-  if (!id || !isValidContentId(id)) {
-    return res.status(400).json({ success: false, error: 'Invalid content ID provided', id });
-  }
-
-  const metadata = await fetchShareMetadata(id, validType);
-  if (!metadata) {
-    return res.status(404).json({ success: false, error: 'Content Not Available', type, id });
-  }
-
-  res.setHeader('Cache-Control', `public, max-age=${cacheDuration}, s-maxage=${cacheDuration}, stale-while-revalidate=43200`);
-  return res.json({
-    success: true,
-    videoId: metadata.videoId,
-    type: metadata.type,
-    title: metadata.title,
-    artist: metadata.artist,
-    thumbnail: metadata.thumbnail,
-    duration: metadata.duration,
-    description: metadata.description,
-    sourceUrl: metadata.sourceUrl,
-    deepLink: metadata.deepLink
+    id: cleanId,
+    deepLink,
+    message: 'This content was shared using GEN Music. Open the app to start listening.'
   });
 });
 
 // API endpoint to post analytics
 app.post('/api/analytics', (req, res) => {
-  const { eventType, videoId, platform } = req.body;
+  const { eventType, id, videoId, platform } = req.body || {};
   const userAgent = req.headers['user-agent'] || 'Unknown';
   const referrer = req.headers['referer'] || 'Direct';
   const timestamp = new Date().toISOString();
 
-  console.log(`[Analytics] [${timestamp}] Event: ${eventType}, Video: ${videoId}, Platform: ${platform}, Referrer: ${referrer}`);
-
-  analyticsBuffer.push({
+  const item = {
     timestamp,
-    eventType,
-    videoId,
-    platform,
+    eventType: eventType || 'event',
+    id: id || videoId || '',
+    platform: platform || 'Web',
     userAgent,
     referrer
-  });
+  };
+
+  analyticsBuffer.push(item);
 
   if (analyticsBuffer.length > 100) {
     analyticsBuffer.shift();
@@ -188,235 +150,220 @@ app.get('/api/analytics-report', (req, res) => {
   });
 });
 
-async function handleShareRequest(req: any, res: any, id: string, type: 'song' | 'album' | 'playlist' | 'artist' = 'song') {
-  if (!id || id.length < 3) {
-    return res.redirect('/');
-  }
+function handleShareRequest(req: any, res: any, rawId: string) {
+  const cleanId = encodeURIComponent(rawId || '');
+  const deepLinkUrl = `genmusic://play?id=${cleanId}`;
+  const androidIntentUrl = `intent://play?id=${cleanId}#Intent;scheme=genmusic;package=in.gen.agrigence;end`;
 
-  const song = await fetchShareMetadata(id, type);
-
-  // If content is not available, render the branding-compliant Error Page
-  if (!song) {
-    const errorHtml = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Content Not Available • GEN Music</title>
-  <meta name="description" content="This content is not available on GEN Music.">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>body { font-family: 'Plus Jakarta Sans', sans-serif; }</style>
-</head>
-<body class="bg-[#030408] text-slate-100 min-h-screen flex items-center justify-center p-6">
-  <div class="max-w-md w-full text-center bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-8 shadow-2xl">
-    <div class="flex items-center justify-center gap-2.5 mb-6">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-black font-black text-sm">G</div>
-      <span class="font-extrabold tracking-wider text-lg text-white">GEN Music</span>
-    </div>
-    <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 mb-4">
-      <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-    </div>
-    <h1 class="text-2xl font-bold text-white tracking-tight mb-2">Content Not Available</h1>
-    <p class="text-slate-400 text-sm leading-relaxed mb-8">This track could not be loaded or may have been removed. Return home to discover and stream unlimited music with Dolby Spatial Audio.</p>
-    <a href="/" class="inline-flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold text-sm hover:brightness-110 active:scale-98 transition shadow-lg shadow-cyan-500/20">
-      Home
-    </a>
-  </div>
-</body>
-</html>`;
-    res.setHeader('Content-Type', 'text/html');
-    return res.status(404).send(errorHtml);
-  }
-
-  // Fast, self-contained dynamic player page (optimized for Vercel Serverless Function & instant preview)
-  try {
-    const title = `${song.title} • GEN Music`;
-    const description = `Listen to ${song.title} on GEN Music.`;
-    const androidIntentUri = buildAndroidIntentUri(song.videoId, type);
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>${title}</title>
-  <meta name="description" content="${description}">
+  <title>Open in GEN Music</title>
+  <meta name="description" content="This content was shared using GEN Music.">
   
   <!-- OpenGraph / Facebook -->
-  <meta property="og:type" content="music.song">
+  <meta property="og:type" content="website">
   <meta property="og:site_name" content="GEN Music">
-  <meta property="og:title" content="${title}">
-  <meta property="og:description" content="${description}">
-  <meta property="og:image" content="${song.thumbnail}">
-  <meta property="og:url" content="https://genmusics.vercel.app/share/${song.videoId}">
+  <meta property="og:title" content="Open in GEN Music">
+  <meta property="og:description" content="This content was shared using GEN Music. Open the app to start listening.">
+  <meta property="og:image" content="https://genmusics.vercel.app/logo.png">
+  <meta property="og:url" content="https://genmusics.vercel.app/share/${cleanId}">
   
-  <!-- Twitter -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="${title}">
-  <meta name="twitter:description" content="${description}">
-  <meta name="twitter:image" content="${song.thumbnail}">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Open in GEN Music">
+  <meta name="twitter:description" content="This content was shared using GEN Music.">
+  <meta name="twitter:image" content="https://genmusics.vercel.app/logo.png">
 
-  <!-- Tailored Typography & Tailwind -->
+  <!-- Theme Color -->
+  <meta name="theme-color" content="#0A0A0A">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0A0A0A; }
+    @keyframes barBounce1 { 0%, 100% { height: 16px; } 50% { height: 32px; } }
+    @keyframes barBounce2 { 0%, 100% { height: 28px; } 50% { height: 10px; } }
+    @keyframes barBounce3 { 0%, 100% { height: 12px; } 50% { height: 26px; } }
+    @keyframes barBounce4 { 0%, 100% { height: 24px; } 50% { height: 14px; } }
+    @keyframes barBounce5 { 0%, 100% { height: 18px; } 50% { height: 30px; } }
+    .bar-1 { animation: barBounce1 0.8s ease-in-out infinite; }
+    .bar-2 { animation: barBounce2 0.7s ease-in-out infinite 0.1s; }
+    .bar-3 { animation: barBounce3 0.9s ease-in-out infinite 0.2s; }
+    .bar-4 { animation: barBounce4 0.6s ease-in-out infinite 0.15s; }
+    .bar-5 { animation: barBounce5 0.75s ease-in-out infinite 0.05s; }
   </style>
 </head>
-<body class="bg-[#030408] text-slate-100 min-h-screen flex flex-col justify-center items-center p-4 sm:p-6 selection:bg-cyan-500 selection:text-black relative overflow-x-hidden">
+<body class="bg-[#0A0A0A] text-slate-100 min-h-screen flex flex-col justify-between items-center px-4 py-8 selection:bg-[#00E676] selection:text-black relative overflow-x-hidden">
   
-  <!-- Thumbnail-based Blur Background -->
-  <div class="fixed inset-0 bg-cover bg-center opacity-25 filter blur-3xl scale-110 transform-gpu pointer-events-none" style="background-image: url('${song.thumbnail}')"></div>
-  <div class="fixed inset-0 bg-gradient-to-b from-[#030408]/80 via-[#030408]/90 to-[#030408] pointer-events-none"></div>
+  <!-- Subtle Ambient Glows -->
+  <div class="fixed top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#00E676]/10 rounded-full blur-[140px] pointer-events-none"></div>
+  <div class="fixed bottom-10 right-1/4 w-72 h-72 bg-[#1DB954]/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-  <!-- Main Glassmorphism Card -->
-  <div class="relative z-10 max-w-md w-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.85)] flex flex-col items-center text-center">
-    
-    <!-- Branding Header -->
-    <div class="flex items-center gap-2.5 mb-6">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-black font-black text-xs shadow-md shadow-cyan-500/20">
+  <!-- Header Branding -->
+  <header class="w-full max-w-md flex flex-col items-center gap-2 pt-2 z-10">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E676] to-[#1DB954] flex items-center justify-center text-black font-black text-sm shadow-lg shadow-[#00E676]/20">
         G
       </div>
       <div class="text-left">
-        <div class="font-extrabold tracking-wider text-base text-white">GEN Music</div>
-        <div class="text-[10px] text-cyan-400 font-medium tracking-wide">Play smarter. Listen better.</div>
+        <h1 class="font-extrabold tracking-wider text-xl text-white">GEN Music</h1>
+        <p class="text-xs text-[#00E676] font-medium tracking-wide">Your music is waiting.</p>
       </div>
     </div>
+  </header>
 
-    <!-- Thumbnail with Duration -->
-    <div class="relative w-full aspect-square max-w-[280px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mb-6 group">
-      <img src="${song.thumbnail}" alt="${song.title}" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" referrerpolicy="no-referrer">
-      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80"></div>
-      <div class="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-xs font-mono text-cyan-300 border border-white/10">
-        ${song.duration}
-      </div>
-    </div>
-
-    <!-- Song Details -->
-    <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug line-clamp-2 mb-1.5 px-2">
-      ${song.title}
-    </h1>
-    <p class="text-sm sm:text-base font-semibold text-cyan-400/95 mb-2">
-      ${song.artist}
-    </p>
-    <p class="text-xs text-slate-400 line-clamp-2 max-w-xs mb-6">
-      ${song.description}
-    </p>
-
-    <!-- Buttons -->
-    <div class="w-full space-y-3">
-      <!-- 1: Open in GEN Music -->
-      <button onclick="launchApp()" id="btn-open-app" class="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/25 cursor-pointer">
-        <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        Open in GEN Music
-      </button>
-
-      <!-- 2: Download GEN Music -->
-      <a href="https://genmusics.vercel.app/download" id="btn-download-app" class="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl font-semibold text-sm bg-white/[0.06] hover:bg-white/10 text-slate-200 border border-white/10 transition-all">
-        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-        Download GEN Music
-      </a>
-
-      <!-- 3: Open Original Source -->
-      ${song.sourceUrl ? `
-      <a href="${song.sourceUrl}" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors">
-        <span>Open Original Source</span>
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-      </a>` : ''}
-    </div>
-
-    <!-- Fallback install box if user remains on page -->
-    <div id="install-options-banner" class="hidden mt-5 p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-left w-full transition-all">
-      <div class="flex items-start gap-2.5 mb-2">
-        <svg class="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-        <div class="text-xs text-slate-300 leading-relaxed">
-          <span class="font-semibold text-white">App not installed yet?</span> Download GEN Music for Android, macOS, or Windows for Dolby 3D audio and offline downloads.
+  <!-- Main Card -->
+  <main class="w-full max-w-md my-auto py-6 z-10 flex flex-col items-center">
+    <div class="w-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.8)] text-center flex flex-col items-center">
+      
+      <!-- Animated Equalizer Graphic -->
+      <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00E676]/20 to-[#1DB954]/10 border border-[#00E676]/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,230,118,0.2)]">
+        <div class="flex items-end justify-center gap-1 h-8">
+          <span class="w-1.5 bg-[#00E676] rounded-full bar-1"></span>
+          <span class="w-1.5 bg-[#00E676] rounded-full bar-2"></span>
+          <span class="w-1.5 bg-[#00E676] rounded-full bar-3"></span>
+          <span class="w-1.5 bg-[#00E676] rounded-full bar-4"></span>
+          <span class="w-1.5 bg-[#00E676] rounded-full bar-5"></span>
         </div>
       </div>
-      <div class="flex gap-4 text-[11px] text-cyan-400 pt-1 border-t border-white/5 font-medium">
-        <span>✓ Free Unlimited</span>
-        <span>✓ 320kbps MP3</span>
-        <span>✓ Zero Ads</span>
+
+      <!-- Main Message -->
+      <h2 class="text-2xl font-black text-white tracking-tight mb-2">
+        Open in GEN Music
+      </h2>
+      <p class="text-sm text-slate-300 leading-relaxed mb-6 max-w-xs">
+        This content was shared using GEN Music. Open the app to start listening.
+      </p>
+
+      <!-- Action Buttons -->
+      <div class="w-full space-y-3">
+        <!-- Primary Button -->
+        <button onclick="launchApp()" id="btn-open-gen-music" class="w-full flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-gradient-to-r from-[#00E676] to-[#1DB954] text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#00E676]/25 cursor-pointer">
+          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <span>Open GEN Music</span>
+        </button>
+
+        <!-- Secondary Button -->
+        <a href="https://genmusics.vercel.app/download" onclick="trackEvent('download_clicks')" id="btn-download-gen-music" class="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-white/[0.05] hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-sm transition-all">
+          <svg class="w-4 h-4 text-[#00E676]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+          <span>Download GEN Music</span>
+        </a>
       </div>
+
+      <!-- Install Card (revealed if app does not open) -->
+      <div id="install-card" class="hidden w-full mt-6 pt-6 border-t border-white/10 text-left transition-all duration-300">
+        <div class="flex items-center gap-2 mb-3">
+          <svg class="w-4 h-4 text-[#00E676]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+          <h3 class="text-base font-bold text-white">Get GEN Music</h3>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 mb-5">
+          <div class="flex items-center gap-2 text-xs text-slate-300">
+            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
+            <span>Play Music</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-300">
+            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
+            <span>Offline Playback</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-300">
+            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
+            <span>Lyrics Support</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-300">
+            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
+            <span>Playlist Sync</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-300">
+            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
+            <span>Smart Recommendations</span>
+          </div>
+          <div class="flex items-center gap-2 text-xs text-slate-300">
+            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
+            <span>Fast Streaming</span>
+          </div>
+        </div>
+
+        <a href="https://genmusics.vercel.app/download" onclick="trackEvent('download_clicks')" class="w-full py-3 px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-[#00E676]/30 text-[#00E676] font-bold text-xs flex items-center justify-center gap-2 transition-all">
+          <span>Download Now</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+        </a>
+      </div>
+
     </div>
+  </main>
 
-  </div>
-
-  <footer class="relative z-10 mt-6 text-center text-xs text-slate-500">
+  <!-- Footer -->
+  <footer class="w-full max-w-md text-center text-xs text-slate-600 z-10">
     <p>© 2026 GEN Music. Play smarter. Listen better.</p>
   </footer>
 
   <script>
     const isAndroid = /android/i.test(navigator.userAgent);
-    const deepLinkUrl = '${song.deepLink}';
-    const androidIntentUrl = '${androidIntentUri}';
-    const launchTarget = isAndroid ? androidIntentUrl : deepLinkUrl;
+    const deepLinkUrl = '${deepLinkUrl}';
+    const androidIntentUrl = '${androidIntentUrl}';
+    const targetUrl = isAndroid ? androidIntentUrl : deepLinkUrl;
 
     function trackEvent(eventType) {
       try {
-        fetch('/api/analytics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            eventType: eventType,
-            videoId: '${song.videoId}',
-            platform: isAndroid ? 'Android' : 'Web'
-          })
-        }).catch(() => {});
+        const payload = JSON.stringify({
+          eventType: eventType,
+          id: '${cleanId}',
+          timestamp: new Date().toISOString()
+        });
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/analytics', payload);
+        } else {
+          fetch('/api/analytics', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true
+          }).catch(() => {});
+        }
       } catch(e) {}
     }
 
-    function launchApp() {
-      trackEvent('app_launch_attempt');
-      window.location.href = launchTarget;
+    function showInstallOptions() {
+      const card = document.getElementById('install-card');
+      if (card) {
+        card.classList.remove('hidden');
+      }
+    }
 
+    function launchApp() {
+      trackEvent('app_launch_attempts');
+      window.location.href = targetUrl;
+
+      // If user remains on page after 1.5s, reveal install card
       setTimeout(() => {
         showInstallOptions();
-      }, 1200);
+      }, 1500);
     }
 
-    function showInstallOptions() {
-      const banner = document.getElementById('install-options-banner');
-      if (banner) {
-        banner.classList.remove('hidden');
-      }
-      const downloadBtn = document.getElementById('btn-download-app');
-      if (downloadBtn) {
-        downloadBtn.classList.remove('bg-white/[0.06]');
-        downloadBtn.classList.add('bg-white/15', 'border-cyan-400/40', 'shadow-lg', 'shadow-cyan-500/10');
-      }
-    }
+    // 1. Track share page open
+    trackEvent('share_page_opens');
 
-    trackEvent('page_view');
-    trackEvent('share_open');
-
-    // On page load: Wait 1 second, then attempt deep link
+    // 2. On page load: Wait 1 second, then attempt deep link
     setTimeout(() => {
       launchApp();
     }, 1000);
   </script>
 </body>
 </html>`;
-    res.setHeader('Content-Type', 'text/html');
-    res.setHeader('Cache-Control', `public, max-age=${cacheDuration}, s-maxage=${cacheDuration}, stale-while-revalidate=43200`);
-    return res.send(html);
-  } catch (fallbackErr) {
-    console.error('Completely failed to generate share page:', fallbackErr);
-    return res.redirect('/');
-  }
+
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200');
+  return res.send(html);
 }
 
-// Server-side SEO dynamic tag injection for share paths
-app.get(['/share/:videoId', '/share/song/:videoId'], (req, res) => {
-  return handleShareRequest(req, res, req.params.videoId, 'song');
-});
-
-// Future-compatible share paths: /share/:type/:id
-app.get('/share/:type/:id', (req, res) => {
-  const { type, id } = req.params;
-  const validType = (['song', 'album', 'playlist', 'artist'].includes(type) ? type : 'song') as any;
-  return handleShareRequest(req, res, id, validType);
+// Server-side dynamic share paths: /share/:id
+app.get(['/share/:id', '/share/song/:id', '/share/:type/:id'], (req, res) => {
+  const id = req.params.id || req.params.type || '';
+  return handleShareRequest(req, res, id);
 });
 
 // Root API handler with fallback routing in case Vercel rewrites to /api
@@ -425,25 +372,22 @@ app.get(['/api', '/api/health'], (req, res) => {
   if (origPath.startsWith('/share/')) {
     const rawShare = origPath.slice('/share/'.length).split('?')[0];
     const parts = rawShare.split('/').filter(Boolean);
-    if (parts.length >= 2 && ['song', 'album', 'playlist', 'artist'].includes(parts[0])) {
-      return handleShareRequest(req, res, parts[1], parts[0] as any);
-    } else if (parts.length >= 1) {
-      return handleShareRequest(req, res, parts[0], 'song');
+    const id = parts[parts.length - 1] || '';
+    if (id) {
+      return handleShareRequest(req, res, id);
     }
   }
   if (origPath.startsWith('/api/share/')) {
     const rawShare = origPath.slice('/api/share/'.length).split('?')[0];
     const parts = rawShare.split('/').filter(Boolean);
-    const videoId = parts[parts.length - 1];
-    if (videoId) {
-      return res.redirect(`/api/share/${videoId}`);
-    }
+    const id = parts[parts.length - 1] || '';
+    return res.redirect(`/api/share/${encodeURIComponent(id)}`);
   }
-  const videoId = (req.query.videoId as string) || (req.query.shareVideoId as string);
-  if (videoId) {
-    return handleShareRequest(req, res, videoId, 'song');
+  const id = (req.query.id as string) || (req.query.videoId as string) || (req.query.shareVideoId as string);
+  if (id) {
+    return handleShareRequest(req, res, id);
   }
-  return res.json({ status: 'ok', service: 'GEN Music API', time: new Date().toISOString() });
+  return res.json({ status: 'ok', service: 'GEN Music Share API', time: new Date().toISOString() });
 });
 
 // Helper to strip "v" prefix from version strings if needed
