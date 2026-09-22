@@ -165,13 +165,26 @@ export const App: React.FC = () => {
 
 
   const isShareRoute = currentPath.startsWith('/share/');
-  const videoId = isShareRoute ? currentPath.split('/share/')[1]?.split('?')[0]?.split('#')[0] : '';
+  let shareType: 'song' | 'album' | 'playlist' | 'artist' = 'song';
+  let shareId = '';
 
-  if (isShareRoute && videoId) {
+  if (isShareRoute) {
+    const rawSharePart = currentPath.slice('/share/'.length).split('?')[0]?.split('#')[0] || '';
+    const segments = rawSharePart.split('/').filter(Boolean);
+    if (segments.length >= 2 && ['song', 'album', 'playlist', 'artist'].includes(segments[0].toLowerCase())) {
+      shareType = segments[0].toLowerCase() as any;
+      shareId = segments[1];
+    } else if (segments.length >= 1) {
+      shareId = segments[0];
+    }
+  }
+
+  if (isShareRoute && shareId) {
     return (
       <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative">
         <SharePage 
-          videoId={videoId} 
+          videoId={shareId}
+          type={shareType}
           onNavigateHome={() => {
             window.history.pushState({}, '', '/');
             setCurrentPath('/');

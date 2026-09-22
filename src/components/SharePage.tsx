@@ -3,54 +3,48 @@ import {
   Download, 
   Play, 
   ExternalLink, 
-  CheckCircle, 
   AlertCircle, 
-  HelpCircle,
-  Share2,
-  Music,
-  ArrowRight,
-  Shield,
-  Zap,
-  RotateCcw,
-  Sparkles,
-  Layers,
-  Search,
+  Music, 
+  ShieldCheck, 
+  Sparkles, 
+  ArrowLeft,
   Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
-import { AdBanner320x50 } from './AdBanners';
+import { buildAndroidIntentUri } from '../lib/shareCore';
 
 interface SongMetadata {
-  id: string;
+  videoId: string;
   title: string;
   artist: string;
   thumbnail: string;
   duration: string;
   description: string;
   sourceUrl: string;
+  deepLink?: string;
+  type?: 'song' | 'album' | 'playlist' | 'artist';
 }
 
 interface SharePageProps {
   videoId: string;
+  type?: 'song' | 'album' | 'playlist' | 'artist';
   onNavigateHome: () => void;
 }
 
-export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome }) => {
+export const SharePage: React.FC<SharePageProps> = ({ videoId, type = 'song', onNavigateHome }) => {
   const [song, setSong] = useState<SongMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // App detection states: 'detecting' | 'installed' | 'not_installed'
-  const [appStatus, setAppStatus] = useState<'detecting' | 'installed' | 'not_installed'>('detecting');
+  // App detection states
+  const [showInstallOptions, setShowInstallOptions] = useState(false);
   const [attemptedAutoLaunch, setAttemptedAutoLaunch] = useState(false);
-  const [openAttemptCount, setOpenAttemptCount] = useState(0);
 
   // Send analytics event helper
   const trackEvent = async (eventType: string) => {
     try {
-      // Determine device platform
-      let platform = 'unknown';
+      let platform = 'web';
       if (typeof window !== 'undefined') {
         const ua = window.navigator.userAgent.toLowerCase();
         if (/android/.test(ua)) platform = 'android';
@@ -62,38 +56,53 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
 
       await fetch('/api/analytics', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventType,
           videoId,
           platform
         }),
       });
-    } catch (err) {
-      console.warn('Analytics tracking failed:', err);
+    } catch {
+      // Non-blocking analytics
     }
   };
 
-  // Fetch song metadata
+  // Fetch song metadata dynamically from serverless API
   useEffect(() => {
     const fetchMetadata = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/song/${videoId}`);
+        const endpoint = type === 'song' ? `/api/share/${videoId}` : `/api/share/${type}/${videoId}`;
+        const res = await fetch(endpoint);
         if (!res.ok) {
-          throw new Error('Failed to load song metadata');
+          // Fallback check on legacy song endpoint
+          const fallbackRes = await fetch(`/api/song/${videoId}`);
+          if (!fallbackRes.ok) {
+            throw new Error('Content Not Available');
+          }
+          const fallbackData = await fallbackRes.json();
+          setSong({
+            videoId: fallbackData.id || videoId,
+            title: fallbackData.title,
+            artist: fallbackData.artist,
+            thumbnail: fallbackData.thumbnail,
+            duration: fallbackData.duration || '3:45',
+            description: fallbackData.description || `Listen to ${fallbackData.title} on GEN Music.`,
+            sourceUrl: fallbackData.sourceUrl || `https://music.youtube.com/watch?v=${videoId}`,
+            deepLink: `genmusic://play?videoId=${videoId}`
+          });
+        } else {
+          const data = await res.json();
+          setSong(data);
         }
-        const data = await res.json();
-        setSong(data);
         
-        // Track page view event once metadata is loaded
         trackEvent('page_view');
+        trackEvent('share_open');
       } catch (err: any) {
-        console.error(err);
-        setError(err.message || 'Content Not Available');
+        console.warn('Metadata fetch failed:', err);
+        setError('Content Not Available');
       } finally {
         setLoading(false);
       }
@@ -102,63 +111,40 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
     if (videoId) {
       fetchMetadata();
     }
-  }, [videoId]);
+  }, [videoId, type]);
 
-  // Handle deep link / app detection flow
-  const triggerDeepLink = () => {
+  // Handle deep link app launch
+  const handleOpenInApp = () => {
     if (!song) return;
-    
-    setOpenAttemptCount(prev => prev + 1);
-    trackEvent('app_open_attempt');
-    
+    trackEvent('app_launch_attempt');
+
+    const deepLink = song.deepLink || `genmusic://play?videoId=${song.videoId}`;
     const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent);
-    const deepLinkUrl = isAndroid
-      ? `intent://play?videoId=${song.id}#Intent;scheme=in.gen.agrigence;package=in.gen.agrigence;end`
-      : `in.gen.agrigence://play?videoId=${song.id}`;
-    
-    // Set up a blur event listener to detect successful app launch
-    const handleBlur = () => {
-      setAppStatus('installed');
-      trackEvent('app_open_success');
-      window.removeEventListener('blur', handleBlur);
-    };
-    
-    window.addEventListener('blur', handleBlur);
-    
-    // Attempt to open the custom URL scheme
-    window.location.href = deepLinkUrl;
+    const intentUrl = buildAndroidIntentUri(song.videoId, song.type || 'song');
 
-    // Timeout fallback: if focus isn't lost within 1.5 seconds, assume not installed
-    const timeout = setTimeout(() => {
-      window.removeEventListener('blur', handleBlur);
-      // Only set to not_installed if we haven't successfully detected the installation via blur
-      setAppStatus(prev => prev === 'installed' ? 'installed' : 'not_installed');
-    }, 1500);
+    const launchTarget = isAndroid ? intentUrl : deepLink;
+    window.location.href = launchTarget;
 
-    return () => {
-      clearTimeout(timeout);
-      window.removeEventListener('blur', handleBlur);
-    };
+    // If user remains on page after 1.2s, display install / download options
+    setTimeout(() => {
+      setShowInstallOptions(true);
+    }, 1200);
   };
 
-  // Auto launch flow on mount after metadata loads
+  // 1-second auto launch on initial mount
   useEffect(() => {
     if (song && !attemptedAutoLaunch) {
       setAttemptedAutoLaunch(true);
-      
-      // Wait 1 second before attempting auto launch as requested
-      const autoLaunchTimeout = setTimeout(() => {
-        triggerDeepLink();
+      const timer = setTimeout(() => {
+        handleOpenInApp();
       }, 1000);
-
-      return () => clearTimeout(autoLaunchTimeout);
+      return () => clearTimeout(timer);
     }
   }, [song, attemptedAutoLaunch]);
 
   const handleDownloadClick = () => {
     trackEvent('download_click');
-    // Navigate to download section
-    window.location.pathname = '/download';
+    window.location.href = 'https://genmusics.vercel.app/download';
   };
 
   const handleSourceClick = () => {
@@ -168,334 +154,176 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
     }
   };
 
+  // Loading Screen
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#06070c] text-slate-100 flex flex-col justify-between items-center px-4 py-8 font-sans relative overflow-hidden">
-        {/* Animated glowing backdrops */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
-        
-        {/* Header Skeleton */}
-        <header className="w-full max-w-lg flex flex-col items-center gap-2 mb-12 relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-slate-800/60 animate-pulse border border-slate-700/50" />
-          <div className="w-24 h-4 bg-slate-800/60 animate-pulse rounded-md" />
-          <div className="w-32 h-3 bg-slate-800/40 animate-pulse rounded-md" />
-        </header>
-
-        {/* Main Player Skeleton */}
-        <main className="w-full max-w-lg bg-white/[0.02] border border-white/5 rounded-3xl p-6 relative z-10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
-          {/* Cover Art Skeleton */}
-          <div className="w-full aspect-square max-w-[280px] rounded-2xl bg-slate-800/60 animate-pulse border border-slate-700/50" />
-          
-          {/* Metadata Skeleton */}
-          <div className="w-full flex flex-col items-center gap-2.5">
-            <div className="w-3/4 h-6 bg-slate-800/60 animate-pulse rounded-lg" />
-            <div className="w-1/2 h-4 bg-slate-800/50 animate-pulse rounded-md" />
-            <div className="w-16 h-3 bg-slate-800/40 animate-pulse rounded-md" />
-          </div>
-
-          <div className="w-full h-[1px] bg-white/5" />
-
-          {/* Buttons Skeleton */}
-          <div className="w-full flex flex-col gap-3">
-            <div className="w-full h-12 bg-slate-800/60 animate-pulse rounded-2xl" />
-            <div className="w-full h-12 bg-slate-800/40 animate-pulse rounded-2xl" />
-          </div>
-        </main>
-
-        {/* Footer Skeleton */}
-        <footer className="mt-16 w-full max-w-lg text-center relative z-10">
-          <div className="w-36 h-3 bg-slate-800/30 animate-pulse rounded-md mx-auto" />
-        </footer>
+      <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col justify-center items-center px-4 py-8 font-sans relative overflow-hidden">
+        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-4 animate-pulse">
+          <Music className="w-7 h-7" />
+        </div>
+        <p className="text-sm text-slate-400 font-medium tracking-wide">Loading track details...</p>
       </div>
     );
   }
 
+  // Error Page (Unavailable content)
   if (error || !song) {
     return (
-      <div className="min-h-screen bg-[#06070c] text-slate-100 flex flex-col justify-between items-center px-4 py-8 font-sans relative overflow-hidden">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 bg-rose-500/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+        <div className="absolute inset-0 bg-radial from-cyan-950/20 via-transparent to-transparent pointer-events-none" />
         
-        {/* Header */}
-        <header className="w-full max-w-lg flex flex-col items-center gap-2.5 relative z-10">
-          <GenMusicLogo size="sm" glow={true} />
-          <span className="font-extrabold text-base tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
-            GEN MUSIC
-          </span>
-        </header>
+        <div className="relative z-10 max-w-md w-full text-center bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-8 shadow-2xl">
+          <div className="flex justify-center mb-6">
+            <GenMusicLogo size="lg" />
+          </div>
 
-        {/* Error Card */}
-        <main className="w-full max-w-md bg-white/[0.02] border border-red-500/10 rounded-3xl p-8 relative z-10 flex flex-col items-center text-center gap-6 shadow-2xl backdrop-blur-xl">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-            <AlertCircle className="w-8 h-8" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 mb-4 shadow-inner">
+            <AlertCircle className="w-7 h-7" />
           </div>
-          
-          <div className="space-y-2">
-            <h1 className="text-xl font-bold text-slate-200">Content Not Available</h1>
-            <p className="text-sm text-slate-400 leading-relaxed max-w-xs">
-              We couldn't fetch the song details. This might be due to an invalid link, a private video, or network constraints.
-            </p>
-          </div>
+
+          <h1 className="text-2xl font-bold text-white tracking-tight mb-2">Content Not Available</h1>
+          <p className="text-slate-400 text-sm leading-relaxed mb-8">
+            This track could not be loaded or may have been removed. Return home to discover and stream unlimited music with Dolby Spatial Audio.
+          </p>
 
           <button
             onClick={onNavigateHome}
-            className="px-6 py-3 rounded-xl bg-slate-800/80 border border-white/10 hover:border-cyan-500/30 hover:bg-slate-800 text-slate-200 text-sm font-semibold transition flex items-center gap-2 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4" />
-            <span>Back Home</span>
+            <ArrowLeft className="w-4 h-4" />
+            Home
           </button>
-        </main>
-
-        {/* Footer */}
-        <footer className="w-full max-w-lg text-center text-xs text-slate-500 relative z-10">
-          Shared via GEN Music Hub
-        </footer>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col justify-between px-4 py-8 font-sans relative overflow-x-hidden select-none">
-      
-      {/* Blurred Album Artwork Background */}
+    <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans selection:bg-cyan-500 selection:text-black">
+      {/* Thumbnail-based blur background */}
       <div 
-        className="absolute inset-0 bg-cover bg-center scale-110 pointer-events-none filter blur-[80px] opacity-[0.22] -z-20 transform duration-700 transition-all"
+        className="fixed inset-0 bg-cover bg-center opacity-25 filter blur-3xl scale-110 transform-gpu pointer-events-none transition-all duration-1000"
         style={{ backgroundImage: `url(${song.thumbnail})` }}
       />
-      {/* Dark premium overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#030408]/90 via-[#04060c]/95 to-[#020306]/98 -z-10 pointer-events-none" />
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[150px] pointer-events-none -z-10" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[150px] pointer-events-none -z-10" />
+      <div className="fixed inset-0 bg-gradient-to-b from-[#030408]/80 via-[#030408]/90 to-[#030408] pointer-events-none" />
 
-      {/* Top Header */}
-      <header className="w-full max-w-lg mx-auto flex flex-col items-center gap-2 relative z-10 mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex flex-col items-center gap-1.5"
-        >
-          <GenMusicLogo size="sm" glow={true} className="mb-0.5" />
-          <span className="font-extrabold text-base tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400">
-            GEN MUSIC
-          </span>
-          <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400/80 bg-cyan-500/5 px-2.5 py-0.5 rounded-full border border-cyan-500/10">
-            Shared from GEN Music
-          </span>
-        </motion.div>
-      </header>
-
-      {/* Main Music Player Layout */}
-      <main className="w-full max-w-lg mx-auto flex flex-col gap-6 relative z-10">
-        
-        {/* Hero Section Card */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="bg-white/[0.02] border border-white/5 rounded-3xl p-5 sm:p-6 shadow-2xl backdrop-blur-xl flex flex-col items-center relative overflow-hidden"
-        >
-          {/* Dynamic gloss flare */}
-          <div className="absolute -top-40 -left-40 w-80 h-80 bg-white/2 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Interactive Cover Art */}
-          <div className="relative w-full aspect-square max-w-[270px] rounded-2xl overflow-hidden group shadow-2xl border border-white/10 mb-5">
-            <img 
-              src={song.thumbnail} 
-              alt={song.title} 
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover transform duration-500 group-hover:scale-105"
-            />
-            {/* Ambient neon shadow on cover */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 pointer-events-none" />
-            <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-md text-[10px] font-bold text-slate-300">
-              {song.duration}
-            </div>
+      {/* Main Glassmorphism Card */}
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative z-10 max-w-md w-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.85)] flex flex-col items-center text-center"
+      >
+        {/* Branding */}
+        <div className="flex items-center gap-2.5 mb-6">
+          <GenMusicLogo size="sm" />
+          <div className="text-left">
+            <div className="font-extrabold tracking-wider text-base text-white">GEN Music</div>
+            <div className="text-[10px] text-cyan-400 font-medium tracking-wide">Play smarter. Listen better.</div>
           </div>
+        </div>
 
-          {/* Song Metadata Details */}
-          <div className="w-full text-center space-y-2 px-1">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-100 tracking-tight leading-snug line-clamp-2">
-              {song.title}
-            </h1>
-            <p className="text-sm sm:text-base font-bold text-cyan-400/90 tracking-wide line-clamp-1">
-              {song.artist}
-            </p>
-            {song.description && (
-              <p className="text-xs text-slate-400 leading-relaxed max-w-sm mx-auto line-clamp-2">
-                {song.description}
-              </p>
-            )}
+        {/* Thumbnail */}
+        <div className="relative w-full aspect-square max-w-[280px] rounded-2xl overflow-hidden shadow-2xl border border-white/10 mb-6 group">
+          <img 
+            src={song.thumbnail} 
+            alt={song.title} 
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+            referrerPolicy="no-referrer"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
+          
+          <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-md bg-black/70 backdrop-blur-md text-xs font-mono text-cyan-300 border border-white/10">
+            {song.duration}
           </div>
+        </div>
 
-          <div className="w-full h-[1px] bg-white/5 my-5" />
+        {/* Song Details */}
+        <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug line-clamp-2 mb-1.5 px-2">
+          {song.title}
+        </h1>
+        <p className="text-sm sm:text-base font-semibold text-cyan-400/95 mb-2">
+          {song.artist}
+        </p>
 
-          {/* Status Indicator */}
-          <div className="w-full mb-4 flex items-center justify-center">
-            {appStatus === 'detecting' && (
-              <div className="flex items-center gap-2 text-xs text-cyan-400 bg-cyan-500/5 border border-cyan-500/10 px-4 py-1.5 rounded-full font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                <span>Checking GEN Music App...</span>
-              </div>
-            )}
-            {appStatus === 'installed' && (
-              <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/5 border border-emerald-500/10 px-4 py-1.5 rounded-full font-semibold">
-                <Check className="w-4 h-4 text-emerald-400" />
-                <span>✓ GEN Music detected</span>
-              </div>
-            )}
-            {appStatus === 'not_installed' && (
-              <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/5 border border-amber-500/10 px-4 py-1.5 rounded-full font-semibold animate-pulse">
-                <AlertCircle className="w-4 h-4 text-amber-400" />
-                <span>GEN Music app not active</span>
-              </div>
-            )}
-          </div>
+        {song.description && (
+          <p className="text-xs text-slate-400 line-clamp-2 max-w-xs mb-6">
+            {song.description}
+          </p>
+        )}
 
-          {/* Action Buttons Stack */}
-          <div className="w-full flex flex-col gap-3">
-            {/* Primary Action Button: Open App */}
+        {/* Primary Buttons */}
+        <div className="w-full space-y-3">
+          {/* Button 1: Open in GEN Music */}
+          <button
+            onClick={handleOpenInApp}
+            className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-cyan-500/25 cursor-pointer"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            Open in GEN Music
+          </button>
+
+          {/* Button 2: Download GEN Music */}
+          <button
+            onClick={handleDownloadClick}
+            className={`w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
+              showInstallOptions
+                ? 'bg-white/15 hover:bg-white/20 text-white border border-cyan-400/40 shadow-lg shadow-cyan-500/10'
+                : 'bg-white/[0.06] hover:bg-white/10 text-slate-200 border border-white/10'
+            }`}
+          >
+            <Download className="w-4 h-4 text-cyan-400" />
+            Download GEN Music
+          </button>
+
+          {/* Button 3: Open Original Source */}
+          {song.sourceUrl && (
             <button
-              onClick={triggerDeepLink}
-              id="share-primary-open-btn"
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/20 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
+              onClick={handleSourceClick}
+              className="w-full flex items-center justify-center gap-2 py-2 px-4 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             >
-              <Play className="w-5 h-5 fill-white" />
-              <span>Open in GEN Music</span>
+              <span>Open Original Source</span>
+              <ExternalLink className="w-3.5 h-3.5" />
             </button>
+          )}
+        </div>
 
-            <div className="grid grid-cols-2 gap-3 w-full">
-              {/* Secondary Action: Download App */}
-              <button
-                onClick={handleDownloadClick}
-                id="share-secondary-download-btn"
-                className="py-3 px-4 rounded-xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:bg-white/[0.08] font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-              >
-                <Download className="w-4 h-4" />
-                <span>Get App</span>
-              </button>
-
-              {/* Tertiary Action: Open Original Youtube Link */}
-              <button
-                onClick={handleSourceClick}
-                id="share-tertiary-source-btn"
-                className="py-3 px-4 rounded-xl bg-white/[0.04] border border-white/10 hover:border-red-500/20 text-slate-300 hover:bg-white/[0.08] font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>YouTube Music</span>
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Dynamic App Install Prompt Card (If app is not active or user chooses to view) */}
+        {/* Dynamic App Install Prompt if user remained on page */}
         <AnimatePresence>
-          {appStatus === 'not_installed' && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              className="w-full bg-gradient-to-b from-[#0b0e1b] to-[#080a13] border border-cyan-500/20 rounded-3xl p-6 shadow-2xl relative overflow-hidden"
+          {showInstallOptions && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-5 p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/20 text-left w-full overflow-hidden"
             >
-              {/* Background ambient light */}
-              <div className="absolute -bottom-20 -right-20 w-48 h-48 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
-              
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-400/20 flex items-center justify-center text-cyan-400">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-slate-100 text-sm sm:text-base">Get GEN Music</h2>
-                  <p className="text-[11px] text-cyan-400/80 font-semibold tracking-wider uppercase">Unleash Studio Audio quality</p>
+              <div className="flex items-start gap-2.5 mb-3">
+                <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-slate-300 leading-relaxed">
+                  <span className="font-semibold text-white">App not installed yet?</span> Download the GEN Music App for Android, macOS, or Windows to experience Dolby 3D audio and offline downloads.
                 </div>
               </div>
 
-              {/* Feature Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 flex-shrink-0">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-xs text-slate-300">Offline Playback</span>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 border-t border-white/5 pt-2">
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-cyan-400" />
+                  <span>Offline 320kbps</span>
                 </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 flex-shrink-0">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-xs text-slate-300">Lyrics Support</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 flex-shrink-0">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-xs text-slate-300">Playlist Sync</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 flex-shrink-0">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-xs text-slate-300">Dolby Spatial Audio</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 flex-shrink-0">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-xs text-slate-300">Smart Playlists</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <div className="w-4 h-4 rounded-full bg-emerald-500/10 flex items-center justify-center mt-0.5 flex-shrink-0">
-                    <Check className="w-3 h-3 text-emerald-400" />
-                  </div>
-                  <span className="text-xs text-slate-300">Zero Subscriptions</span>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3 h-3 text-cyan-400" />
+                  <span>3D Spatial Sound</span>
                 </div>
               </div>
-
-              {/* Install CTA */}
-              <button
-                onClick={handleDownloadClick}
-                className="w-full py-3.5 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-98 transition duration-200"
-              >
-                <span>Download Now</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Share Information Footer Section */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full flex flex-col items-center gap-3 bg-white/[0.01] border border-white/[0.03] rounded-2xl p-4 text-center text-slate-500"
-        >
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-            <Share2 className="w-3.5 h-3.5 text-cyan-500" />
-            <span>Shared via GEN Music Hub</span>
-          </div>
-          <div className="text-[10px] bg-white/[0.03] px-2.5 py-1 rounded-md font-mono text-slate-400 select-all border border-white/5">
-            Song ID: {song.id}
-          </div>
-        </motion.div>
+      </motion.div>
 
-        {/* Single Premium Banner Ad Unit (No Hyperlink/Direct Ads as requested) */}
-        <div className="w-full flex justify-center py-2 relative z-10">
-          <AdBanner320x50 className="opacity-95 hover:opacity-100 transition-opacity" />
-        </div>
-
-      </main>
-
-      {/* Global Brand Footer */}
-      <footer className="w-full max-w-lg mx-auto text-center mt-12 pt-4 border-t border-white/[0.04] relative z-10">
-        <button
-          onClick={onNavigateHome}
-          className="text-xs font-bold text-slate-400 hover:text-cyan-400 transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Back to Landing Page</span>
-        </button>
+      {/* Footer */}
+      <footer className="relative z-10 mt-6 text-center text-xs text-slate-500">
+        <p>© 2026 GEN Music. Play smarter. Listen better.</p>
       </footer>
-
     </div>
   );
 };
