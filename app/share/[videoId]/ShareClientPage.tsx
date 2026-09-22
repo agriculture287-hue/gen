@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Check
 } from 'lucide-react';
+import { AdBanner320x50 } from '../../../src/components/AdBanners';
 
 interface SongMetadata {
   id: string;
@@ -79,8 +80,8 @@ export default function ShareClientPage({ videoId }: ShareClientPageProps) {
     
     const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent);
     const deepLinkUrl = isAndroid
-      ? `intent://play?videoId=${song.id}#Intent;scheme=genmusic;package=in.gen.agrigence;end`
-      : `genmusic://play?videoId=${song.id}`;
+      ? `intent://play?videoId=${song.id}#Intent;scheme=in.gen.agrigence;package=in.gen.agrigence;end`
+      : `in.gen.agrigence://play?videoId=${song.id}`;
     
     const handleBlur = () => {
       setAppStatus('installed');
@@ -251,6 +252,11 @@ export default function ShareClientPage({ videoId }: ShareClientPageProps) {
           <div className="text-[10px] bg-white/[0.03] px-2.5 py-1 rounded-md font-mono text-slate-400 border border-white/5">
             Song ID: {videoId}
           </div>
+        </div>
+
+        {/* Single Premium Banner Ad Unit (No Hyperlink/Direct Ads as requested) */}
+        <div className="w-full flex justify-center py-2">
+          <AdBanner320x50 className="opacity-95 hover:opacity-100 transition-opacity" />
         </div>
       </main>
 

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
+import { AdBanner320x50 } from './AdBanners';
 
 interface SongMetadata {
   id: string;
@@ -112,8 +113,8 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
     
     const isAndroid = typeof window !== 'undefined' && /android/i.test(navigator.userAgent);
     const deepLinkUrl = isAndroid
-      ? `intent://play?videoId=${song.id}#Intent;scheme=genmusic;package=in.gen.agrigence;end`
-      : `genmusic://play?videoId=${song.id}`;
+      ? `intent://play?videoId=${song.id}#Intent;scheme=in.gen.agrigence;package=in.gen.agrigence;end`
+      : `in.gen.agrigence://play?videoId=${song.id}`;
     
     // Set up a blur event listener to detect successful app launch
     const handleBlur = () => {
@@ -476,6 +477,11 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId, onNavigateHome })
             Song ID: {song.id}
           </div>
         </motion.div>
+
+        {/* Single Premium Banner Ad Unit (No Hyperlink/Direct Ads as requested) */}
+        <div className="w-full flex justify-center py-2 relative z-10">
+          <AdBanner320x50 className="opacity-95 hover:opacity-100 transition-opacity" />
+        </div>
 
       </main>
 
