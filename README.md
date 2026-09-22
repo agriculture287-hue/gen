@@ -87,6 +87,63 @@ An AI-powered cross-platform music streaming and downloading ecosystem built wit
 
 ---
 
+## 🔗 GenMusic Link Redirection System (Next.js & Vercel Serverless)
+
+GenMusic shares songs using clean redirect links in the format:
+```text
+https://genmusics.vercel.app/share/<youtubeVideoId>
+```
+
+When a user opens this link:
+1. **App Installed**: Opens the song directly in the GenMusic native app.
+2. **App Not Installed / Fallback**: Displays a branded, dark-themed page (`#7c3aed` purple accent) with song title, artist/channel, and thumbnail, plus links to Google Play and the App Store.
+
+### ⚙️ Environment Variables
+
+Add these to your `.env.local` or Vercel Project Settings (`Settings` -> `Environment Variables`):
+
+| Variable | Required | Default | Description |
+| :--- | :---: | :--- | :--- |
+| `GENMUSIC_APP_SCHEME` | No | `genmusic` | Custom URL scheme registered by your mobile app (e.g. `genmusic://play?v=<id>`) |
+| `GENMUSIC_PACKAGE_NAME` | No | `in.gen.agrigence` | Android package name for `intent://` URL resolution |
+| `GENMUSIC_PLAY_STORE_URL` | No | `https://play.google.com/store/apps/details?id=in.gen.agrigence` | Play Store listing URL used as Android fallback |
+| `GENMUSIC_APP_STORE_URL` | No | `https://apps.apple.com/app/genmusic/id123456789` | iOS App Store listing URL |
+
+### 🚀 Deploying to Vercel
+
+1. **Push your code to GitHub / GitLab / Bitbucket**:
+   ```bash
+   git add .
+   git commit -m "Add GenMusic link redirect system"
+   git push origin main
+   ```
+
+2. **Import into Vercel**:
+   - Go to [vercel.com/new](https://vercel.com/new).
+   - Select your repository.
+   - Add the environment variables listed above if customizing package name or store URLs.
+   - Click **Deploy**.
+
+3. **Deploy via Vercel CLI (alternative)**:
+   ```bash
+   npm i -g vercel
+   vercel
+   vercel --prod
+   ```
+
+### 📱 Deep Link Implementation Details
+
+- **Android Chrome**: Dispatches an `intent://` URI with fallback:
+  ```text
+  intent://play?v=<id>#Intent;scheme=genmusic;package=in.gen.agrigence;S.browser_fallback_url=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Din.gen.agrigence;end
+  ```
+- **iOS Safari**: Triggers the custom scheme `genmusic://play?v=<id>`.
+- **Desktop Browsers**: Immediately displays the fallback card with direct store links and "Open in GenMusic".
+- **Visibility Detection**: Monitors the `visibilitychange` event. If the browser tab is hidden within ~1.5 seconds, the OS successfully opened the native app. If the tab stays visible, the fallback store card is revealed.
+- **Serverless Metadata**: `pages/api/meta.js` and `pages/share/[id].js` utilize YouTube's public oEmbed endpoint and `i.ytimg.com` CDN without requiring any API keys or OAuth.
+
+---
+
 ## 📄 License
 
 Distributed under the MIT License. See `LICENSE` for more information.

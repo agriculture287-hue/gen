@@ -102,18 +102,58 @@ app.get('/api/song/:videoId', async (req, res) => {
   return res.json(song);
 });
 
-// Vercel Serverless Function Specification: /api/share/:id (Zero external fetching, instant response)
+// Serverless function specification: /api/meta (YouTube oEmbed & i.ytimg.com without API keys)
+app.get('/api/meta', async (req, res) => {
+  const videoId = (req.query.v || req.query.id || '').toString().trim();
+  res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=43200');
+
+  const fallback = {
+    title: 'Shared Song',
+    author: 'GenMusic',
+    thumbnailHQ: videoId
+      ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      : 'https://genmusics.vercel.app/logo.png'
+  };
+
+  if (!videoId || !/^[a-zA-Z0-9_-]{6,15}$/.test(videoId)) {
+    return res.json(fallback);
+  }
+
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}&format=json`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const response = await fetch(oembedUrl, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'GenMusic-LinkBot/1.0 (+https://genmusics.vercel.app)' }
+    });
+    clearTimeout(timeout);
+    if (!response.ok) {
+      return res.json(fallback);
+    }
+    const data: any = await response.json();
+    return res.json({
+      title: data.title || fallback.title,
+      author: data.author_name || fallback.author,
+      thumbnailHQ: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+    });
+  } catch {
+    return res.json(fallback);
+  }
+});
+
+// Vercel Serverless Function Specification: /api/share/:id
 app.get(['/api/share/:id', '/api/share/song/:id', '/api/share/:type/:id'], (req, res) => {
   const id = req.params.id || req.params.type || '';
   const cleanId = encodeURIComponent(id);
-  const deepLink = `genmusic://play?id=${cleanId}`;
+  const deepLink = `genmusic://play?v=${cleanId}`;
 
   res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400, stale-while-revalidate=43200');
   return res.json({
     success: true,
     id: cleanId,
     deepLink,
-    message: 'This content was shared using GEN Music. Open the app to start listening.'
+    message: 'This content was shared using GenMusic. Open the app to start listening.'
   });
 });
 
@@ -150,207 +190,368 @@ app.get('/api/analytics-report', (req, res) => {
   });
 });
 
-function handleShareRequest(req: any, res: any, rawId: string) {
+async function handleShareRequest(req: any, res: any, rawId: string) {
   const cleanId = encodeURIComponent(rawId || '');
-  const deepLinkUrl = `genmusic://play?id=${cleanId}`;
-  const androidIntentUrl = `intent://play?id=${cleanId}#Intent;scheme=genmusic;package=in.gen.agrigence;end`;
+  const appScheme = process.env.GENMUSIC_APP_SCHEME || 'genmusic';
+  const packageName = process.env.GENMUSIC_PACKAGE_NAME || 'in.gen.agrigence';
+  const playStoreUrl = process.env.GENMUSIC_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=in.gen.agrigence';
+  const appStoreUrl = process.env.GENMUSIC_APP_STORE_URL || 'https://apps.apple.com/app/genmusic/id123456789';
+
+  const fallback = {
+    title: 'Shared Song',
+    author: 'GenMusic',
+    thumbnailHQ: cleanId
+      ? `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`
+      : 'https://genmusics.vercel.app/logo.png'
+  };
+
+  let meta = { ...fallback };
+
+  if (cleanId && /^[a-zA-Z0-9_-]{6,15}$/.test(cleanId)) {
+    try {
+      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${cleanId}&format=json`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const oembedRes = await fetch(oembedUrl, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'GenMusic-LinkBot/1.0 (+https://genmusics.vercel.app)' }
+      });
+      clearTimeout(timeout);
+      if (oembedRes.ok) {
+        const data: any = await oembedRes.json();
+        meta = {
+          title: data.title || fallback.title,
+          author: data.author_name || fallback.author,
+          thumbnailHQ: `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`
+        };
+      }
+    } catch {
+      // Keep fallback
+    }
+  }
+
+  const deepLinkUrl = `${appScheme}://play?v=${cleanId}`;
+  const androidIntentUrl = `intent://play?v=${cleanId}#Intent;scheme=${appScheme};package=${packageName};S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
+  const pageTitle = `${meta.title} • GenMusic`;
+  const pageDescription = `Listen to ${meta.title} by ${meta.author} on GenMusic.`;
+  const shareUrl = `https://genmusics.vercel.app/share/${cleanId}`;
 
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Open in GEN Music</title>
-  <meta name="description" content="This content was shared using GEN Music.">
+  <title>${pageTitle}</title>
+  <meta name="description" content="${pageDescription}">
+  <meta name="theme-color" content="#0a0a0c">
   
   <!-- OpenGraph / Facebook -->
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="GEN Music">
-  <meta property="og:title" content="Open in GEN Music">
-  <meta property="og:description" content="This content was shared using GEN Music. Open the app to start listening.">
-  <meta property="og:image" content="https://genmusics.vercel.app/logo.png">
-  <meta property="og:url" content="https://genmusics.vercel.app/share/${cleanId}">
+  <meta property="og:type" content="music.song">
+  <meta property="og:site_name" content="GenMusic">
+  <meta property="og:title" content="${pageTitle}">
+  <meta property="og:description" content="${pageDescription}">
+  <meta property="og:image" content="${meta.thumbnailHQ}">
+  <meta property="og:url" content="${shareUrl}">
   
   <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="Open in GEN Music">
-  <meta name="twitter:description" content="This content was shared using GEN Music.">
-  <meta name="twitter:image" content="https://genmusics.vercel.app/logo.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${pageTitle}">
+  <meta name="twitter:description" content="${pageDescription}">
+  <meta name="twitter:image" content="${meta.thumbnailHQ}">
 
-  <!-- Theme Color -->
-  <meta name="theme-color" content="#0A0A0A">
-
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0A0A0A; }
-    @keyframes barBounce1 { 0%, 100% { height: 16px; } 50% { height: 32px; } }
-    @keyframes barBounce2 { 0%, 100% { height: 28px; } 50% { height: 10px; } }
-    @keyframes barBounce3 { 0%, 100% { height: 12px; } 50% { height: 26px; } }
-    @keyframes barBounce4 { 0%, 100% { height: 24px; } 50% { height: 14px; } }
-    @keyframes barBounce5 { 0%, 100% { height: 18px; } 50% { height: 30px; } }
-    .bar-1 { animation: barBounce1 0.8s ease-in-out infinite; }
-    .bar-2 { animation: barBounce2 0.7s ease-in-out infinite 0.1s; }
-    .bar-3 { animation: barBounce3 0.9s ease-in-out infinite 0.2s; }
-    .bar-4 { animation: barBounce4 0.6s ease-in-out infinite 0.15s; }
-    .bar-5 { animation: barBounce5 0.75s ease-in-out infinite 0.05s; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0a0a0c;
+      color: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px 16px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    .ambient-glow {
+      position: absolute;
+      top: 15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background-color: rgba(124, 58, 237, 0.15);
+      filter: blur(110px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 1;
+      margin-top: 8px;
+    }
+    .logo-badge {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.35);
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 18px;
+    }
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+    }
+    .brand-tagline {
+      font-size: 12px;
+      font-weight: 500;
+      color: #a78bfa;
+    }
+    main {
+      width: 100%;
+      max-width: 440px;
+      z-index: 1;
+      margin: auto 0;
+      padding: 20px 0;
+    }
+    .card {
+      background-color: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 24px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
+      text-align: center;
+    }
+    .thumbnail-wrapper {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border-radius: 16px;
+      overflow: hidden;
+      background-color: #181924;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 18px;
+    }
+    .thumbnail {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .thumbnail-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(10, 10, 12, 0.8) 0%, transparent 60%);
+    }
+    .song-title {
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: #ffffff;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .song-author {
+      font-size: 14px;
+      font-weight: 600;
+      color: #a78bfa;
+      margin-bottom: 20px;
+    }
+    .btn-primary {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-radius: 14px;
+      background-color: #7c3aed;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .btn-primary:hover {
+      background-color: #8b5cf6;
+      transform: translateY(-1px);
+    }
+    .store-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: none;
+    }
+    .store-section.visible {
+      display: block;
+    }
+    .store-subtitle {
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+    .store-button-group {
+      display: flex;
+      gap: 10px;
+    }
+    .store-button {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background-color: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #e5e7eb;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 0.2s ease;
+    }
+    .store-button:hover {
+      background-color: rgba(255, 255, 255, 0.12);
+    }
+    footer {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 16px;
+      z-index: 1;
+    }
   </style>
 </head>
-<body class="bg-[#0A0A0A] text-slate-100 min-h-screen flex flex-col justify-between items-center px-4 py-8 selection:bg-[#00E676] selection:text-black relative overflow-x-hidden">
-  
-  <!-- Subtle Ambient Glows -->
-  <div class="fixed top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#00E676]/10 rounded-full blur-[140px] pointer-events-none"></div>
-  <div class="fixed bottom-10 right-1/4 w-72 h-72 bg-[#1DB954]/10 rounded-full blur-[120px] pointer-events-none"></div>
+<body>
+  <div class="ambient-glow"></div>
 
   <!-- Header Branding -->
-  <header class="w-full max-w-md flex flex-col items-center gap-2 pt-2 z-10">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00E676] to-[#1DB954] flex items-center justify-center text-black font-black text-sm shadow-lg shadow-[#00E676]/20">
-        G
-      </div>
-      <div class="text-left">
-        <h1 class="font-extrabold tracking-wider text-xl text-white">GEN Music</h1>
-        <p class="text-xs text-[#00E676] font-medium tracking-wide">Your music is waiting.</p>
-      </div>
+  <header>
+    <div class="logo-badge">G</div>
+    <div>
+      <h1 class="brand-title">GenMusic</h1>
+      <p class="brand-tagline">Play smarter. Listen better.</p>
     </div>
   </header>
 
   <!-- Main Card -->
-  <main class="w-full max-w-md my-auto py-6 z-10 flex flex-col items-center">
-    <div class="w-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-[0_24px_50px_-12px_rgba(0,0,0,0.8)] text-center flex flex-col items-center">
-      
-      <!-- Animated Equalizer Graphic -->
-      <div class="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-[#00E676]/20 to-[#1DB954]/10 border border-[#00E676]/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,230,118,0.2)]">
-        <div class="flex items-end justify-center gap-1 h-8">
-          <span class="w-1.5 bg-[#00E676] rounded-full bar-1"></span>
-          <span class="w-1.5 bg-[#00E676] rounded-full bar-2"></span>
-          <span class="w-1.5 bg-[#00E676] rounded-full bar-3"></span>
-          <span class="w-1.5 bg-[#00E676] rounded-full bar-4"></span>
-          <span class="w-1.5 bg-[#00E676] rounded-full bar-5"></span>
-        </div>
+  <main>
+    <div class="card">
+      <div class="thumbnail-wrapper">
+        <img src="${meta.thumbnailHQ}" alt="${meta.title}" class="thumbnail" loading="eager" />
+        <div class="thumbnail-overlay"></div>
       </div>
 
-      <!-- Main Message -->
-      <h2 class="text-2xl font-black text-white tracking-tight mb-2">
-        Open in GEN Music
-      </h2>
-      <p class="text-sm text-slate-300 leading-relaxed mb-6 max-w-xs">
-        This content was shared using GEN Music. Open the app to start listening.
-      </p>
+      <h2 class="song-title">${meta.title}</h2>
+      <p class="song-author">${meta.author}</p>
 
-      <!-- Action Buttons -->
-      <div class="w-full space-y-3">
-        <!-- Primary Button -->
-        <button onclick="launchApp()" id="btn-open-gen-music" class="w-full flex items-center justify-center gap-2.5 py-4 px-6 rounded-2xl bg-gradient-to-r from-[#00E676] to-[#1DB954] text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.98] transition-all shadow-lg shadow-[#00E676]/25 cursor-pointer">
-          <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          <span>Open GEN Music</span>
-        </button>
+      <button onclick="openApp()" id="btn-open-app" class="btn-primary" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Open in GenMusic</span>
+      </button>
 
-        <!-- Secondary Button -->
-        <a href="https://genmusics.vercel.app/download" onclick="trackEvent('download_clicks')" id="btn-download-gen-music" class="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-white/[0.05] hover:bg-white/10 text-slate-200 border border-white/10 font-semibold text-sm transition-all">
-          <svg class="w-4 h-4 text-[#00E676]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-          <span>Download GEN Music</span>
-        </a>
-      </div>
+      <!-- Store Fallback Section -->
+      <div id="store-fallback" class="store-section">
+        <p class="store-subtitle">
+          Don't have the app yet? Download GenMusic for high-fidelity playback and offline songs.
+        </p>
+        <div class="store-button-group">
+          <a href="${playStoreUrl}" target="_blank" rel="noopener noreferrer" class="store-button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa">
+              <path d="M3.609 1.814L13.793 12 3.61 22.186c-.352-.338-.61-.83-.61-1.46V3.273c0-.63.258-1.121.61-1.46zm11.3 11.3l2.257-2.257-11.45-6.52 9.193 8.777zm0 1.772l-9.193 8.777 11.45-6.52-2.257-2.257zm1.121-1.121l3.585-2.042c1.026-.585 1.026-1.545 0-2.13l-3.585-2.042-2.008 2.008 2.008 2.006z"/>
+            </svg>
+            <span>Google Play</span>
+          </a>
 
-      <!-- Install Card (revealed if app does not open) -->
-      <div id="install-card" class="hidden w-full mt-6 pt-6 border-t border-white/10 text-left transition-all duration-300">
-        <div class="flex items-center gap-2 mb-3">
-          <svg class="w-4 h-4 text-[#00E676]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
-          <h3 class="text-base font-bold text-white">Get GEN Music</h3>
+          <a href="${appStoreUrl}" target="_blank" rel="noopener noreferrer" class="store-button">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa">
+              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.76 1.04-1.82.93-2.88-.9.04-2 .6-2.65 1.36-.58.67-.99 1.74-.88 2.78.99.08 1.98-.5 2.6-1.26z"/>
+            </svg>
+            <span>App Store</span>
+          </a>
         </div>
-
-        <div class="grid grid-cols-2 gap-2.5 mb-5">
-          <div class="flex items-center gap-2 text-xs text-slate-300">
-            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
-            <span>Play Music</span>
-          </div>
-          <div class="flex items-center gap-2 text-xs text-slate-300">
-            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
-            <span>Offline Playback</span>
-          </div>
-          <div class="flex items-center gap-2 text-xs text-slate-300">
-            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
-            <span>Lyrics Support</span>
-          </div>
-          <div class="flex items-center gap-2 text-xs text-slate-300">
-            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
-            <span>Playlist Sync</span>
-          </div>
-          <div class="flex items-center gap-2 text-xs text-slate-300">
-            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
-            <span>Smart Recommendations</span>
-          </div>
-          <div class="flex items-center gap-2 text-xs text-slate-300">
-            <div class="w-4 h-4 rounded-full bg-[#00E676]/15 flex items-center justify-center text-[#00E676] shrink-0">✓</div>
-            <span>Fast Streaming</span>
-          </div>
-        </div>
-
-        <a href="https://genmusics.vercel.app/download" onclick="trackEvent('download_clicks')" class="w-full py-3 px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-[#00E676]/30 text-[#00E676] font-bold text-xs flex items-center justify-center gap-2 transition-all">
-          <span>Download Now</span>
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-        </a>
       </div>
-
     </div>
   </main>
 
-  <!-- Footer -->
-  <footer class="w-full max-w-md text-center text-xs text-slate-600 z-10">
-    <p>© 2026 GEN Music. Play smarter. Listen better.</p>
+  <footer>
+    <p>© 2026 GenMusic. Free unlimited music & spatial audio.</p>
   </footer>
 
   <script>
-    const isAndroid = /android/i.test(navigator.userAgent);
-    const deepLinkUrl = '${deepLinkUrl}';
+    const ua = navigator.userAgent || '';
+    const isAndroid = /android/i.test(ua);
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    const isMobile = isAndroid || isIOS;
+
     const androidIntentUrl = '${androidIntentUrl}';
-    const targetUrl = isAndroid ? androidIntentUrl : deepLinkUrl;
+    const iosSchemeUrl = '${deepLinkUrl}';
 
-    function trackEvent(eventType) {
-      try {
-        const payload = JSON.stringify({
-          eventType: eventType,
-          id: '${cleanId}',
-          timestamp: new Date().toISOString()
-        });
-        if (navigator.sendBeacon) {
-          navigator.sendBeacon('/api/analytics', payload);
-        } else {
-          fetch('/api/analytics', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: payload,
-            keepalive: true
-          }).catch(() => {});
-        }
-      } catch(e) {}
-    }
+    let appOpened = false;
 
-    function showInstallOptions() {
-      const card = document.getElementById('install-card');
-      if (card) {
-        card.classList.remove('hidden');
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        appOpened = true;
       }
     }
 
-    function launchApp() {
-      trackEvent('app_launch_attempts');
-      window.location.href = targetUrl;
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', function() { appOpened = true; });
 
-      // If user remains on page after 1.5s, reveal install card
-      setTimeout(() => {
-        showInstallOptions();
-      }, 1500);
+    function showFallback() {
+      const el = document.getElementById('store-fallback');
+      if (el) el.classList.add('visible');
     }
 
-    // 1. Track share page open
-    trackEvent('share_page_opens');
+    function openApp() {
+      if (isAndroid) {
+        window.location.href = androidIntentUrl;
+      } else if (isIOS) {
+        window.location.href = iosSchemeUrl;
+      } else {
+        showFallback();
+      }
+    }
 
-    // 2. On page load: Wait 1 second, then attempt deep link
-    setTimeout(() => {
-      launchApp();
-    }, 1000);
+    if (!isMobile) {
+      // Desktop: skip straight to fallback
+      showFallback();
+    } else {
+      // Mobile: attempt app launch on mount
+      openApp();
+
+      // Check after 1.5s if app opened via visibilitychange
+      setTimeout(function() {
+        if (!appOpened && document.visibilityState !== 'hidden') {
+          showFallback();
+        }
+      }, 1500);
+    }
   </script>
 </body>
 </html>`;
