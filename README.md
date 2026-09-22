@@ -68,7 +68,6 @@ An AI-powered cross-platform music streaming and downloading ecosystem built wit
 ├── src/
 │   ├── App.tsx                 # Main application controller & router
 │   ├── components/             # React UI components
-│   │   ├── AdBanners.tsx       # Auto-refreshing 60s ad banners & sponsor link helper
 │   │   ├── AdminModal.tsx      # App release & version management console
 │   │   ├── DownloadAppSection.tsx # Primary download modal & platform cards
 │   │   ├── DownloadsPage.tsx   # Full downloads page hub

@@ -31,7 +31,6 @@ export interface AdminBlobPayload {
   telegramConfig?: any;
   channels?: any[];
   updates?: any[];
-  adSettings?: any;
   manifest?: any;
   siteSettings?: any;
   lastUpdated?: string;

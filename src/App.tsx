@@ -12,18 +12,6 @@ import { Footer } from './components/Footer';
 import { DownloadsPage } from './components/DownloadsPage';
 import { AndroidCarAppsSection } from './components/AndroidCarAppsSection';
 import { MusicVisualizer3D } from './components/MusicVisualizer3D';
-import { 
-  AdNativeContainer,
-  AdBanner300x250,
-  AdBanner320x50,
-  AdBanner468x60,
-  AdBanner160x300,
-  AdBanner160x600,
-  AdSideSkyscrapers,
-  AdResponsiveLeaderboard,
-  AdShowcaseSection,
-  AdMultiplyMatrix10x
-} from './components/AdBanners';
 import { DOWNLOAD_LINKS } from './data/downloadLinks';
 import { AppPlatformRelease } from './types';
 
@@ -120,12 +108,6 @@ export const App: React.FC = () => {
     };
   }, []);
 
-  // Ensure any popup/popunder ad scripts are completely removed
-  useEffect(() => {
-    const existing = document.querySelectorAll('script[data-ad-type="popunder"]');
-    existing.forEach(el => el.remove());
-  }, []);
-
   const handleOpenLegalModal = (type: 'privacy' | 'terms' | 'support' | 'contact') => {
     showToast(`Opening ${type.toUpperCase()} policy document...`);
   };
@@ -173,16 +155,13 @@ export const App: React.FC = () => {
       <div className="fixed top-1/2 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="fixed bottom-20 left-10 w-96 h-96 bg-pink-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Fixed Side Gutters Skyscraper Ads (160x600 Left & Right on Desktop) */}
-      <AdSideSkyscrapers />
-
       {/* 1. Top Announcement Bar */}
       <TopBanner 
         onDownloadClick={scrollToDownload} 
         announcementText="GEN MUSIC Official Release is Available Now — Download for Android, Android Car, Mac & Windows."
       />
 
-      {/* 2. Navigation with Brand, Multi-platform links & Telegram (Admin triggers hidden from UI) */}
+      {/* 2. Navigation with Brand, Multi-platform links & Telegram */}
       <Navbar 
         activeNav={activeNav}
         setActiveNav={setActiveNav}
@@ -201,83 +180,39 @@ export const App: React.FC = () => {
           onViewFeatures={scrollToFeatures}
         />
 
-        {/* Top Responsive Leaderboard (728x90 on desktop / 320x50 on mobile) */}
-        <AdResponsiveLeaderboard className="my-6" />
-
         {/* 4. Unified Multi-Platform Download & Release Hub */}
         <DownloadAppSection 
           platforms={platforms}
         />
 
-        {/* Sponsored Native In-Feed Container */}
-        <AdNativeContainer />
-
-        {/* Sponsored Medium Rectangle (300x250) & Vertical Banner (160x300) Cluster */}
-        <div className="w-full max-w-6xl mx-auto px-4 my-8">
-          <div className="flex flex-wrap items-center justify-center gap-6">
-            <AdBanner300x250 />
-            <AdBanner160x300 />
-            <AdBanner300x250 />
-          </div>
-        </div>
-
-        {/* 6. Why Choose GEN MUSIC Section */}
+        {/* 5. Why Choose GEN MUSIC Section */}
         <WhyChooseSection 
           onDownloadClick={scrollToDownload}
         />
 
-        {/* Sponsored Compact Banner (468x60) */}
-        <AdBanner468x60 />
-
-        {/* All-In-One Dedicated Sponsored Media & Partner Ad Units Showcase */}
-        <AdShowcaseSection />
-
-        {/* 6b. Android Auto & Car Apps Section */}
+        {/* 6. Android Auto & Car Apps Section */}
         <AndroidCarAppsSection 
           onDownloadClick={scrollToDownload}
         />
 
-        {/* 6c. Dynamic 3D Spatial Music Visualizer Engine */}
+        {/* 7. Dynamic 3D Spatial Music Visualizer Engine */}
         <MusicVisualizer3D />
 
-        {/* 7. Complete Features Section */}
+        {/* 8. Complete Features Section */}
         <PremiumFeaturesSection 
           onDownloadClick={scrollToDownload}
         />
 
-        {/* Mid-Page Responsive Leaderboard (728x90 / 320x50) */}
-        <AdResponsiveLeaderboard className="my-8" />
-
-        {/* 8. App Interface Screenshots */}
+        {/* 9. App Interface Screenshots */}
         <ScreenshotsSection />
 
-        {/* High-Impact Skyscraper (160x600), Medium Rectangle (300x250), and Mobile Banner (320x50) Grid */}
-        <div className="w-full max-w-6xl mx-auto px-4 my-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8">
-          <AdBanner160x600 />
-          <div className="flex flex-col items-center justify-center gap-4">
-            <AdBanner300x250 />
-            <AdBanner320x50 />
-            <AdBanner468x60 />
-          </div>
-          <AdBanner160x600 />
-        </div>
-
-        {/* 9. Updates & Announcements */}
+        {/* 10. Updates & Announcements */}
         <UpdatesSection 
           onDownloadClick={scrollToDownload}
         />
 
-        {/* Second Sponsored Native In-Feed Unit */}
-        <AdNativeContainer />
-
-        {/* 10. Frequently Asked Questions */}
+        {/* 11. Frequently Asked Questions */}
         <FAQSection />
-
-        {/* Pre-Footer Responsive Leaderboard Ad */}
-        <AdResponsiveLeaderboard className="my-10" />
-
-        {/* 10x Ad Multiplier Matrix Block (End of Page Content) */}
-        <AdMultiplyMatrix10x />
 
       </main>
 

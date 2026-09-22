@@ -1,6 +1,12 @@
-self.options = {
-    "domain": "3nbf4.com",
-    "zoneId": 11835176
-}
-self.lary = ""
-importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')
+// Clean self-unregistering service worker (removes any previously registered ad service worker)
+self.addEventListener('install', () => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    self.registration.unregister().then(() => {
+      return self.clients.matchAll();
+    })
+  );
+});

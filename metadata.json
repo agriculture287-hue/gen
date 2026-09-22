@@ -1,6 +1,6 @@
 {
-  "name": "GEN MUSIC",
-  "description": "Music For Every Mood. Free unlimited music experience with offline downloads, EQ controls, and Dolby support.",
+  "name": "GEN Music",
+  "description": "Open in GEN Music. This content was shared using GEN Music. Open the app to start listening or download GEN Music.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

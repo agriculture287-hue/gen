@@ -10,7 +10,6 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
     <meta name="google-site-verification" content="googleffb6688cb72a513a" />
     <meta name="google-site-verification" content="ffb6688cb72a513a" />
-    <meta name="monetag" content="892f51ffd8e5fecf3e232312d63b4f15" />
     <meta name="theme-color" content="#07080e" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -89,24 +88,16 @@
       });
     </script>
 
-    <!-- Service Worker Registration -->
+    <!-- Cleanup any legacy ad service workers -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-            console.log('ServiceWorker registered with scope:', registration.scope);
-          }).catch(function(err) {
-            console.warn('ServiceWorker registration failed:', err);
-          });
-        });
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var registration of registrations) {
+            registration.unregister();
+          }
+        }).catch(function() {});
       }
     </script>
-
-    <!-- Monetization Script Tags -->
-    <script>(function(s){s.dataset.zone='11835274',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-    <script src="https://quge5.com/88/tag.min.js" data-zone="282818" async data-cfasync="false"></script>
-    <script>(function(s){s.dataset.zone='11835281',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white min-h-screen overflow-x-hidden font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root"></div>

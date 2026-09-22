@@ -1,4 +1,4 @@
-import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem, AdSettings } from '../types';
+import { AppPlatformRelease, TelegramChannel, TelegramConfig, UpdateItem } from '../types';
 import { ANNOUNCEMENT_UPDATES } from './landingData';
 
 export const ADMIN_CREDENTIALS = {
@@ -79,22 +79,6 @@ export const DEFAULT_TELEGRAM_CONFIG: TelegramConfig = {
   announcementText: 'Contact admin directly on Telegram for fast APK assistance, feedback, or business queries.',
 };
 
-export const DEFAULT_AD_SETTINGS: AdSettings = {
-  directSponsorLink: 'https://repeattelegraph.com/wvr8xjtukm?key=1247384491dae60d76f3cea2ff189af4',
-  adsterraScriptHost: 'https://repeattelegraph.com',
-  key728x90: '3635bbbdc742fefb24519c63b6bff3c5',
-  key468x60: 'f1c6f46aca31d8a642cea0cfb8809420',
-  key320x50: 'b9f225aac9d6cce00383764f5a5e0888',
-  key300x250: 'c015de54225846752d4a34b052156ee8',
-  key160x300: '8fd0348a4e76f85f02e3cfba92e5d1b5',
-  key160x600: '32c075957815f785e7ce0236d78b802b',
-  nativeScriptUrl: 'https://repeattelegraph.com/05b45b5e8a25fd475368da7053c8dd8d/invoke.js',
-  nativeContainerId: 'container-05b45b5e8a25fd475368da7053c8dd8d',
-  popunderScriptUrl1: 'https://repeattelegraph.com/59/d6/4a/59d64af1ed83ddee08ed24c679de3f7d.js',
-  popunderScriptUrl2: 'https://repeattelegraph.com/f7/ea/44/f7ea4494ea85550007019f97df638807.js',
-  enableAds: true,
-};
-
 export const DEFAULT_CHANNELS: TelegramChannel[] = [
   {
     id: 'ch-1',
@@ -140,7 +124,6 @@ const STORAGE_KEYS = {
   CHANNELS: 'genmusic_channels_v1',
   UPDATES: 'genmusic_updates_v1',
   ADMIN_SESSION: 'genmusic_admin_auth_v1',
-  AD_SETTINGS: 'genmusic_ad_settings_v1',
 };
 
 // Platforms Storage
@@ -239,41 +222,6 @@ export function saveStoredUpdates(updates: UpdateItem[]): void {
   }
 }
 
-// Ad Settings Storage
-export function getStoredAdSettings(): AdSettings {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.AD_SETTINGS);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed && parsed.directSponsorLink) {
-        // Upgrade migration: If using old sponsor link or old keys, update with new repeattelegraph ad keys
-        if (
-          parsed.directSponsorLink.includes('gj794uv9fq') ||
-          parsed.key728x90 === '4110737d8166f053b733fff6f7e13d06' ||
-          !parsed.key300x250 ||
-          parsed.key300x250 === '36019750f2238adf794264fc6b435242'
-        ) {
-          const updated: AdSettings = { ...DEFAULT_AD_SETTINGS, ...parsed, ...DEFAULT_AD_SETTINGS };
-          localStorage.setItem(STORAGE_KEYS.AD_SETTINGS, JSON.stringify(updated));
-          return updated;
-        }
-        return { ...DEFAULT_AD_SETTINGS, ...parsed };
-      }
-    }
-  } catch (e) {
-    console.error('Failed reading ad settings from storage', e);
-  }
-  return DEFAULT_AD_SETTINGS;
-}
-
-export function saveStoredAdSettings(cfg: AdSettings): void {
-  try {
-    localStorage.setItem(STORAGE_KEYS.AD_SETTINGS, JSON.stringify(cfg));
-  } catch (e) {
-    console.error('Failed writing ad settings to storage', e);
-  }
-}
-
 // Admin Auth Session
 export function getAdminSession(): boolean {
   try {
@@ -312,7 +260,7 @@ export function resetAppToDefaults(): void {
     localStorage.removeItem(STORAGE_KEYS.TELEGRAM_CONFIG);
     localStorage.removeItem(STORAGE_KEYS.CHANNELS);
     localStorage.removeItem(STORAGE_KEYS.UPDATES);
-    localStorage.removeItem(STORAGE_KEYS.AD_SETTINGS);
+    localStorage.removeItem('genmusic_ad_settings_v1');
   } catch (e) {
     console.error('Failed resetting to defaults', e);
   }

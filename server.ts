@@ -67,13 +67,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', version: cleanVersion });
 });
 
-// Sponsor dynamic redirect endpoint
-// Redirects to homepage
-app.all('/api/sponsor-click', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  return res.redirect(302, '/');
-});
-
 // Direct binary download endpoints with attachment headers to start downloads on same page
 app.get(['/download/android', '/download/apk', '/download/GEN-Music.apk', '/download/genmusic.apk'], (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="GEN-Music.apk"');
@@ -93,21 +86,6 @@ app.get(['/download/windows', '/download/win', '/download/Gen-Music.exe', '/down
 app.get(['/download/macos', '/download/mac', '/download/Gen-Music.dmg', '/download/genmusic.dmg'], (req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="Gen-Music.dmg"');
   return res.redirect(302, DOWNLOAD_LINKS.macos.downloadUrl);
-});
-
-// Explicit service worker routes for ad/monetization validation
-const serviceWorkerContent = `self.options = {
-    "domain": "3nbf4.com",
-    "zoneId": 11835176
-}
-self.lary = ""
-importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')`;
-
-app.get(['/sw.js', '/service-worker.js'], (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript');
-  res.setHeader('Service-Worker-Allowed', '/');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.send(serviceWorkerContent);
 });
 
 async function startServer() {

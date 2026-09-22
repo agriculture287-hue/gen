@@ -19,7 +19,6 @@ import confetti from 'canvas-confetti';
 import { AppPlatformRelease } from '../types';
 import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
-import { AdDirectSponsorLink } from './AdBanners';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 import { triggerSamePageDownload } from '../utils/downloadHelper';
@@ -403,11 +402,6 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                 </div>
               );
             })}
-          </div>
-
-          {/* Optional Fast Sponsor Mirror Action */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-            <AdDirectSponsorLink label="⚡ Fast Direct Sponsor Mirror Link" className="py-3.5 px-6 rounded-2xl justify-center text-sm shadow-md" />
           </div>
 
           {/* Verification & Security Guarantee Bar */}
