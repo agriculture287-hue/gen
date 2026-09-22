@@ -10,7 +10,6 @@ import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { DownloadsPage } from './components/DownloadsPage';
-import { SharePage } from './components/SharePage';
 import { AndroidCarAppsSection } from './components/AndroidCarAppsSection';
 import { MusicVisualizer3D } from './components/MusicVisualizer3D';
 import { 
@@ -30,16 +29,7 @@ import { AppPlatformRelease } from './types';
 
 export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
-  
-  // Helper to normalize paths but preserve case for share routes (case-sensitive YouTube video IDs)
-  const getNormalizedPath = (rawPath: string) => {
-    if (rawPath.startsWith('/share/')) {
-      return rawPath;
-    }
-    return rawPath.toLowerCase();
-  };
-
-  const [currentPath, setCurrentPath] = useState(getNormalizedPath(window.location.pathname));
+  const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Statically mapped platforms based on downloadLinks.ts
@@ -111,8 +101,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const checkRoute = () => {
-      const rawPath = window.location.pathname;
-      const path = rawPath.startsWith('/share/') ? rawPath : rawPath.toLowerCase();
+      const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
@@ -164,10 +153,9 @@ export const App: React.FC = () => {
 
 
 
-  // Check if explicit download portal requested
   if (currentPath === '/download' || currentPath === '/downloads') {
     return (
-      <div className="min-h-screen bg-[#0A0A0A] text-slate-100 flex flex-col font-sans selection:bg-[#00E676] selection:text-black relative">
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
         <DownloadsPage />
         <Footer 
           onOpenLegalModal={handleOpenLegalModal}
@@ -177,42 +165,145 @@ export const App: React.FC = () => {
     );
   }
 
-  // Determine share ID from path (/share/:id), search param (?id=... or ?videoId=...), or default to 'B8uJqlSiJQ4'
-  let shareId = 'B8uJqlSiJQ4';
-  let shareType: 'song' | 'album' | 'playlist' | 'artist' = 'song';
-
-  if (currentPath.startsWith('/share/')) {
-    const rawSharePart = currentPath.slice('/share/'.length).split('?')[0]?.split('#')[0] || '';
-    const segments = rawSharePart.split('/').filter(Boolean);
-    if (segments.length >= 2 && ['song', 'album', 'playlist', 'artist'].includes(segments[0].toLowerCase())) {
-      shareType = segments[0].toLowerCase() as any;
-      shareId = segments[1];
-    } else if (segments.length >= 1) {
-      shareId = segments[0];
-    }
-  } else if (typeof window !== 'undefined') {
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryId = urlParams.get('id') || urlParams.get('videoId');
-    if (queryId) {
-      shareId = queryId;
-    }
-  }
-
-  // Render the GEN Music Share Page
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-slate-100 flex flex-col font-sans selection:bg-[#00E676] selection:text-black relative">
-      <SharePage 
-        videoId={shareId}
-        type={shareType}
-        onNavigateDownload={() => {
-          window.history.pushState({}, '', '/download');
-          setCurrentPath('/download');
-        }}
-        onNavigateHome={() => {
-          window.history.pushState({}, '', '/share/B8uJqlSiJQ4');
-          setCurrentPath('/share/B8uJqlSiJQ4');
-        }} 
+    <div className="min-h-screen bg-[#07080e] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative overflow-x-hidden">
+      
+      {/* Background ambient futuristic glow orbs */}
+      <div className="fixed top-20 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="fixed top-1/2 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="fixed bottom-20 left-10 w-96 h-96 bg-pink-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
+
+      {/* Fixed Side Gutters Skyscraper Ads (160x600 Left & Right on Desktop) */}
+      <AdSideSkyscrapers />
+
+      {/* 1. Top Announcement Bar */}
+      <TopBanner 
+        onDownloadClick={scrollToDownload} 
+        announcementText="GEN MUSIC Official Release is Available Now — Download for Android, Android Car, Mac & Windows."
       />
+
+      {/* 2. Navigation with Brand, Multi-platform links & Telegram (Admin triggers hidden from UI) */}
+      <Navbar 
+        activeNav={activeNav}
+        setActiveNav={setActiveNav}
+        onDownloadClick={scrollToDownload}
+      />
+
+      {/* Main Content Sections */}
+      <main className="flex-grow pb-28">
+        
+        {/* 3. Hero Section */}
+        <HeroSection 
+          platforms={platforms}
+          onSelectPlatformDownload={() => {
+            scrollToDownload();
+          }}
+          onViewFeatures={scrollToFeatures}
+        />
+
+        {/* Top Responsive Leaderboard (728x90 on desktop / 320x50 on mobile) */}
+        <AdResponsiveLeaderboard className="my-6" />
+
+        {/* 4. Unified Multi-Platform Download & Release Hub */}
+        <DownloadAppSection 
+          platforms={platforms}
+        />
+
+        {/* Sponsored Native In-Feed Container */}
+        <AdNativeContainer />
+
+        {/* Sponsored Medium Rectangle (300x250) & Vertical Banner (160x300) Cluster */}
+        <div className="w-full max-w-6xl mx-auto px-4 my-8">
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <AdBanner300x250 />
+            <AdBanner160x300 />
+            <AdBanner300x250 />
+          </div>
+        </div>
+
+        {/* 6. Why Choose GEN MUSIC Section */}
+        <WhyChooseSection 
+          onDownloadClick={scrollToDownload}
+        />
+
+        {/* Sponsored Compact Banner (468x60) */}
+        <AdBanner468x60 />
+
+        {/* All-In-One Dedicated Sponsored Media & Partner Ad Units Showcase */}
+        <AdShowcaseSection />
+
+        {/* 6b. Android Auto & Car Apps Section */}
+        <AndroidCarAppsSection 
+          onDownloadClick={scrollToDownload}
+        />
+
+        {/* 6c. Dynamic 3D Spatial Music Visualizer Engine */}
+        <MusicVisualizer3D />
+
+        {/* 7. Complete Features Section */}
+        <PremiumFeaturesSection 
+          onDownloadClick={scrollToDownload}
+        />
+
+        {/* Mid-Page Responsive Leaderboard (728x90 / 320x50) */}
+        <AdResponsiveLeaderboard className="my-8" />
+
+        {/* 8. App Interface Screenshots */}
+        <ScreenshotsSection />
+
+        {/* High-Impact Skyscraper (160x600), Medium Rectangle (300x250), and Mobile Banner (320x50) Grid */}
+        <div className="w-full max-w-6xl mx-auto px-4 my-10 flex flex-wrap items-center justify-center gap-6 sm:gap-8">
+          <AdBanner160x600 />
+          <div className="flex flex-col items-center justify-center gap-4">
+            <AdBanner300x250 />
+            <AdBanner320x50 />
+            <AdBanner468x60 />
+          </div>
+          <AdBanner160x600 />
+        </div>
+
+        {/* 9. Updates & Announcements */}
+        <UpdatesSection 
+          onDownloadClick={scrollToDownload}
+        />
+
+        {/* Second Sponsored Native In-Feed Unit */}
+        <AdNativeContainer />
+
+        {/* 10. Frequently Asked Questions */}
+        <FAQSection />
+
+        {/* Pre-Footer Responsive Leaderboard Ad */}
+        <AdResponsiveLeaderboard className="my-10" />
+
+        {/* 10x Ad Multiplier Matrix Block (End of Page Content) */}
+        <AdMultiplyMatrix10x />
+
+      </main>
+
+      {/* Main App Footer */}
+      <Footer 
+        onOpenLegalModal={handleOpenLegalModal}
+        onDownloadClick={scrollToDownload}
+      />
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div 
+          id="app-toast-alert"
+          className="fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl bg-[#0d1020]/95 border border-cyan-500/40 text-white text-xs sm:text-sm font-mono shadow-[0_0_25px_rgba(0,240,255,0.2)] backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-center gap-3"
+        >
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <span>{toastMessage}</span>
+          <button 
+            onClick={() => setToastMessage(null)}
+            className="text-slate-400 hover:text-cyan-300 ml-2 text-xs font-bold cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
     </div>
   );
 };
