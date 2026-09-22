@@ -194,8 +194,7 @@ async function handleShareRequest(req: any, res: any, rawId: string) {
   const cleanId = encodeURIComponent(rawId || '');
   const appScheme = process.env.GENMUSIC_APP_SCHEME || 'genmusic';
   const packageName = process.env.GENMUSIC_PACKAGE_NAME || 'in.gen.agrigence';
-  const playStoreUrl = process.env.GENMUSIC_PLAY_STORE_URL || 'https://play.google.com/store/apps/details?id=in.gen.agrigence';
-  const appStoreUrl = process.env.GENMUSIC_APP_STORE_URL || 'https://apps.apple.com/app/genmusic/id123456789';
+  const apkUrl = process.env.GENMUSIC_APK_URL || 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk';
 
   const fallback = {
     title: 'Shared Song',
@@ -230,8 +229,9 @@ async function handleShareRequest(req: any, res: any, rawId: string) {
     }
   }
 
+  // Pure Android intent without browser_fallback_url because GenMusic is a sideloaded APK, not on Play Store
   const deepLinkUrl = `${appScheme}://play?v=${cleanId}`;
-  const androidIntentUrl = `intent://play?v=${cleanId}#Intent;scheme=${appScheme};package=${packageName};S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
+  const androidIntentUrl = `intent://play?v=${cleanId}#Intent;scheme=${appScheme};package=${packageName};end`;
   const pageTitle = `${meta.title} • GenMusic`;
   const pageDescription = `Listen to ${meta.title} by ${meta.author} on GenMusic.`;
   const shareUrl = `https://genmusics.vercel.app/share/${cleanId}`;
@@ -413,28 +413,45 @@ async function handleShareRequest(req: any, res: any, rawId: string) {
       line-height: 1.5;
       margin-bottom: 14px;
     }
-    .store-button-group {
-      display: flex;
-      gap: 10px;
-    }
-    .store-button {
-      flex: 1;
+    .apk-button {
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 12px 14px;
+      gap: 10px;
+      padding: 14px 20px;
+      border-radius: 14px;
+      background-color: rgba(124, 58, 237, 0.18);
+      border: 1.5px solid #7c3aed;
+      color: #c4b5fd;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.2);
+      transition: all 0.2s ease;
+    }
+    .apk-button:hover {
+      background-color: rgba(124, 58, 237, 0.28);
+      transform: translateY(-1px);
+    }
+    .retry-button {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 16px;
       border-radius: 12px;
-      background-color: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #e5e7eb;
+      background-color: transparent;
+      border: none;
+      color: #9ca3af;
       font-size: 13px;
       font-weight: 600;
-      text-decoration: none;
-      transition: background-color 0.2s ease;
+      cursor: pointer;
+      transition: color 0.2s ease;
     }
-    .store-button:hover {
-      background-color: rgba(255, 255, 255, 0.12);
+    .retry-button:hover {
+      color: #ffffff;
     }
     footer {
       font-size: 12px;
@@ -475,26 +492,33 @@ async function handleShareRequest(req: any, res: any, rawId: string) {
         <span>Open in GenMusic</span>
       </button>
 
-      <!-- Store Fallback Section -->
+      <!-- Fallback Section -->
       <div id="store-fallback" class="store-section">
         <p class="store-subtitle">
-          Don't have the app yet? Download GenMusic for high-fidelity playback and offline songs.
+          GenMusic is distributed as a direct APK download for high-fidelity audio and offline listening.
         </p>
-        <div class="store-button-group">
-          <a href="${playStoreUrl}" target="_blank" rel="noopener noreferrer" class="store-button">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa">
-              <path d="M3.609 1.814L13.793 12 3.61 22.186c-.352-.338-.61-.83-.61-1.46V3.273c0-.63.258-1.121.61-1.46zm11.3 11.3l2.257-2.257-11.45-6.52 9.193 8.777zm0 1.772l-9.193 8.777 11.45-6.52-2.257-2.257zm1.121-1.121l3.585-2.042c1.026-.585 1.026-1.545 0-2.13l-3.585-2.042-2.008 2.008 2.008 2.006z"/>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <a href="${apkUrl}" download="GenMusic.apk" class="apk-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
             </svg>
-            <span>Google Play</span>
+            <span>Download APK (Direct)</span>
           </a>
 
-          <a href="${appStoreUrl}" target="_blank" rel="noopener noreferrer" class="store-button">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa">
-              <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.76 1.04-1.82.93-2.88-.9.04-2 .6-2.65 1.36-.58.67-.99 1.74-.88 2.78.99.08 1.98-.5 2.6-1.26z"/>
+          <button onclick="openApp()" type="button" class="retry-button">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+              <polyline points="15 3 21 3 21 9"></polyline>
+              <line x1="10" y1="14" x2="21" y2="3"></line>
             </svg>
-            <span>App Store</span>
-          </a>
+            <span>Already have the app? Open it</span>
+          </button>
         </div>
+        <p style="font-size: 11px; color: #6b7280; margin-top: 12px; line-height: 1.4; text-align: center;">
+          * Note: Sideloading requires allowing "Install unknown apps" for your browser when prompted on Android 8+.
+        </p>
       </div>
     </div>
   </main>
@@ -515,13 +539,14 @@ async function handleShareRequest(req: any, res: any, rawId: string) {
     let appOpened = false;
 
     function handleVisibilityChange() {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === 'hidden' || document.hidden) {
         appOpened = true;
       }
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pagehide', function() { appOpened = true; });
+    window.addEventListener('blur', function() { appOpened = true; });
 
     function showFallback() {
       const el = document.getElementById('store-fallback');

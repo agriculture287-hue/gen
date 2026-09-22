@@ -1,5 +1,6 @@
 import Head from 'next/head';
 import { useEffect, useState, useRef } from 'react';
+import { buildAndroidIntent, buildCustomSchemeUri } from '../../lib/deepLink';
 
 /**
  * Server-side metadata fetcher via public YouTube oEmbed and i.ytimg.com CDN.
@@ -46,15 +47,13 @@ export async function getServerSideProps(context) {
     }
   }
 
-  // App & store configuration from environment variables with production defaults
+  // App & hosted APK configuration
+  // Note: GenMusic is NOT on the Google Play Store; it is distributed directly as an APK.
   const appScheme = process.env.GENMUSIC_APP_SCHEME || 'genmusic';
   const packageName = process.env.GENMUSIC_PACKAGE_NAME || 'in.gen.agrigence';
-  const playStoreUrl =
-    process.env.GENMUSIC_PLAY_STORE_URL ||
-    'https://play.google.com/store/apps/details?id=in.gen.agrigence';
-  const appStoreUrl =
-    process.env.GENMUSIC_APP_STORE_URL ||
-    'https://apps.apple.com/app/genmusic/id123456789';
+  const apkUrl =
+    process.env.GENMUSIC_APK_URL ||
+    'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk';
 
   return {
     props: {
@@ -63,8 +62,7 @@ export async function getServerSideProps(context) {
       config: {
         appScheme,
         packageName,
-        playStoreUrl,
-        appStoreUrl
+        apkUrl
       }
     }
   };
@@ -72,27 +70,29 @@ export async function getServerSideProps(context) {
 
 export default function ShareRedirectPage({ id, meta, config }) {
   const [showFallback, setShowFallback] = useState(false);
-  const [attempted, setAttempted] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const appOpenedRef = useRef(false);
 
-  // Compute platform deep link URLs
-  const androidIntentUrl = `intent://play?v=${encodeURIComponent(id)}#Intent;scheme=${config.appScheme};package=${config.packageName};S.browser_fallback_url=${encodeURIComponent(config.playStoreUrl)};end`;
-  const iosSchemeUrl = `${config.appScheme}://play?v=${encodeURIComponent(id)}`;
-
-  const openApp = () => {
+  // Manual trigger / retry function
+  const handleOpenApp = () => {
     if (typeof window === 'undefined') return;
     const ua = navigator.userAgent || '';
     const isAndroid = /android/i.test(ua);
     const isIOS = /iphone|ipad|ipod/i.test(ua);
 
+    setIsOpening(true);
+
     if (isAndroid) {
-      window.location.href = androidIntentUrl;
+      window.location.href = buildAndroidIntent(id);
     } else if (isIOS) {
-      window.location.href = iosSchemeUrl;
+      window.location.href = buildCustomSchemeUri(id);
     } else {
-      // Desktop: fallback UI directly
       setShowFallback(true);
     }
+
+    setTimeout(() => {
+      setIsOpening(false);
+    }, 2000);
   };
 
   useEffect(() => {
@@ -103,15 +103,15 @@ export default function ShareRedirectPage({ id, meta, config }) {
     const isIOS = /iphone|ipad|ipod/i.test(ua);
     const isMobile = isAndroid || isIOS;
 
+    // Desktop browsers don't have the mobile app; skip directly to fallback UI
     if (!isMobile) {
-      // Desktop browsers skip directly to fallback UI
       setShowFallback(true);
       return;
     }
 
-    // Detect if app was successfully opened using visibilitychange / pagehide
+    // Detect if native app took foreground via visibilitychange / pagehide
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === 'hidden' || document.hidden) {
         appOpenedRef.current = true;
       }
     };
@@ -120,30 +120,39 @@ export default function ShareRedirectPage({ id, meta, config }) {
       appOpenedRef.current = true;
     };
 
+    const handleWindowBlur = () => {
+      // Blur can indicate Chrome system dialog ("Open with GenMusic") or app launch
+      appOpenedRef.current = true;
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('blur', handleWindowBlur);
 
-    // Initial redirect attempt on mount
-    setAttempted(true);
+    // Initial silent launch attempt on mount
     if (isAndroid) {
-      window.location.href = androidIntentUrl;
+      // Use intent:// without browser_fallback_url to avoid broken Play Store redirect
+      window.location.href = buildAndroidIntent(id);
     } else if (isIOS) {
-      window.location.href = iosSchemeUrl;
+      window.location.href = buildCustomSchemeUri(id);
     }
 
-    // After ~1.5 seconds, check if the app opened
+    // After ~1400ms, check if user remains in browser with page visible.
+    // If the Chrome "Open with" system dialog is displayed or the app launched,
+    // document.hidden / blur will be triggered, preventing unwanted UI flash.
     const fallbackTimer = setTimeout(() => {
-      if (!appOpenedRef.current && document.visibilityState !== 'hidden') {
+      if (!appOpenedRef.current && !document.hidden && document.visibilityState === 'visible') {
         setShowFallback(true);
       }
-    }, 1500);
+    }, 1400);
 
     return () => {
       clearTimeout(fallbackTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('blur', handleWindowBlur);
     };
-  }, [id, androidIntentUrl, iosSchemeUrl]);
+  }, [id]);
 
   const pageTitle = `${meta.title} • GenMusic`;
   const pageDescription = `Listen to ${meta.title} by ${meta.author} on GenMusic.`;
@@ -193,7 +202,6 @@ export default function ShareRedirectPage({ id, meta, config }) {
 
         {/* Main Content */}
         <main style={styles.main}>
-          {/* Card Container */}
           <div style={styles.card}>
             {/* Song Thumbnail */}
             <div style={styles.thumbnailWrapper}>
@@ -212,52 +220,62 @@ export default function ShareRedirectPage({ id, meta, config }) {
               <p style={styles.songAuthor}>{meta.author}</p>
             </div>
 
-            {/* Primary Action Button */}
+            {/* Primary Action: Open in GenMusic */}
             <button
-              onClick={openApp}
+              onClick={handleOpenApp}
               style={styles.primaryButton}
               type="button"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
-              Open in GenMusic
+              {isOpening ? 'Opening GenMusic...' : 'Open in GenMusic'}
             </button>
 
-            {/* Store Download Options */}
+            {/* Fallback Card: Shown if app is not installed or tab remains visible */}
             {showFallback && (
-              <div style={styles.storeSection}>
-                <p style={styles.storeSubtitle}>
-                  Don't have the app yet? Download GenMusic for high-fidelity playback and offline songs.
-                </p>
+              <div style={styles.fallbackSection}>
+                <div style={styles.fallbackDivider} />
 
-                <div style={styles.storeButtonGroup}>
-                  {/* Google Play Button */}
-                  <a
-                    href={config.playStoreUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={styles.storeButton}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={styles.storeIcon}>
-                      <path d="M3.609 1.814L13.793 12 3.61 22.186c-.352-.338-.61-.83-.61-1.46V3.273c0-.63.258-1.121.61-1.46zm11.3 11.3l2.257-2.257-11.45-6.52 9.193 8.777zm0 1.772l-9.193 8.777 11.45-6.52-2.257-2.257zm1.121-1.121l3.585-2.042c1.026-.585 1.026-1.545 0-2.13l-3.585-2.042-2.008 2.008 2.008 2.006z"/>
-                    </svg>
-                    <span>Google Play</span>
-                  </a>
-
-                  {/* App Store Button */}
-                  <a
-                    href={config.appStoreUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={styles.storeButton}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={styles.storeIcon}>
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.76 1.04-1.82.93-2.88-.9.04-2 .6-2.65 1.36-.58.67-.99 1.74-.88 2.78.99.08 1.98-.5 2.6-1.26z"/>
-                    </svg>
-                    <span>App Store</span>
-                  </a>
+                <div style={styles.fallbackHeader}>
+                  <h3 style={styles.fallbackTitle}>Get the GenMusic App</h3>
+                  <p style={styles.fallbackSubtitle}>
+                    GenMusic is distributed as a direct APK download for high-fidelity audio and offline listening.
+                  </p>
                 </div>
+
+                {/* Prominent Download APK Button */}
+                <a
+                  href={config.apkUrl}
+                  download="GenMusic.apk"
+                  style={styles.downloadApkButton}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>Download APK (Direct)</span>
+                </a>
+
+                {/* Secondary: Retry Opening App for Users who already have it */}
+                <button
+                  onClick={handleOpenApp}
+                  style={styles.retryButton}
+                  type="button"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
+                  <span>Already have the app? Open it</span>
+                </button>
+
+                {/* Sideload Hint */}
+                <p style={styles.sideloadNote}>
+                  * Note: Sideloading requires allowing "Install unknown apps" for your browser when prompted on Android 8+.
+                </p>
               </div>
             )}
           </div>
@@ -272,7 +290,7 @@ export default function ShareRedirectPage({ id, meta, config }) {
   );
 }
 
-// Clean, mobile-first styles with GenMusic purple (#7c3aed)
+// Clean, mobile-first styling with GenMusic purple (#7c3aed)
 const styles = {
   container: {
     minHeight: '100vh',
@@ -367,7 +385,8 @@ const styles = {
   thumbnail: {
     width: '100%',
     height: '100%',
-    objectFit: 'cover'
+    objectFit: 'cover',
+    display: 'block'
   },
   thumbnailOverlay: {
     position: 'absolute',
@@ -412,40 +431,71 @@ const styles = {
     transition: 'all 0.2s ease',
     boxSizing: 'border-box'
   },
-  storeSection: {
+  fallbackSection: {
     marginTop: '20px',
-    paddingTop: '20px',
-    borderTop: '1px solid rgba(255, 255, 255, 0.08)',
     animation: 'fadeIn 0.3s ease-in-out'
   },
-  storeSubtitle: {
-    margin: '0 0 14px 0',
+  fallbackDivider: {
+    height: '1px',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: '18px'
+  },
+  fallbackHeader: {
+    marginBottom: '16px'
+  },
+  fallbackTitle: {
+    fontSize: '15px',
+    fontWeight: 700,
+    color: '#ffffff',
+    margin: '0 0 6px 0'
+  },
+  fallbackSubtitle: {
     fontSize: '12px',
     color: '#9ca3af',
-    lineHeight: 1.5
+    lineHeight: 1.5,
+    margin: 0
   },
-  storeButtonGroup: {
-    display: 'flex',
-    gap: '10px'
-  },
-  storeButton: {
-    flex: 1,
+  downloadApkButton: {
+    width: '100%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: '8px',
-    padding: '12px 14px',
+    gap: '10px',
+    padding: '14px 20px',
+    borderRadius: '14px',
+    backgroundColor: 'rgba(124, 58, 237, 0.18)',
+    border: '1.5px solid #7c3aed',
+    color: '#c4b5fd',
+    fontSize: '14px',
+    fontWeight: 700,
+    textDecoration: 'none',
+    boxSizing: 'border-box',
+    boxShadow: '0 4px 15px rgba(124, 58, 237, 0.2)',
+    transition: 'all 0.2s ease',
+    marginBottom: '10px'
+  },
+  retryButton: {
+    width: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '10px 16px',
     borderRadius: '12px',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#e5e7eb',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#9ca3af',
     fontSize: '13px',
     fontWeight: 600,
-    textDecoration: 'none',
+    cursor: 'pointer',
+    transition: 'color 0.2s ease',
     boxSizing: 'border-box'
   },
-  storeIcon: {
-    color: '#a78bfa'
+  sideloadNote: {
+    fontSize: '11px',
+    color: '#6b7280',
+    marginTop: '12px',
+    lineHeight: 1.4,
+    textAlign: 'center'
   },
   footer: {
     fontSize: '12px',

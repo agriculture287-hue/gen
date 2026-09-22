@@ -94,9 +94,28 @@ GenMusic shares songs using clean redirect links in the format:
 https://genmusics.vercel.app/share/<youtubeVideoId>
 ```
 
-When a user opens this link:
-1. **App Installed**: Opens the song directly in the GenMusic native app.
-2. **App Not Installed / Fallback**: Displays a branded, dark-themed page (`#7c3aed` purple accent) with song title, artist/channel, and thumbnail, plus links to Google Play and the App Store.
+When an Android user opens this link or taps "Play Now":
+1. **GenMusic Installed (`in.gen.agrigence`)**: The native app opens directly to that specific song via deep link.
+2. **GenMusic Not Installed**: If the browser tab remains in the foreground after ~1.4s (detected via `visibilitychange` / `pagehide`), the fallback UI renders with:
+   - Real song metadata (title, artist, and high-res thumbnail)
+   - A prominent **"Download APK (Direct)"** button linking to our self-hosted APK file
+   - A secondary **"Already have the app? Open it"** button that retries the intent URL (for cases where the auto-attempt was blocked or silently failed)
+
+### ⚠️ Important: Sideloaded APK Deep Link Architecture
+
+Because GenMusic is **not published on the Google Play Store** and is distributed directly as an APK download from our site:
+- Standard Android `intent://` links usually include `S.browser_fallback_url` pointing to the Play Store. That would fail and lead to a dead Play Store page.
+- We construct the Android intent URI via `buildAndroidIntent(videoId)` as:
+  ```text
+  intent://play?v=<videoId>#Intent;scheme=genmusic;package=in.gen.agrigence;end
+  ```
+  Omission of `browser_fallback_url` allows client-side JavaScript to cleanly detect app presence via visibility/blur timing and display our self-hosted APK download fallback instead.
+- **Chrome "Open with" Dialog Handling**: When Chrome prompts the user with an "Open with" system dialog, the window triggers a blur/hidden state. The fallback card will not flash behind this dialog, only rendering after the timer expires if `document.visibilityState === 'visible' && !document.hidden`.
+
+### ⚠️ Known Caveat for Android Users (Troubleshooting)
+
+> **Android 8+ Unknown App Installation**:
+> Sideloading an APK on Android 8.0+ (Oreo and later) requires the user to grant permission to "Install unknown apps" (or "Install apps from this source") for their browser (e.g., Chrome, Samsung Internet). If users report that tapping the downloaded APK doesn't open the installer, instruct them to enable **"Allow from this source"** in Android Settings > Apps > [Browser] > Install unknown apps.
 
 ### ⚙️ Environment Variables
 
@@ -106,8 +125,8 @@ Add these to your `.env.local` or Vercel Project Settings (`Settings` -> `Enviro
 | :--- | :---: | :--- | :--- |
 | `GENMUSIC_APP_SCHEME` | No | `genmusic` | Custom URL scheme registered by your mobile app (e.g. `genmusic://play?v=<id>`) |
 | `GENMUSIC_PACKAGE_NAME` | No | `in.gen.agrigence` | Android package name for `intent://` URL resolution |
-| `GENMUSIC_PLAY_STORE_URL` | No | `https://play.google.com/store/apps/details?id=in.gen.agrigence` | Play Store listing URL used as Android fallback |
-| `GENMUSIC_APP_STORE_URL` | No | `https://apps.apple.com/app/genmusic/id123456789` | iOS App Store listing URL |
+| `GENMUSIC_APK_URL` | No | `https://.../GEN-Music-v2.0.4.apk` | Direct URL to our self-hosted `.apk` binary file |
+| `GENMUSIC_APP_STORE_URL` | No | `https://apps.apple.com/app/genmusic/id123456789` | iOS App Store listing URL (if applicable) |
 
 ### 🚀 Deploying to Vercel
 

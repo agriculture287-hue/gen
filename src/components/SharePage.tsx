@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
-  Sparkles
+  Download,
+  ExternalLink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
+import { buildAndroidIntent, buildCustomSchemeUri } from '../lib/deepLink';
 
 interface SharePageProps {
   videoId: string;
@@ -25,16 +27,14 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
     author: 'GenMusic',
     thumbnailHQ: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'https://genmusics.vercel.app/logo.png'
   });
+  const [isOpening, setIsOpening] = useState(false);
   const appOpenedRef = useRef(false);
 
   const cleanId = encodeURIComponent(videoId || '');
-  const appScheme = 'genmusic';
-  const packageName = 'in.gen.agrigence';
-  const playStoreUrl = 'https://play.google.com/store/apps/details?id=in.gen.agrigence';
-  const appStoreUrl = 'https://apps.apple.com/app/genmusic/id123456789';
+  const apkUrl = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk';
 
-  const androidIntentUrl = `intent://play?v=${cleanId}#Intent;scheme=${appScheme};package=${packageName};S.browser_fallback_url=${encodeURIComponent(playStoreUrl)};end`;
-  const iosSchemeUrl = `${appScheme}://play?v=${cleanId}`;
+  const androidIntentUrl = buildAndroidIntent(cleanId);
+  const iosSchemeUrl = buildCustomSchemeUri(cleanId);
 
   // Fetch oEmbed metadata via serverless /api/meta
   useEffect(() => {
@@ -59,6 +59,8 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
     const isAndroid = /android/i.test(ua);
     const isIOS = /iphone|ipad|ipod/i.test(ua);
 
+    setIsOpening(true);
+
     if (isAndroid) {
       window.location.href = androidIntentUrl;
     } else if (isIOS) {
@@ -66,6 +68,10 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
     } else {
       setShowInstallOptions(true);
     }
+
+    setTimeout(() => {
+      setIsOpening(false);
+    }, 2000);
   };
 
   useEffect(() => {
@@ -81,13 +87,22 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
     }
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
+      if (document.visibilityState === 'hidden' || document.hidden) {
         appOpenedRef.current = true;
       }
     };
 
+    const handlePageHide = () => {
+      appOpenedRef.current = true;
+    };
+
+    const handleWindowBlur = () => {
+      appOpenedRef.current = true;
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('pagehide', () => { appOpenedRef.current = true; });
+    window.addEventListener('pagehide', handlePageHide);
+    window.addEventListener('blur', handleWindowBlur);
 
     // Initial redirect attempt on mobile
     if (isAndroid) {
@@ -96,16 +111,18 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
       window.location.href = iosSchemeUrl;
     }
 
-    // After 1.5s, if app did not open, show fallback card
+    // After 1.4s, if app did not open and document is visible, show fallback card
     const timer = setTimeout(() => {
-      if (!appOpenedRef.current && document.visibilityState !== 'hidden') {
+      if (!appOpenedRef.current && !document.hidden && document.visibilityState === 'visible') {
         setShowInstallOptions(true);
       }
-    }, 1500);
+    }, 1400);
 
     return () => {
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('blur', handleWindowBlur);
     };
   }, [androidIntentUrl, iosSchemeUrl]);
 
@@ -161,11 +178,11 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
               className="w-full flex items-center justify-center gap-2.5 py-3.5 px-6 rounded-2xl bg-[#7c3aed] hover:bg-[#8b5cf6] text-white font-bold text-sm active:scale-[0.98] transition-all shadow-lg shadow-[#7c3aed]/30 cursor-pointer"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Open in GenMusic</span>
+              <span>{isOpening ? 'Opening GenMusic...' : 'Open in GenMusic'}</span>
             </button>
           </div>
 
-          {/* Store Download Options */}
+          {/* Fallback Section */}
           <AnimatePresence>
             {showInstallOptions && (
               <motion.div
@@ -173,37 +190,35 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
-                className="w-full mt-6 pt-6 border-t border-white/10 text-left overflow-hidden"
+                className="w-full mt-6 pt-6 border-t border-white/10 text-center overflow-hidden"
               >
-                <p className="text-xs text-slate-400 mb-4 text-center leading-relaxed">
-                  Don't have the app yet? Download GenMusic for high-fidelity playback and offline songs.
+                <h3 className="text-sm font-bold text-white mb-1.5">Get the GenMusic App</h3>
+                <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                  GenMusic is distributed as a direct APK download for high-fidelity audio and offline listening.
                 </p>
 
-                <div className="flex gap-2.5">
+                <div className="flex flex-col gap-2.5">
                   <a
-                    href={playStoreUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold transition-all"
+                    href={apkUrl}
+                    download="GenMusic.apk"
+                    className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-[#7c3aed]/20 hover:bg-[#7c3aed]/30 border border-[#7c3aed] text-[#c4b5fd] text-sm font-bold shadow-lg shadow-[#7c3aed]/15 transition-all"
                   >
-                    <svg className="w-4 h-4 text-[#a78bfa]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M3.609 1.814L13.793 12 3.61 22.186c-.352-.338-.61-.83-.61-1.46V3.273c0-.63.258-1.121.61-1.46zm11.3 11.3l2.257-2.257-11.45-6.52 9.193 8.777zm0 1.772l-9.193 8.777 11.45-6.52-2.257-2.257zm1.121-1.121l3.585-2.042c1.026-.585 1.026-1.545 0-2.13l-3.585-2.042-2.008 2.008 2.008 2.006z"/>
-                    </svg>
-                    <span>Google Play</span>
+                    <Download className="w-4 h-4" />
+                    <span>Download APK (Direct)</span>
                   </a>
 
-                  <a
-                    href={appStoreUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 flex items-center justify-center gap-2 py-3 px-3 rounded-xl bg-white/[0.06] hover:bg-white/10 border border-white/10 text-slate-200 text-xs font-semibold transition-all"
+                  <button
+                    onClick={launchApp}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 px-3 text-slate-400 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
                   >
-                    <svg className="w-4 h-4 text-[#a78bfa]" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.38c.62-.76 1.04-1.82.93-2.88-.9.04-2 .6-2.65 1.36-.58.67-.99 1.74-.88 2.78.99.08 1.98-.5 2.6-1.26z"/>
-                    </svg>
-                    <span>App Store</span>
-                  </a>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span>Already have the app? Open it</span>
+                  </button>
                 </div>
+
+                <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+                  * Sideloading requires allowing "Install unknown apps" for your browser when prompted on Android 8+.
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
