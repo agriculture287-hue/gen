@@ -13,6 +13,201 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Keep an in-memory buffer of recent analytics events (max 100)
+const analyticsBuffer: Array<{
+  timestamp: string;
+  eventType: string;
+  videoId: string;
+  platform: string;
+  userAgent: string;
+  referrer: string;
+}> = [];
+
+// Song helper metadata fetcher
+async function fetchSongMetadata(videoId: string) {
+  try {
+    const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+    const response = await fetch(oembedUrl);
+    if (response.ok) {
+      const data = await response.json();
+      let title = data.title || 'Unknown Track';
+      let artist = data.author_name || 'GEN Music Artist';
+
+      if (title.includes(' - ')) {
+        const parts = title.split(' - ');
+        artist = parts[0].trim();
+        title = parts.slice(1).join(' - ').trim();
+      } else if (title.includes(' – ')) {
+        const parts = title.split(' – ');
+        artist = parts[0].trim();
+        title = parts.slice(1).join(' – ').trim();
+      }
+
+      const cleanSuffixes = (str: string) => {
+        return str
+          .replace(/\s*[([].*?official.*?[\])]/gi, '')
+          .replace(/\s*[([].*?music video.*?[\])]/gi, '')
+          .replace(/\s*[([].*?video.*?[\])]/gi, '')
+          .replace(/\s*[([].*?audio.*?[\])]/gi, '')
+          .replace(/\s*[([].*?lyrics.*?[\])]/gi, '')
+          .replace(/\s*[([].*?hd.*?[\])]/gi, '')
+          .replace(/\s*[([].*?4k.*?[\])]/gi, '')
+          .trim();
+      };
+
+      title = cleanSuffixes(title);
+      artist = cleanSuffixes(artist);
+
+      return {
+        id: videoId,
+        title: title,
+        artist: artist,
+        thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+        duration: '3:45',
+        description: `Experience ${title} by ${artist} in immersive 3D spatial Dolby audio, only on GEN Music.`,
+        sourceUrl: `https://music.youtube.com/watch?v=${videoId}`
+      };
+    }
+  } catch (error) {
+    console.warn('YouTube oEmbed fetch failed, using fallback:', error);
+  }
+
+  // Graceful case-insensitive fallback titles based on ID for common preview IDs
+  let title = 'Never Gonna Give You Up';
+  let artist = 'Rick Astley';
+  if (videoId === 'dQw4w9WgXcQ') {
+    title = 'Never Gonna Give You Up';
+    artist = 'Rick Astley';
+  }
+
+  return {
+    id: videoId,
+    title: title,
+    artist: artist,
+    thumbnail: `https://img.youtube.com/vi/${videoId}/0.jpg`,
+    duration: '3:32',
+    description: `A legendary song shared via GEN Music. Listen to ${title} in immersive spatial surround sound.`,
+    sourceUrl: `https://music.youtube.com/watch?v=${videoId}`
+  };
+}
+
+// API endpoint to fetch song details
+app.get('/api/song/:videoId', async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId || videoId.length < 5) {
+    return res.status(400).json({ error: 'Invalid videoId' });
+  }
+  const song = await fetchSongMetadata(videoId);
+  return res.json(song);
+});
+
+// API endpoint to post analytics
+app.post('/api/analytics', (req, res) => {
+  const { eventType, videoId, platform } = req.body;
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+  const referrer = req.headers['referer'] || 'Direct';
+  const timestamp = new Date().toISOString();
+
+  console.log(`[Analytics] [${timestamp}] Event: ${eventType}, Video: ${videoId}, Platform: ${platform}, Referrer: ${referrer}`);
+
+  // Store in-memory
+  analyticsBuffer.push({
+    timestamp,
+    eventType,
+    videoId,
+    platform,
+    userAgent,
+    referrer
+  });
+
+  if (analyticsBuffer.length > 100) {
+    analyticsBuffer.shift();
+  }
+
+  return res.json({ success: true });
+});
+
+// Simple endpoint to fetch recent in-memory logs
+app.get('/api/analytics-report', (req, res) => {
+  return res.json({
+    total_cached_events: analyticsBuffer.length,
+    recent_events: [...analyticsBuffer].reverse()
+  });
+});
+
+// Server-side SEO dynamic tag injection for share paths
+app.get('/share/:videoId', async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId || videoId.length < 3) {
+    return res.redirect('/');
+  }
+
+  try {
+    const song = await fetchSongMetadata(videoId);
+    let htmlPath = '';
+    
+    if (process.env.NODE_ENV !== 'production') {
+      htmlPath = path.join(process.cwd(), 'index.html');
+    } else {
+      htmlPath = path.join(process.cwd(), 'dist', 'index.html');
+    }
+
+    if (fs.existsSync(htmlPath)) {
+      let html = fs.readFileSync(htmlPath, 'utf8');
+
+      // Inject dynamic titles and description tags
+      html = html
+        .replace(/<title>.*?<\/title>/gi, `<title>${song.title} • GEN MUSIC</title>`)
+        .replace(
+          /<meta name="description" content=".*?"/gi, 
+          `<meta name="description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive 3D spatial Dolby audio with offline downloads."`
+        )
+        // OG tags
+        .replace(
+          /<meta property="og:title" content=".*?"/gi, 
+          `<meta property="og:title" content="${song.title} - ${song.artist}"`
+        )
+        .replace(
+          /<meta property="og:description" content=".*?"/gi, 
+          `<meta property="og:description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive spatial 3D surround sound."`
+        )
+        .replace(
+          /content="\/logo\.png"/gi,
+          `content="${song.thumbnail}"`
+        )
+        .replace(
+          /<meta property="og:image" content=".*?"/gi, 
+          `<meta property="og:image" content="${song.thumbnail}"`
+        )
+        // Twitter tags
+        .replace(
+          /<meta name="twitter:title" content=".*?"/gi, 
+          `<meta name="twitter:title" content="${song.title} - ${song.artist}"`
+        )
+        .replace(
+          /<meta name="twitter:description" content=".*?"/gi, 
+          `<meta name="twitter:description" content="Listen to ${song.title} on GEN MUSIC. Experience immersive spatial 3D surround sound."`
+        )
+        .replace(
+          /<meta name="twitter:image" content=".*?"/gi, 
+          `<meta name="twitter:image" content="${song.thumbnail}"`
+        );
+
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(html);
+    }
+  } catch (err) {
+    console.error('Server-side SEO injection failed:', err);
+  }
+
+  // Fallback to standard index serving on error
+  if (process.env.NODE_ENV !== 'production') {
+    return res.redirect(`/#/share/${videoId}`); // Anchor fallback
+  } else {
+    return res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+  }
+});
+
 // Helper to strip "v" prefix from version strings if needed
 const cleanVersion = DOWNLOAD_LINKS.version.replace(/^v/, '');
 

@@ -10,6 +10,7 @@ import { UpdatesSection } from './components/UpdatesSection';
 import { FAQSection } from './components/FAQSection';
 import { Footer } from './components/Footer';
 import { DownloadsPage } from './components/DownloadsPage';
+import { SharePage } from './components/SharePage';
 import { AndroidCarAppsSection } from './components/AndroidCarAppsSection';
 import { MusicVisualizer3D } from './components/MusicVisualizer3D';
 import { 
@@ -29,7 +30,16 @@ import { AppPlatformRelease } from './types';
 
 export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
-  const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
+  
+  // Helper to normalize paths but preserve case for share routes (case-sensitive YouTube video IDs)
+  const getNormalizedPath = (rawPath: string) => {
+    if (rawPath.startsWith('/share/')) {
+      return rawPath;
+    }
+    return rawPath.toLowerCase();
+  };
+
+  const [currentPath, setCurrentPath] = useState(getNormalizedPath(window.location.pathname));
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Statically mapped platforms based on downloadLinks.ts
@@ -101,7 +111,8 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const checkRoute = () => {
-      const path = window.location.pathname.toLowerCase();
+      const rawPath = window.location.pathname;
+      const path = rawPath.startsWith('/share/') ? rawPath : rawPath.toLowerCase();
       const hash = window.location.hash.toLowerCase();
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
@@ -152,6 +163,23 @@ export const App: React.FC = () => {
   };
 
 
+
+  const isShareRoute = currentPath.startsWith('/share/');
+  const videoId = isShareRoute ? currentPath.split('/share/')[1]?.split('?')[0]?.split('#')[0] : '';
+
+  if (isShareRoute && videoId) {
+    return (
+      <div className="min-h-screen bg-[#030408] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative">
+        <SharePage 
+          videoId={videoId} 
+          onNavigateHome={() => {
+            window.history.pushState({}, '', '/');
+            setCurrentPath('/');
+          }} 
+        />
+      </div>
+    );
+  }
 
   if (currentPath === '/download' || currentPath === '/downloads') {
     return (

@@ -40,6 +40,7 @@
     { "source": "/version.json", "destination": "/api" },
     { "source": "/app-version.json", "destination": "/api" },
     { "source": "/download/(.*)", "destination": "/api" },
+    { "source": "/share/(.*)", "destination": "/api" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
