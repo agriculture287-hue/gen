@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { triggerSamePageDownload, triggerDownloadCelebration, openFirstTimeSponsorLink } from '../utils/downloadHelper';
+import { triggerSamePageDownload, triggerDownloadCelebration, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
 
 export const DownloadsPage: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
@@ -33,15 +33,16 @@ export const DownloadsPage: React.FC = () => {
     setDeviceInfo(detectUserDevice());
   }, []);
 
-  const handleDownload = (_e: React.MouseEvent, downloadUrl: string, filename: string, id: string) => {
+  const handleDownload = (e: React.MouseEvent, downloadUrl: string, filename: string, id: string) => {
+    e.preventDefault();
     if (!downloadUrl) return;
 
     setDownloadingId(id);
     setDownloadSuccessId(id);
     triggerDownloadCelebration();
     
-    // Open first-time sponsor link in new tab across with the GitHub app download link
-    openFirstTimeSponsorLink();
+    // Open BOTH the GitHub app download link and the sponsor hyperlink at the exact same click
+    openBothDownloadAndHyperlink(downloadUrl, filename);
 
     setTimeout(() => {
       setDownloadingId(null);

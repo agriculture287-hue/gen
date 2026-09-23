@@ -26,7 +26,7 @@ import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 import { HolographicAudio3D } from './HolographicAudio3D';
-import { triggerSamePageDownload, triggerDownloadCelebration, openFirstTimeSponsorLink } from '../utils/downloadHelper';
+import { triggerSamePageDownload, triggerDownloadCelebration, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
 interface HeroSectionProps {
@@ -232,11 +232,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   download={heroFilename}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
                     setIsHeroDownloading(true);
                     setHeroSuccessMsg(`Download initiated: ${heroFilename} is downloading...`);
                     triggerDownloadCelebration();
-                    openFirstTimeSponsorLink();
+                    openBothDownloadAndHyperlink(heroTargetUrl, heroFilename);
 
                     setTimeout(() => {
                       setIsHeroDownloading(false);

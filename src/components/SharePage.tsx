@@ -7,7 +7,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
 import { buildAndroidIntent, buildCustomSchemeUri } from '../lib/deepLink';
-import { triggerSamePageDownload, openFirstTimeSponsorLink } from '../utils/downloadHelper';
+import { triggerSamePageDownload, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
 
 interface SharePageProps {
   videoId: string;
@@ -204,7 +204,10 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     download="GEN-Music.apk"
-                    onClick={() => openFirstTimeSponsorLink()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      openBothDownloadAndHyperlink(apkUrl, 'GEN-Music.apk');
+                    }}
                     className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-[#7c3aed]/20 hover:bg-[#7c3aed]/30 border border-[#7c3aed] text-[#c4b5fd] text-sm font-bold shadow-lg shadow-[#7c3aed]/15 transition-all cursor-pointer"
                   >
                     <Download className="w-4 h-4" />

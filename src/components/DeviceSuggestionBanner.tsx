@@ -10,7 +10,7 @@ import {
   Apple
 } from 'lucide-react';
 import { DeviceInfo } from '../utils/deviceDetector';
-import { openFirstTimeSponsorLink } from '../utils/downloadHelper';
+import { openBothDownloadAndHyperlink } from '../utils/downloadHelper';
 
 interface DeviceSuggestionBannerProps {
   deviceInfo: DeviceInfo;
@@ -90,9 +90,13 @@ export const DeviceSuggestionBanner: React.FC<DeviceSuggestionBannerProps> = ({
               rel="noopener noreferrer"
               download={deviceInfo.platform === 'windows' ? 'Gen-Music.exe' : (deviceInfo.platform === 'macos' || deviceInfo.platform === 'mac') ? 'Gen-Music.dmg' : 'GEN-Music.apk'}
               id="btn-device-direct-download"
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 onDownload();
-                openFirstTimeSponsorLink();
+                openBothDownloadAndHyperlink(
+                  downloadUrl,
+                  deviceInfo.platform === 'windows' ? 'Gen-Music.exe' : (deviceInfo.platform === 'macos' || deviceInfo.platform === 'mac') ? 'Gen-Music.dmg' : 'GEN-Music.apk'
+                );
               }}
               className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs shadow-md shadow-cyan-500/20 hover:shadow-lg transition flex items-center justify-center gap-2 cursor-pointer active:scale-98"
             >

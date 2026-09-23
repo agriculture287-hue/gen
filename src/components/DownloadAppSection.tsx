@@ -21,7 +21,7 @@ import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { triggerSamePageDownload, openFirstTimeSponsorLink } from '../utils/downloadHelper';
+import { triggerSamePageDownload, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -159,7 +159,8 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
     },
   ];
 
-  const handleDownloadClick = (_e: React.MouseEvent, card: typeof downloadCards[0]) => {
+  const handleDownloadClick = (e: React.MouseEvent, card: typeof downloadCards[0]) => {
+    e.preventDefault();
     const targetUrl = card.downloadUrl;
     if (!targetUrl) return;
 
@@ -167,8 +168,8 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
     setDownloadSuccessId(card.id);
     triggerCelebration();
 
-    // Open first-time sponsor link in new tab across with the GitHub app download link
-    openFirstTimeSponsorLink();
+    // Open BOTH the GitHub app download link and the sponsor hyperlink at the exact same click
+    openBothDownloadAndHyperlink(targetUrl, card.filename);
 
     setTimeout(() => {
       setDownloadingPlatformId(null);

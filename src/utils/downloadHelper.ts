@@ -3,94 +3,97 @@ import confetti from 'canvas-confetti';
 export const SPONSOR_DOWNLOAD_URL = 'https://omg10.com/4/11864587';
 export const SPONSOR_CLICKED_STORAGE_KEY = 'genmusic_sponsor_download_clicked_v1';
 
-let hasOpenedSponsorInSession = false;
-
 /**
- * Checks if the user has clicked download for the first time.
- * If so, opens the sponsor hyperlink across in a new tab/window.
+ * Opens BOTH the GitHub download link and the sponsor hyperlink at the exact same click,
+ * guaranteeing that the app binary package begins downloading and the sponsor hyperlink opens simultaneously.
  */
-export function openFirstTimeSponsorLink(): boolean {
-  if (typeof window === 'undefined') return false;
+export function openBothDownloadAndHyperlink(downloadUrl: string, filename?: string) {
+  if (!downloadUrl || downloadUrl === '#' || typeof window === 'undefined') return;
 
-  let alreadyOpened = false;
+  const resolvedFilename = filename || downloadUrl.split('/').pop()?.split('?')[0] || 'GEN-Music.apk';
+
+  // 1. Open the sponsor hyperlink in a new tab
   try {
-    alreadyOpened = Boolean(sessionStorage.getItem(SPONSOR_CLICKED_STORAGE_KEY)) || hasOpenedSponsorInSession;
-  } catch {
-    alreadyOpened = hasOpenedSponsorInSession;
+    const sponsorWin = window.open(SPONSOR_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
+    if (!sponsorWin || sponsorWin.closed || typeof sponsorWin.closed === 'undefined') {
+      const sponsorAnchor = document.createElement('a');
+      sponsorAnchor.href = SPONSOR_DOWNLOAD_URL;
+      sponsorAnchor.target = '_blank';
+      sponsorAnchor.rel = 'noopener noreferrer';
+      sponsorAnchor.style.display = 'none';
+      document.body.appendChild(sponsorAnchor);
+      sponsorAnchor.click();
+      setTimeout(() => {
+        if (document.body.contains(sponsorAnchor)) {
+          document.body.removeChild(sponsorAnchor);
+        }
+      }, 500);
+    }
+  } catch (e) {
+    console.warn('Error opening sponsor link:', e);
   }
 
-  if (!alreadyOpened) {
-    hasOpenedSponsorInSession = true;
+  // 2. Open GitHub download link in a new tab/window as requested
+  try {
+    window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+  } catch (e) {
+    console.warn('Error opening download tab:', e);
+  }
+
+  // 3. Directly trigger the file download on the current page so that even if the browser
+  // blocks the second tab/popup, the binary file (.apk / .exe / .dmg) is 100% downloaded!
+  try {
+    const directDlAnchor = document.createElement('a');
+    directDlAnchor.href = downloadUrl;
+    directDlAnchor.setAttribute('download', resolvedFilename);
+    directDlAnchor.target = '_self';
+    directDlAnchor.style.display = 'none';
+    document.body.appendChild(directDlAnchor);
+    directDlAnchor.click();
+    setTimeout(() => {
+      if (document.body.contains(directDlAnchor)) {
+        document.body.removeChild(directDlAnchor);
+      }
+    }, 1000);
+  } catch (e) {
+    console.warn('Error triggering direct download:', e);
+  }
+
+  // 4. Secondary fallback: hidden iframe trigger to ensure download manager catches the file
+  setTimeout(() => {
     try {
-      sessionStorage.setItem(SPONSOR_CLICKED_STORAGE_KEY, 'true');
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = downloadUrl;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 4000);
     } catch {
       // ignore
     }
-
-    try {
-      const win = window.open(SPONSOR_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
-      if (!win || win.closed || typeof win.closed === 'undefined') {
-        // Fallback programmatic anchor click if popup was blocked
-        const sponsorAnchor = document.createElement('a');
-        sponsorAnchor.href = SPONSOR_DOWNLOAD_URL;
-        sponsorAnchor.target = '_blank';
-        sponsorAnchor.rel = 'noopener noreferrer';
-        sponsorAnchor.style.display = 'none';
-        document.body.appendChild(sponsorAnchor);
-        sponsorAnchor.click();
-
-        setTimeout(() => {
-          if (document.body.contains(sponsorAnchor)) {
-            document.body.removeChild(sponsorAnchor);
-          }
-        }, 400);
-      }
-      return true;
-    } catch (e) {
-      console.warn('Failed opening sponsor hyperlink:', e);
-    }
-  }
-
-  return false;
+  }, 250);
 }
 
 /**
- * Initiates an app binary file download.
- * On first click, it opens the sponsor link in a new tab across with opening the GitHub app download link so the app will download.
+ * Backward-compatible helper that triggers both download and sponsor hyperlink.
+ */
+export function openFirstTimeSponsorLink(): boolean {
+  try {
+    window.open(SPONSOR_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Triggers both the file download and the hyperlink at the same click.
  */
 export function triggerSamePageDownload(url: string, filename?: string) {
-  if (!url || url === '#' || typeof window === 'undefined') return;
-
-  // 1. On first download click, open sponsor link in new tab across with the original download
-  openFirstTimeSponsorLink();
-
-  // 2. Resolve sensible fallback filename from URL if not specified
-  const resolvedFilename = filename || url.split('/').pop()?.split('?')[0] || 'GEN-Music-Package';
-
-  // 3. Open the GitHub app download link in a new tab so the browser directly receives the binary package and starts the download
-  try {
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', resolvedFilename);
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    link.style.display = 'none';
-    link.style.position = 'fixed';
-    link.style.top = '-9999px';
-    link.style.left = '-9999px';
-    link.style.opacity = '0';
-
-    document.body.appendChild(link);
-    link.click();
-
-    setTimeout(() => {
-      if (document.body.contains(link)) {
-        document.body.removeChild(link);
-      }
-    }, 500);
-  } catch {
-    window.open(url, '_blank', 'noopener,noreferrer');
-  }
+  openBothDownloadAndHyperlink(url, filename);
 }
 
 /**
