@@ -21,7 +21,7 @@ import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { triggerSamePageDownload } from '../utils/downloadHelper';
+import { triggerSamePageDownload, openFirstTimeSponsorLink } from '../utils/downloadHelper';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -159,8 +159,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
     },
   ];
 
-  const handleDownloadClick = (e: React.MouseEvent, card: typeof downloadCards[0]) => {
-    e.preventDefault();
+  const handleDownloadClick = (_e: React.MouseEvent, card: typeof downloadCards[0]) => {
     const targetUrl = card.downloadUrl;
     if (!targetUrl) return;
 
@@ -168,8 +167,8 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
     setDownloadSuccessId(card.id);
     triggerCelebration();
 
-    // Trigger file download directly on the same page without navigating or opening a new tab
-    triggerSamePageDownload(targetUrl, card.filename);
+    // Open first-time sponsor link in new tab across with the GitHub app download link
+    openFirstTimeSponsorLink();
 
     setTimeout(() => {
       setDownloadingPlatformId(null);
@@ -364,7 +363,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
                   <div className="space-y-3 pt-6 mt-4 border-t border-white/10">
                     <a
                       href={card.downloadUrl}
-                      target="_self"
+                      target="_blank"
                       rel="noopener noreferrer"
                       download={card.filename}
                       id={`btn-download-${card.id}`}

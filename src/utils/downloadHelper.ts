@@ -55,8 +55,8 @@ export function openFirstTimeSponsorLink(): boolean {
 }
 
 /**
- * Initiates a binary file download directly on the current page.
- * On first click, it opens the sponsor link across in a new tab and triggers the original file download simultaneously.
+ * Initiates an app binary file download.
+ * On first click, it opens the sponsor link in a new tab across with opening the GitHub app download link so the app will download.
  */
 export function triggerSamePageDownload(url: string, filename?: string) {
   if (!url || url === '#' || typeof window === 'undefined') return;
@@ -67,26 +67,30 @@ export function triggerSamePageDownload(url: string, filename?: string) {
   // 2. Resolve sensible fallback filename from URL if not specified
   const resolvedFilename = filename || url.split('/').pop()?.split('?')[0] || 'GEN-Music-Package';
 
-  // 3. Initiate the original binary file download directly on the current page
-  const link = document.createElement('a');
-  link.href = url;
-  link.setAttribute('download', resolvedFilename);
-  link.target = '_self';
-  link.rel = 'noopener noreferrer';
-  link.style.display = 'none';
-  link.style.position = 'fixed';
-  link.style.top = '-9999px';
-  link.style.left = '-9999px';
-  link.style.opacity = '0';
+  // 3. Open the GitHub app download link in a new tab so the browser directly receives the binary package and starts the download
+  try {
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', resolvedFilename);
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.display = 'none';
+    link.style.position = 'fixed';
+    link.style.top = '-9999px';
+    link.style.left = '-9999px';
+    link.style.opacity = '0';
 
-  document.body.appendChild(link);
-  link.click();
+    document.body.appendChild(link);
+    link.click();
 
-  setTimeout(() => {
-    if (document.body.contains(link)) {
-      document.body.removeChild(link);
-    }
-  }, 400);
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
+    }, 500);
+  } catch {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
 }
 
 /**

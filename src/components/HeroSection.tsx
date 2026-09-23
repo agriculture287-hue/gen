@@ -26,7 +26,8 @@ import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 import { HolographicAudio3D } from './HolographicAudio3D';
-import { triggerSamePageDownload, triggerDownloadCelebration } from '../utils/downloadHelper';
+import { triggerSamePageDownload, triggerDownloadCelebration, openFirstTimeSponsorLink } from '../utils/downloadHelper';
+import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
 interface HeroSectionProps {
   platforms: AppPlatformRelease[];
@@ -213,35 +214,66 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           />
 
           {/* Primary Action Buttons */}
-          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-1">
-            <button
-              onClick={() => handlePlatformDownloadClick(deviceInfo.platform === 'ios' ? 'android' : deviceInfo.platform)}
-              id="hero-primary-download-btn"
-              className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-2xl hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
-            >
-              {isHeroDownloading ? (
-                <ArrowDownToLine className="w-5 h-5 animate-bounce text-cyan-200" />
-              ) : (
-                <Download className="w-5 h-5" />
-              )}
-              <span>
-                {isHeroDownloading
-                  ? 'Starting Download...'
-                  : deviceInfo.platform === 'android' ? 'Download Android APK' :
-                    deviceInfo.platform === 'windows' ? 'Download Windows EXE' :
-                    deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
-                    'Download Free App'}
-              </span>
-            </button>
+          {(() => {
+            const heroTargetUrl = (deviceInfo.platform === 'windows' && winApp?.downloadUrl)
+              ? winApp.downloadUrl
+              : (deviceInfo.platform === 'macos' && macApp?.downloadUrl)
+              ? macApp.downloadUrl
+              : (androidApp?.downloadUrl || suggestedApp?.downloadUrl || DOWNLOAD_LINKS.android.downloadUrl);
 
-            <button
-              onClick={onViewFeatures}
-              id="hero-explore-features-btn"
-              className="w-full sm:w-auto px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:bg-white/[0.08] font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <span>Explore Features</span>
-            </button>
-          </div>
+            const heroFilename = deviceInfo.platform === 'windows' ? 'Gen-Music.exe' :
+                                 (deviceInfo.platform === 'macos' || deviceInfo.platform === 'mac') ? 'Gen-Music.dmg' :
+                                 'GEN-Music.apk';
+
+            return (
+              <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-1">
+                <a
+                  href={heroTargetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download={heroFilename}
+                  onClick={() => {
+                    setIsHeroDownloading(true);
+                    setHeroSuccessMsg(`Download initiated: ${heroFilename} is downloading...`);
+                    triggerDownloadCelebration();
+                    openFirstTimeSponsorLink();
+
+                    setTimeout(() => {
+                      setIsHeroDownloading(false);
+                    }, 2500);
+
+                    setTimeout(() => {
+                      setHeroSuccessMsg(null);
+                    }, 7000);
+                  }}
+                  id="hero-primary-download-btn"
+                  className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-2xl hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
+                >
+                  {isHeroDownloading ? (
+                    <ArrowDownToLine className="w-5 h-5 animate-bounce text-cyan-200" />
+                  ) : (
+                    <Download className="w-5 h-5" />
+                  )}
+                  <span>
+                    {isHeroDownloading
+                      ? 'Starting Download...'
+                      : deviceInfo.platform === 'android' ? 'Download Android APK' :
+                        deviceInfo.platform === 'windows' ? 'Download Windows EXE' :
+                        deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
+                        'Download Free App'}
+                  </span>
+                </a>
+
+                <button
+                  onClick={onViewFeatures}
+                  id="hero-explore-features-btn"
+                  className="w-full sm:w-auto px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:bg-white/[0.08] font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>Explore Features</span>
+                </button>
+              </div>
+            );
+          })()}
 
           {/* In-page download confirmation notice */}
           {heroSuccessMsg && (

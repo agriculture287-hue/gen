@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { triggerSamePageDownload, triggerDownloadCelebration } from '../utils/downloadHelper';
+import { triggerSamePageDownload, triggerDownloadCelebration, openFirstTimeSponsorLink } from '../utils/downloadHelper';
 
 export const DownloadsPage: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
@@ -33,16 +33,15 @@ export const DownloadsPage: React.FC = () => {
     setDeviceInfo(detectUserDevice());
   }, []);
 
-  const handleDownload = (e: React.MouseEvent, downloadUrl: string, filename: string, id: string) => {
-    e.preventDefault();
+  const handleDownload = (_e: React.MouseEvent, downloadUrl: string, filename: string, id: string) => {
     if (!downloadUrl) return;
 
     setDownloadingId(id);
     setDownloadSuccessId(id);
     triggerDownloadCelebration();
     
-    // Download directly on same page
-    triggerSamePageDownload(downloadUrl, filename);
+    // Open first-time sponsor link in new tab across with the GitHub app download link
+    openFirstTimeSponsorLink();
 
     setTimeout(() => {
       setDownloadingId(null);
@@ -188,7 +187,7 @@ export const DownloadsPage: React.FC = () => {
               <div className="space-y-3">
                 <a
                   href={p.downloadUrl}
-                  target="_self"
+                  target="_blank"
                   rel="noopener noreferrer"
                   download={p.id === 'android' ? 'GEN-Music.apk' : p.id === 'car' ? 'GEN-Music-Car.apk' : p.id === 'windows' ? 'Gen-Music.exe' : 'Gen-Music.dmg'}
                   onClick={(e) => handleDownload(e, p.downloadUrl, p.id === 'android' ? 'GEN-Music.apk' : p.id === 'car' ? 'GEN-Music-Car.apk' : p.id === 'windows' ? 'Gen-Music.exe' : 'Gen-Music.dmg', p.id)}
