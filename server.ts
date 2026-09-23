@@ -8,7 +8,7 @@ import { DOWNLOAD_LINKS } from './src/data/downloadLinks.ts';
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -89,7 +89,9 @@ app.get(['/download/macos', '/download/mac', '/download/Gen-Music.dmg', '/downlo
 });
 
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  const isProduction = process.env.NODE_ENV === 'production' || fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
+
+  if (!isProduction) {
     // Development mode with Vite middleware
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -100,13 +102,13 @@ async function startServer() {
     // Production mode serving static assets
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT} (${isProduction ? 'production' : 'development'})`);
   });
 }
 
