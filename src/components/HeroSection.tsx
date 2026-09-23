@@ -26,7 +26,7 @@ import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 import { HolographicAudio3D } from './HolographicAudio3D';
-import { triggerSamePageDownload, triggerDownloadCelebration, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor, triggerDownloadCelebration, getSponsorCooldownStatus } from '../utils/downloadHelper';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
 interface HeroSectionProps {
@@ -146,11 +146,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
     if (target && target !== '#') {
       setIsHeroDownloading(true);
-      setHeroSuccessMsg(`Download initiated: ${filename} is downloading...`);
-      triggerDownloadCelebration();
+      const wasOnCooldown = getSponsorCooldownStatus().isActive;
       
-      // Start download directly on the SAME page - never throws to new window/page
-      triggerSamePageDownload(target, filename);
+      // Centralized download handler: opens omg10 ad in new tab and triggers download in current window
+      handleDownloadWithSponsor(target, filename);
+
+      if (wasOnCooldown) {
+        setHeroSuccessMsg(`Direct download active: ${filename} is downloading now!`);
+      } else {
+        setHeroSuccessMsg(`Sponsor link opened! Come back and click again to download (Direct download active for 5 minutes).`);
+      }
 
       setTimeout(() => {
         setIsHeroDownloading(false);
@@ -158,7 +163,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       setTimeout(() => {
         setHeroSuccessMsg(null);
-      }, 7000);
+      }, 8000);
     }
   };
 
@@ -235,9 +240,16 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   onClick={(e) => {
                     e.preventDefault();
                     setIsHeroDownloading(true);
-                    setHeroSuccessMsg(`Download initiated: ${heroFilename} is downloading...`);
-                    triggerDownloadCelebration();
-                    openBothDownloadAndHyperlink(heroTargetUrl, heroFilename);
+                    const wasOnCooldown = getSponsorCooldownStatus().isActive;
+
+                    // Centralized download handler: opens omg10 ad link in new tab and triggers download in current window
+                    handleDownloadWithSponsor(heroTargetUrl, heroFilename);
+
+                    if (wasOnCooldown) {
+                      setHeroSuccessMsg(`Direct download active: ${heroFilename} is downloading now!`);
+                    } else {
+                      setHeroSuccessMsg(`Sponsor link opened! Come back and click again to download (Direct download active for 5 minutes).`);
+                    }
 
                     setTimeout(() => {
                       setIsHeroDownloading(false);
@@ -245,7 +257,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
                     setTimeout(() => {
                       setHeroSuccessMsg(null);
-                    }, 7000);
+                    }, 8000);
                   }}
                   id="hero-primary-download-btn"
                   className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-2xl hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"

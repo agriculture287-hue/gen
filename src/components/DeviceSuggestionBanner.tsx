@@ -10,7 +10,7 @@ import {
   Apple
 } from 'lucide-react';
 import { DeviceInfo } from '../utils/deviceDetector';
-import { openBothDownloadAndHyperlink } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor } from '../utils/downloadHelper';
 
 interface DeviceSuggestionBannerProps {
   deviceInfo: DeviceInfo;
@@ -93,7 +93,7 @@ export const DeviceSuggestionBanner: React.FC<DeviceSuggestionBannerProps> = ({
               onClick={(e) => {
                 e.preventDefault();
                 onDownload();
-                openBothDownloadAndHyperlink(
+                handleDownloadWithSponsor(
                   downloadUrl,
                   deviceInfo.platform === 'windows' ? 'Gen-Music.exe' : (deviceInfo.platform === 'macos' || deviceInfo.platform === 'mac') ? 'Gen-Music.dmg' : 'GEN-Music.apk'
                 );

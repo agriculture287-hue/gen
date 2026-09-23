@@ -7,7 +7,8 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { GenMusicLogo } from './GenMusicLogo';
 import { buildAndroidIntent, buildCustomSchemeUri } from '../lib/deepLink';
-import { triggerSamePageDownload, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor } from '../utils/downloadHelper';
+import { DownloadNoticeBanner } from './DownloadNoticeBanner';
 
 interface SharePageProps {
   videoId: string;
@@ -63,9 +64,9 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
     setIsOpening(true);
 
     if (isAndroid) {
-      window.location.href = androidIntentUrl;
+      handleDownloadWithSponsor(androidIntentUrl, { isDeepLink: true });
     } else if (isIOS) {
-      window.location.href = iosSchemeUrl;
+      handleDownloadWithSponsor(iosSchemeUrl, { isDeepLink: true });
     } else {
       setShowInstallOptions(true);
     }
@@ -206,7 +207,7 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
                     download="GEN-Music.apk"
                     onClick={(e) => {
                       e.preventDefault();
-                      openBothDownloadAndHyperlink(apkUrl, 'GEN-Music.apk');
+                      handleDownloadWithSponsor(apkUrl, 'GEN-Music.apk');
                     }}
                     className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl bg-[#7c3aed]/20 hover:bg-[#7c3aed]/30 border border-[#7c3aed] text-[#c4b5fd] text-sm font-bold shadow-lg shadow-[#7c3aed]/15 transition-all cursor-pointer"
                   >
@@ -236,6 +237,9 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
       <footer className="w-full max-w-md text-center text-xs text-slate-600 z-10">
         <p>© 2026 GenMusic. Free unlimited music & spatial audio.</p>
       </footer>
+
+      {/* Advisory Download Banner */}
+      <DownloadNoticeBanner />
     </div>
   );
 };

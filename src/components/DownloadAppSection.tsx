@@ -21,7 +21,7 @@ import { VersionManifest } from '../types/update';
 import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { triggerSamePageDownload, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor, getSponsorCooldownStatus } from '../utils/downloadHelper';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -34,6 +34,7 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 }) => {
   const [downloadingPlatformId, setDownloadingPlatformId] = useState<string | null>(null);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
+  const [downloadNoticeText, setDownloadNoticeText] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'android' | 'windows' | 'macos' | 'android-car'>('all');
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
@@ -164,16 +165,29 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
     const targetUrl = card.downloadUrl;
     if (!targetUrl) return;
 
+    const wasOnCooldown = getSponsorCooldownStatus().isActive;
+
     setDownloadingPlatformId(card.id);
     setDownloadSuccessId(card.id);
     triggerCelebration();
 
-    // Open BOTH the GitHub app download link and the sponsor hyperlink at the exact same click
-    openBothDownloadAndHyperlink(targetUrl, card.filename);
+    if (wasOnCooldown) {
+      setDownloadNoticeText(`Direct download active! ${card.shortName} (${card.fileFormat}) is downloading.`);
+    } else {
+      setDownloadNoticeText(`Sponsor link opened! Return here & click again to download — direct download unlocked for 5 minutes.`);
+    }
+
+    // Centralized download handler: opens omg10 ad link in new tab and initiates app download in current window
+    handleDownloadWithSponsor(targetUrl, card.filename);
 
     setTimeout(() => {
       setDownloadingPlatformId(null);
     }, 2500);
+
+    setTimeout(() => {
+      setDownloadSuccessId(null);
+      setDownloadNoticeText(null);
+    }, 8000);
   };
 
   const filteredCards = activeTab === 'all' 
@@ -385,9 +399,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
 
                     {/* Success Notice */}
                     {isSuccess && (
-                      <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-2 font-medium animate-fadeIn">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                        <span>Transfer initialized! Check your browser downloads.</span>
+                      <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-[11px] flex items-start gap-2 font-medium animate-fadeIn leading-relaxed">
+                        <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                        <span>{downloadNoticeText || 'Transfer initialized! Check your browser downloads.'}</span>
                       </div>
                     )}
 

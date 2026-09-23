@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { triggerSamePageDownload, triggerDownloadCelebration, openBothDownloadAndHyperlink } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor, getSponsorCooldownStatus } from '../utils/downloadHelper';
 
 export const DownloadsPage: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
@@ -28,6 +28,7 @@ export const DownloadsPage: React.FC = () => {
   });
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
+  const [downloadNoticeText, setDownloadNoticeText] = useState<string | null>(null);
 
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
@@ -37,16 +38,28 @@ export const DownloadsPage: React.FC = () => {
     e.preventDefault();
     if (!downloadUrl) return;
 
+    const wasOnCooldown = getSponsorCooldownStatus().isActive;
+
     setDownloadingId(id);
     setDownloadSuccessId(id);
-    triggerDownloadCelebration();
     
-    // Open BOTH the GitHub app download link and the sponsor hyperlink at the exact same click
-    openBothDownloadAndHyperlink(downloadUrl, filename);
+    if (wasOnCooldown) {
+      setDownloadNoticeText(`Direct download active: ${filename} is downloading now.`);
+    } else {
+      setDownloadNoticeText(`Sponsor link opened! Come back & click again to download — direct download unlocked for 5 minutes.`);
+    }
+
+    // Centralized download handler: opens omg10 ad in new tab and triggers download in current window
+    handleDownloadWithSponsor(downloadUrl, filename);
 
     setTimeout(() => {
       setDownloadingId(null);
     }, 2500);
+
+    setTimeout(() => {
+      setDownloadSuccessId(null);
+      setDownloadNoticeText(null);
+    }, 8000);
   };
 
   const platformsList = [
@@ -210,9 +223,9 @@ export const DownloadsPage: React.FC = () => {
                 </a>
 
                 {downloadSuccessId === p.id && (
-                  <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] flex items-center gap-2 font-medium animate-fadeIn">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                    <span>Download started! Check your browser downloads.</span>
+                  <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-[11px] flex items-start gap-2 font-medium animate-fadeIn leading-relaxed">
+                    <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <span>{downloadNoticeText || 'Download started! Check your browser downloads.'}</span>
                   </div>
                 )}
               </div>

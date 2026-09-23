@@ -12,6 +12,7 @@ import { Footer } from './components/Footer';
 import { DownloadsPage } from './components/DownloadsPage';
 import { AndroidCarAppsSection } from './components/AndroidCarAppsSection';
 import { MusicVisualizer3D } from './components/MusicVisualizer3D';
+import { DownloadNoticeBanner } from './components/DownloadNoticeBanner';
 import { DOWNLOAD_LINKS } from './data/downloadLinks';
 import { AppPlatformRelease } from './types';
 
@@ -143,6 +144,7 @@ export const App: React.FC = () => {
           onOpenLegalModal={handleOpenLegalModal}
           onDownloadClick={() => {}}
         />
+        <DownloadNoticeBanner />
       </div>
     );
   }
@@ -221,6 +223,9 @@ export const App: React.FC = () => {
         onOpenLegalModal={handleOpenLegalModal}
         onDownloadClick={scrollToDownload}
       />
+
+      {/* Advisory Notice Banner for Download Sponsor & 5-Min Cooldown Direct Download */}
+      <DownloadNoticeBanner />
 
       {/* Floating Toast Notification */}
       {toastMessage && (
