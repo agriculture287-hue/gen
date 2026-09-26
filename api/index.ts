@@ -1,3 +1,4 @@
+import type { IncomingMessage, ServerResponse } from 'http';
 import app from '../server.ts';
 
 // Vercel Serverless Function entry point
@@ -8,21 +9,23 @@ export default function handler(req: any, res: any) {
     const pathOnly = queryIdx !== -1 ? rawUrl.slice(0, queryIdx) : rawUrl;
     const queryString = queryIdx !== -1 ? rawUrl.slice(queryIdx + 1) : '';
     
-    // Parse query string for origPath injected by vercel.json rewrites
+    // Parse query string for origPath or query params
     const searchParams = new URLSearchParams(queryString);
     const origPath = searchParams.get('origPath');
     
     // Check fallback headers provided by edge reverse proxies
-    const forwardedUrl = req.headers['x-forwarded-url'] || req.headers['x-vercel-original-url'];
+    const forwardedUrl = req.headers['x-forwarded-url'] || req.headers['x-vercel-original-url'] || req.headers['x-matched-path'];
 
     if (origPath && typeof origPath === 'string' && origPath.startsWith('/')) {
       searchParams.delete('origPath');
       const rest = searchParams.toString();
       req.url = rest ? `${origPath}?${rest}` : origPath;
     } else if (forwardedUrl && typeof forwardedUrl === 'string' && forwardedUrl.startsWith('/') && !forwardedUrl.startsWith('/api?')) {
-      req.url = forwardedUrl;
+      const rest = queryString ? `?${queryString}` : '';
+      req.url = forwardedUrl.includes('?') ? forwardedUrl : `${forwardedUrl}${rest}`;
     } else if (req.headers['x-invoke-path'] && typeof req.headers['x-invoke-path'] === 'string' && req.headers['x-invoke-path'] !== '/api') {
-      req.url = req.headers['x-invoke-path'];
+      const rest = queryString ? `?${queryString}` : '';
+      req.url = `${req.headers['x-invoke-path']}${rest}`;
     }
 
     return app(req, res);
@@ -33,4 +36,3 @@ export default function handler(req: any, res: any) {
     }
   }
 }
-

@@ -209,11 +209,13 @@ export const AppContent: React.FC = () => {
       <div className="fixed top-1/2 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="fixed bottom-20 left-10 w-96 h-96 bg-pink-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* 1. Top Announcement Bar */}
-      <TopBanner 
-        onDownloadClick={scrollToDownload} 
-        announcementText="GEN MUSIC 2.4 (GPL-3.0) — Unlimited Free Streaming, Synced Lyrics & Offline Apps for Android, Mac & Windows."
-      />
+      {/* 1. Top Announcement Bar (Hidden in app player mode) */}
+      {currentMode !== 'player' && currentPath !== '/online' && (
+        <TopBanner 
+          onDownloadClick={scrollToDownload} 
+          announcementText="GEN MUSIC 2.4 (GPL-3.0) — Unlimited Free Streaming, Synced Lyrics & Offline Apps for Android, Mac & Windows."
+        />
+      )}
 
       {/* 2. Navigation with Brand, Multi-platform links & Telegram */}
       <Navbar 
@@ -298,11 +300,13 @@ export const AppContent: React.FC = () => {
 
       </main>
 
-      {/* Main App Footer */}
-      <Footer 
-        onOpenLegalModal={handleOpenLegalModal}
-        onDownloadClick={scrollToDownload}
-      />
+      {/* Main App Footer (Hidden in app player mode) */}
+      {currentMode !== 'player' && currentPath !== '/online' && (
+        <Footer 
+          onOpenLegalModal={handleOpenLegalModal}
+          onDownloadClick={scrollToDownload}
+        />
+      )}
 
       {/* Advisory Notice Banner for Download Sponsor & 5-Min Cooldown Direct Download (Hidden in streaming mode) */}
       <DownloadNoticeBanner isStreamingMode={currentMode === 'player'} />

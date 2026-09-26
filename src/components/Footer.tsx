@@ -24,6 +24,19 @@ export const Footer: React.FC<FooterProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const pathname = typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '';
+  const hash = typeof window !== 'undefined' ? window.location.hash.toLowerCase() : '';
+  if (
+    pathname === '/online' || 
+    pathname === '/player' || 
+    pathname === '/stream' || 
+    pathname === '/streaming' || 
+    hash.includes('online') || 
+    hash.includes('player')
+  ) {
+    return null;
+  }
+
   return (
     <footer 
       id="main-footer" 

@@ -429,6 +429,11 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Sidebar Sponsor Ad Slot */}
+          <div className="pt-3 border-t border-white/10">
+            <RotatingCompactAd offset={3} cycleCount={adCycleCount} />
+          </div>
         </div>
 
         {/* Sidebar Footer Cards: YouTube Account & Echo AdBlock Status */}
@@ -838,6 +843,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
           {/* ========================================================= */}
           {activeTab === 'moods' && (
             <div className="space-y-8 animate-in fade-in duration-300">
+              <RotatingFeedAd offset={2} cycleCount={adCycleCount} />
+
               <div>
                 <h3 className="text-2xl font-black text-white">Moods & Genres</h3>
                 <p className="text-xs text-slate-400 mt-1">Explore 24 curated musical moods, atmospheres, and genres from Echo Music</p>
@@ -924,6 +931,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
                   )}
                 </div>
               )}
+
+              <RotatingCompactAd offset={0} cycleCount={adCycleCount} />
             </div>
           )}
 
@@ -932,6 +941,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
           {/* ========================================================= */}
           {activeTab === 'charts' && (
             <div className="space-y-8 animate-in fade-in duration-300">
+              <RotatingFeedAd offset={3} cycleCount={adCycleCount} />
+
               <div>
                 <h3 className="text-2xl font-black text-white">Global Music Charts</h3>
                 <p className="text-xs text-slate-400 mt-1">Global Top 50, Viral Hits, and Trending Videos updated daily</p>
@@ -1063,6 +1074,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
                   </div>
                 </div>
               )}
+
+              <RotatingCompactAd offset={1} cycleCount={adCycleCount} />
             </div>
           )}
 
@@ -1071,11 +1084,13 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
           {/* ========================================================= */}
           {activeTab === 'country' && (
             <div className="space-y-8 animate-in fade-in duration-300">
+              <RotatingFeedAd offset={4} cycleCount={adCycleCount} />
               <CountryMusicSection 
                 onOpenFullApp={() => {
                   setActiveTab('home');
                 }}
               />
+              <RotatingCompactAd offset={0} cycleCount={adCycleCount} />
             </div>
           )}
 
@@ -1108,60 +1123,64 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
 
               {/* Results List */}
               {!isSearching && searchResults.length > 0 && (
-                <div className="space-y-2 max-w-4xl mx-auto">
-                  {searchResults.map((track) => {
-                    const isCurrent = currentTrack?.id === track.id;
-                    const liked = isLiked(track.id);
-                    return (
-                      <div
-                        key={track.id}
-                        onClick={() => playTrack(track, searchResults)}
-                        className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer group ${
-                          isCurrent
-                            ? 'bg-cyan-500/10 border-cyan-400/40'
-                            : 'bg-white/5 hover:bg-white/10 border-white/5'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0">
-                            <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
-                            {isCurrent && isPlaying && (
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                              </div>
-                            )}
+                <div className="space-y-4 max-w-4xl mx-auto">
+                  <div className="space-y-2">
+                    {searchResults.map((track) => {
+                      const isCurrent = currentTrack?.id === track.id;
+                      const liked = isLiked(track.id);
+                      return (
+                        <div
+                          key={track.id}
+                          onClick={() => playTrack(track, searchResults)}
+                          className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer group ${
+                            isCurrent
+                              ? 'bg-cyan-500/10 border-cyan-400/40'
+                              : 'bg-white/5 hover:bg-white/10 border-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-800 flex-shrink-0">
+                              <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover" />
+                              {isCurrent && isPlaying && (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h4 className={`text-sm font-semibold truncate ${isCurrent ? 'text-cyan-300' : 'text-white'}`}>
+                                {track.title}
+                              </h4>
+                              <p 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openArtist(track.artist);
+                                }}
+                                className="text-xs text-slate-400 truncate hover:text-cyan-300 hover:underline cursor-pointer"
+                              >
+                                {track.artist}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className={`text-sm font-semibold truncate ${isCurrent ? 'text-cyan-300' : 'text-white'}`}>
-                              {track.title}
-                            </h4>
-                            <p 
+
+                          <div className="flex items-center gap-3 ml-4">
+                            <span className="text-xs font-mono text-slate-400">{track.durationText}</span>
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openArtist(track.artist);
+                                toggleLike(track);
                               }}
-                              className="text-xs text-slate-400 truncate hover:text-cyan-300 hover:underline cursor-pointer"
+                              className="p-2 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                             >
-                              {track.artist}
-                            </p>
+                              <Heart className={`w-4 h-4 ${liked ? 'fill-rose-500 text-rose-500' : ''}`} />
+                            </button>
                           </div>
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        <div className="flex items-center gap-3 ml-4">
-                          <span className="text-xs font-mono text-slate-400">{track.durationText}</span>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleLike(track);
-                            }}
-                            className="p-2 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-                          >
-                            <Heart className={`w-4 h-4 ${liked ? 'fill-rose-500 text-rose-500' : ''}`} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                  <RotatingFeedAd offset={1} cycleCount={adCycleCount} />
                 </div>
               )}
             </div>
@@ -1172,6 +1191,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
           {/* ========================================================= */}
           {activeTab === 'library' && (
             <div className="space-y-8 animate-in fade-in duration-300">
+              <RotatingFeedAd offset={0} cycleCount={adCycleCount} />
+
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-black text-white">Your Music Library</h3>
@@ -1384,6 +1405,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
           {/* ========================================================= */}
           {activeTab === 'about' && (
             <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-300">
+              <RotatingFeedAd offset={0} cycleCount={adCycleCount} />
+
               <div className="p-8 rounded-3xl bg-slate-900/80 border border-white/10 space-y-6">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center text-black font-black text-2xl shadow-xl">
@@ -1424,8 +1447,11 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
       {/* ========================================================= */}
       {/* 3. MOBILE GLASS BOTTOM NAVIGATION DOCK (lg:hidden)        */}
       {/* ========================================================= */}
-      <div className="lg:hidden fixed bottom-18 left-0 right-0 z-30 px-4 pointer-events-none">
-        <div className="max-w-md mx-auto bg-[#0a0e20]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-1.5 flex items-center justify-around shadow-2xl pointer-events-auto">
+      <div className="lg:hidden fixed bottom-18 left-0 right-0 z-30 px-4 pointer-events-none flex flex-col items-center gap-2">
+        <div className="w-full max-w-md pointer-events-auto">
+          <RotatingCompactAd offset={3} cycleCount={adCycleCount} />
+        </div>
+        <div className="max-w-md w-full bg-[#0a0e20]/95 backdrop-blur-2xl border border-white/15 rounded-2xl p-1.5 flex items-center justify-around shadow-2xl pointer-events-auto">
           {[
             { id: 'home', label: 'Discover', icon: Compass },
             { id: 'moods', label: 'Moods', icon: Sparkles },
