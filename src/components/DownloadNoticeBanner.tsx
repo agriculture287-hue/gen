@@ -23,7 +23,11 @@ interface SponsorNoticeData {
   isDeepLink?: boolean;
 }
 
-export const DownloadNoticeBanner: React.FC = () => {
+interface DownloadNoticeBannerProps {
+  isStreamingMode?: boolean;
+}
+
+export const DownloadNoticeBanner: React.FC<DownloadNoticeBannerProps> = ({ isStreamingMode = false }) => {
   const [noticeData, setNoticeData] = useState<SponsorNoticeData | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState(0);
@@ -31,6 +35,12 @@ export const DownloadNoticeBanner: React.FC = () => {
 
   // Poll / listen for cooldown state
   useEffect(() => {
+    // Suppress immediately if streaming mode is active
+    if (isStreamingMode) {
+      setIsVisible(false);
+      return;
+    }
+
     const updateCooldown = () => {
       const status = checkCooldown();
       if (status.isActive) {
@@ -47,6 +57,7 @@ export const DownloadNoticeBanner: React.FC = () => {
     const interval = setInterval(updateCooldown, 1000);
 
     const handleSponsorOpened = (e: Event) => {
+      if (isStreamingMode) return;
       const detail = (e as CustomEvent).detail;
       setNoticeData(detail);
       setIsVisible(true);
@@ -75,9 +86,10 @@ export const DownloadNoticeBanner: React.FC = () => {
       window.removeEventListener('genmusic-real-download-started', handleRealDownloadStarted);
       window.removeEventListener('genmusic-cooldown-change', updateCooldown);
     };
-  }, [noticeData]);
+  }, [noticeData, isStreamingMode]);
 
-  if (!isVisible && remainingSeconds === 0 && !downloadSuccessNotice) {
+  // Completely hidden during music online streaming or when no notice
+  if (isStreamingMode || (!isVisible && remainingSeconds === 0 && !downloadSuccessNotice)) {
     return null;
   }
 

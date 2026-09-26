@@ -1,6 +1,6 @@
 {
   "name": "GEN Music",
-  "description": "Open in GEN Music. This content was shared using GEN Music. Open the app to start listening or download GEN Music.",
+  "description": "Stream unlimited free music, synced lyrics, and offline playback. GPL-3.0 open source player.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

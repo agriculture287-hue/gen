@@ -1,9 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <script>(function(s){s.dataset.zone='11864590',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-    <script>(function(s){s.dataset.zone='11864593',s.src='https://nap5k.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
-    <script src="https://quge5.com/88/tag.min.js" data-zone="284615" async data-cfasync="false"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>GEN MUSIC – Free Music For Every Mood</title>
@@ -13,7 +10,6 @@
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
     <meta name="google-site-verification" content="googleffb6688cb72a513a" />
     <meta name="google-site-verification" content="ffb6688cb72a513a" />
-    <meta name="monetag" content="c74a4eeb6bbd9f138d4e711c3d1bc560" />
     <meta name="theme-color" content="#07080e" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,7 +19,7 @@
     <!-- Favicon & Icons -->
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href="/manifest.json" />
 
     <!-- OpenGraph / Facebook -->
     <meta property="og:type" content="website" />
@@ -92,19 +88,35 @@
       });
     </script>
 
-    <!-- Cleanup any legacy ad service workers -->
+    <!-- Gen Music PWA Service Worker Registration & Self-Healing -->
     <script>
+      // Self-healing for stale service worker / chunk load failures
+      window.addEventListener('vite:preloadError', function () {
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (var r of registrations) { r.unregister(); }
+          });
+        }
+        window.location.reload();
+      });
+
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for (var registration of registrations) {
-            registration.unregister();
-          }
-        }).catch(function() {});
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            reg.update();
+            console.log('Gen Music PWA active with scope:', reg.scope);
+          }).catch(function(err) {
+            console.warn('PWA registration error:', err);
+          });
+        });
       }
     </script>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white min-h-screen overflow-x-hidden font-['Plus_Jakarta_Sans',sans-serif]">
     <div id="root"></div>
+    <!-- Hidden persistent audio bridge for YouTube Music streaming -->
+    <div id="gen-music-audio-bridge" style="position:fixed;bottom:-9999px;left:-9999px;width:1px;height:1px;pointer-events:none;opacity:0;"></div>
+    <script src="https://www.youtube.com/iframe_api" async></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

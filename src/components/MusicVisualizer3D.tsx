@@ -173,13 +173,13 @@ export const MusicVisualizer3D: React.FC = () => {
     if (!ctx) return;
 
     let animId: number;
-    let width = (canvas.width = canvas.offsetWidth);
-    let height = (canvas.height = canvas.offsetHeight);
+    let width = (canvas.width = canvas.offsetWidth || 800);
+    let height = (canvas.height = canvas.offsetHeight || 400);
 
     const handleResize = () => {
       if (!canvas) return;
-      width = canvas.width = canvas.offsetWidth;
-      height = canvas.height = canvas.offsetHeight;
+      width = canvas.width = canvas.offsetWidth || 800;
+      height = canvas.height = canvas.offsetHeight || 400;
     };
     window.addEventListener('resize', handleResize);
 

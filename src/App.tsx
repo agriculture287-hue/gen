@@ -15,11 +15,22 @@ import { MusicVisualizer3D } from './components/MusicVisualizer3D';
 import { DownloadNoticeBanner } from './components/DownloadNoticeBanner';
 import { DOWNLOAD_LINKS } from './data/downloadLinks';
 import { AppPlatformRelease } from './types';
+import { MusicPlayerProvider } from './context/MusicPlayerContext';
+import { MiniPlayer } from './components/player/MiniPlayer';
+import { FullPlayerModal } from './components/player/FullPlayerModal';
+import { SyncedLyricsView } from './components/player/SyncedLyricsView';
+import { QueueDrawer } from './components/player/QueueDrawer';
+import { MusicDiscoveryView } from './components/player/MusicDiscoveryView';
+import { CountryMusicSection } from './components/CountryMusicSection';
+import { EchoMusicAcrossSection } from './components/EchoMusicAcrossSection';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
-export const App: React.FC = () => {
+export const AppContent: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
+  const [currentMode, setCurrentMode] = useState<'player' | 'hub'>('hub');
   const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [externalSearchQuery, setExternalSearchQuery] = useState<string | undefined>(undefined);
 
   // Statically mapped platforms based on downloadLinks.ts
   const platforms: AppPlatformRelease[] = [
@@ -94,6 +105,28 @@ export const App: React.FC = () => {
       const hash = window.location.hash.toLowerCase();
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
+        setCurrentMode('hub');
+        setActiveNav('download');
+      } else if (path === '/player' || hash === '#player' || hash === '#/player') {
+        setCurrentPath(path);
+        setCurrentMode('player');
+        setActiveNav('player');
+      } else if (hash === '#echo-music-across' || hash === '#echo-music') {
+        setCurrentPath(path);
+        setCurrentMode('hub');
+        setActiveNav('echo-music-across');
+        setTimeout(() => {
+          const el = document.getElementById('echo-music-across');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else if (hash === '#country-music') {
+        setCurrentPath(path);
+        setCurrentMode('hub');
+        setActiveNav('country-music');
+        setTimeout(() => {
+          const el = document.getElementById('country-music-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
       } else {
         setCurrentPath(path);
       }
@@ -121,33 +154,26 @@ export const App: React.FC = () => {
   };
 
   const scrollToDownload = () => {
-    const el = document.getElementById('download');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    setCurrentMode('hub');
+    setActiveNav('download');
+    setTimeout(() => {
+      const el = document.getElementById('download');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
   };
 
   const scrollToFeatures = () => {
-    const el = document.getElementById('features');
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-    }
+    setCurrentMode('hub');
+    setActiveNav('features');
+    setTimeout(() => {
+      const el = document.getElementById('features');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
   };
-
-
-
-  if (currentPath === '/download' || currentPath === '/downloads') {
-    return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
-        <DownloadsPage />
-        <Footer 
-          onOpenLegalModal={handleOpenLegalModal}
-          onDownloadClick={() => {}}
-        />
-        <DownloadNoticeBanner />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#07080e] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative overflow-x-hidden">
@@ -160,7 +186,7 @@ export const App: React.FC = () => {
       {/* 1. Top Announcement Bar */}
       <TopBanner 
         onDownloadClick={scrollToDownload} 
-        announcementText="GEN MUSIC Official Release is Available Now — Download for Android, Android Car, Mac & Windows."
+        announcementText="GEN MUSIC 2.4 (GPL-3.0) — Unlimited Free Streaming, Synced Lyrics & Offline Apps for Android, Mac & Windows."
       />
 
       {/* 2. Navigation with Brand, Multi-platform links & Telegram */}
@@ -168,53 +194,92 @@ export const App: React.FC = () => {
         activeNav={activeNav}
         setActiveNav={setActiveNav}
         onDownloadClick={scrollToDownload}
+        currentMode={currentMode}
+        onSwitchMode={(mode) => setCurrentMode(mode)}
       />
 
       {/* Main Content Sections */}
-      <main className="flex-grow pb-28">
+      <main className="flex-grow">
         
-        {/* 3. Hero Section */}
-        <HeroSection 
-          platforms={platforms}
-          onSelectPlatformDownload={() => {
-            scrollToDownload();
-          }}
-          onViewFeatures={scrollToFeatures}
-        />
+        {/* Toggle between Online Music Discovery Player and Downloads Hub */}
+        {currentMode === 'player' && currentPath !== '/download' && currentPath !== '/downloads' ? (
+          <div>
+            <MusicDiscoveryView 
+              initialSearchQuery={externalSearchQuery}
+              onClearInitialQuery={() => setExternalSearchQuery(undefined)}
+            />
+          </div>
+        ) : (
+          <div>
+            {currentPath === '/download' || currentPath === '/downloads' ? (
+              <DownloadsPage />
+            ) : (
+              <>
+                {/* 3. Hero Section */}
+                <HeroSection 
+                  platforms={platforms}
+                  onSelectPlatformDownload={() => scrollToDownload()}
+                  onViewFeatures={scrollToFeatures}
+                />
 
-        {/* 4. Unified Multi-Platform Download & Release Hub */}
-        <DownloadAppSection 
-          platforms={platforms}
-        />
+                {/* 3.1 Live Geo Music Section (IP-based, click opens full app and plays) */}
+                <CountryMusicSection 
+                  onOpenFullApp={() => {
+                    setCurrentMode('player');
+                    setActiveNav('player');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
 
-        {/* 5. Why Choose GEN MUSIC Section */}
-        <WhyChooseSection 
-          onDownloadClick={scrollToDownload}
-        />
+                {/* 3.2 Enter Echo Music Across Section (with direct Download Option) */}
+                <EchoMusicAcrossSection 
+                  onEnterEchoMusic={(searchQuery) => {
+                    if (searchQuery) {
+                      setExternalSearchQuery(searchQuery);
+                    }
+                    setCurrentMode('player');
+                    setActiveNav('player');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
 
-        {/* 6. Android Auto & Car Apps Section */}
-        <AndroidCarAppsSection 
-          onDownloadClick={scrollToDownload}
-        />
+                {/* 4. Unified Multi-Platform Download & Release Hub */}
+                <DownloadAppSection 
+                  platforms={platforms}
+                />
 
-        {/* 7. Dynamic 3D Spatial Music Visualizer Engine */}
-        <MusicVisualizer3D />
+                {/* 5. Why Choose GEN MUSIC Section */}
+                <WhyChooseSection 
+                  onDownloadClick={scrollToDownload}
+                />
 
-        {/* 8. Complete Features Section */}
-        <PremiumFeaturesSection 
-          onDownloadClick={scrollToDownload}
-        />
+                {/* 6. Android Auto & Car Apps Section */}
+                <AndroidCarAppsSection 
+                  onDownloadClick={scrollToDownload}
+                />
 
-        {/* 9. App Interface Screenshots */}
-        <ScreenshotsSection />
+                {/* 7. Dynamic 3D Spatial Music Visualizer Engine */}
+                <MusicVisualizer3D />
 
-        {/* 10. Updates & Announcements */}
-        <UpdatesSection 
-          onDownloadClick={scrollToDownload}
-        />
+                {/* 8. Complete Features Section */}
+                <PremiumFeaturesSection 
+                  onDownloadClick={scrollToDownload}
+                />
 
-        {/* 11. Frequently Asked Questions */}
-        <FAQSection />
+                {/* 9. App Interface Screenshots */}
+                <ScreenshotsSection />
+
+                {/* 10. Updates & Announcements */}
+                <UpdatesSection 
+                  onDownloadClick={scrollToDownload}
+                />
+
+                {/* 11. Frequently Asked Questions */}
+                <FAQSection />
+              </>
+            )}
+          </div>
+        )}
 
       </main>
 
@@ -224,14 +289,26 @@ export const App: React.FC = () => {
         onDownloadClick={scrollToDownload}
       />
 
-      {/* Advisory Notice Banner for Download Sponsor & 5-Min Cooldown Direct Download */}
-      <DownloadNoticeBanner />
+      {/* Advisory Notice Banner for Download Sponsor & 5-Min Cooldown Direct Download (Hidden in streaming mode) */}
+      <DownloadNoticeBanner isStreamingMode={currentMode === 'player'} />
+
+      {/* Persistent Mini Player (Always docked at bottom across all pages) */}
+      <MiniPlayer />
+
+      {/* Full Screen Player Modal */}
+      <FullPlayerModal />
+
+      {/* Synced Lyrics Modal / Drawer */}
+      <SyncedLyricsView />
+
+      {/* Play Queue Drawer */}
+      <QueueDrawer />
 
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div 
           id="app-toast-alert"
-          className="fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl bg-[#0d1020]/95 border border-cyan-500/40 text-white text-xs sm:text-sm font-mono shadow-[0_0_25px_rgba(0,240,255,0.2)] backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-center gap-3"
+          className="fixed bottom-24 right-6 z-50 px-5 py-3.5 rounded-2xl bg-[#0d1020]/95 border border-cyan-500/40 text-white text-xs sm:text-sm font-mono shadow-[0_0_25px_rgba(0,240,255,0.2)] backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-center gap-3"
         >
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
           <span>{toastMessage}</span>
@@ -248,4 +325,15 @@ export const App: React.FC = () => {
   );
 };
 
+export const App: React.FC = () => {
+  return (
+    <ErrorBoundary>
+      <MusicPlayerProvider>
+        <AppContent />
+      </MusicPlayerProvider>
+    </ErrorBoundary>
+  );
+};
+
 export default App;
+

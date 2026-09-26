@@ -233,6 +233,67 @@ export function openFirstTimeSponsorLink(): boolean {
 }
 
 /**
+ * Opens the sponsor hyperlink in a new tab/window, activates cooldown,
+ * and optionally runs a callback (such as entering the music player or starting playback).
+ */
+export function triggerSponsorHyperlink(callback?: () => void) {
+  if (typeof window === 'undefined') {
+    if (callback) callback();
+    return;
+  }
+
+  // 1. Activate cooldown timestamp in localStorage
+  try {
+    localStorage.setItem(SPONSOR_LAST_CLICKED_TIMESTAMP_KEY, Date.now().toString());
+  } catch {}
+
+  // 2. Open sponsor hyperlink
+  try {
+    const sponsorWin = window.open(OMG10_SPONSOR_URL, '_blank', 'noopener,noreferrer');
+    if (!sponsorWin || sponsorWin.closed || typeof sponsorWin.closed === 'undefined') {
+      const anchor = document.createElement('a');
+      anchor.href = OMG10_SPONSOR_URL;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      setTimeout(() => {
+        if (document.body.contains(anchor)) {
+          document.body.removeChild(anchor);
+        }
+      }, 500);
+    }
+  } catch (e) {
+    console.warn('Error opening sponsor hyperlink:', e);
+  }
+
+  // 3. Dispatch event for UI notifications/cooldown badges
+  try {
+    window.dispatchEvent(
+      new CustomEvent('genmusic-sponsor-opened', {
+        detail: {
+          targetUrl: OMG10_SPONSOR_URL,
+          cooldownSeconds: 300,
+        },
+      })
+    );
+    window.dispatchEvent(new CustomEvent('genmusic-cooldown-change'));
+  } catch {}
+
+  // 4. Execute callback after a brief tick to ensure hyperlink event dispatched
+  if (callback) {
+    setTimeout(() => {
+      try {
+        callback();
+      } catch (err) {
+        console.warn('Error in sponsor callback:', err);
+      }
+    }, 120);
+  }
+}
+
+/**
  * Fires celebration particle confetti to give positive visual feedback right on the page.
  */
 export function triggerDownloadCelebration() {

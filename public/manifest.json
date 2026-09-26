@@ -1,0 +1,33 @@
+{
+  "id": "/",
+  "name": "Gen Music",
+  "short_name": "Gen Music",
+  "description": "Stream unlimited free music, synced lyrics, and offline playback. GPL-3.0 open source player.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#07080e",
+  "background_color": "#07080e",
+  "categories": ["music", "entertainment", "multimedia"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

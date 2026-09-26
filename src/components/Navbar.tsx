@@ -9,19 +9,26 @@ import {
 } from 'lucide-react';
 import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
+import { triggerSponsorHyperlink } from '../utils/downloadHelper';
 
 interface NavbarProps {
   activeNav: string;
   setActiveNav: (nav: string) => void;
   onDownloadClick: () => void;
+  currentMode?: 'player' | 'hub';
+  onSwitchMode?: (mode: 'player' | 'hub') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeNav,
   setActiveNav,
   onDownloadClick,
+  currentMode = 'player',
+  onSwitchMode,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
     recommendedFileFormat: '.apk',
@@ -32,22 +39,93 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   useEffect(() => {
     setDeviceInfo(detectUserDevice());
+
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstallable(false);
+    }
+    setDeferredPrompt(null);
+  };
+
   const navLinks = [
-    { id: 'home', label: 'Home' },
-    { id: 'download', label: 'Downloads' },
-    { id: 'features', label: 'Features' },
+    { id: 'player', label: '🎵 Play Online' },
+    { id: 'echo-music-across', label: '🎧 Echo Music Across' },
+    { id: 'country-music', label: '🌍 Country Hits' },
+    { id: 'download', label: '📥 Get Apps' },
+    { id: 'features', label: '⚡ Features' },
     { id: 'faq', label: 'FAQ' },
   ];
 
   const handleNavClick = (id: string) => {
     setActiveNav(id);
     setMobileMenuOpen(false);
-    const targetElement = document.getElementById(id);
-    if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'smooth' });
+
+    if (id === 'player') {
+      triggerSponsorHyperlink(() => {
+        if (onSwitchMode) onSwitchMode('player');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+      return;
     }
+
+    if (id === 'echo-music-across') {
+      const el = document.getElementById('echo-music-across');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else if (onSwitchMode) {
+        onSwitchMode('hub');
+        setTimeout(() => {
+          const target = document.getElementById('echo-music-across');
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
+      }
+      return;
+    }
+
+    if (id === 'country-music') {
+      // If in hub mode, scroll to country-music-section; if in player mode, can stay in player or open section
+      const el = document.getElementById('country-music-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      } else if (onSwitchMode) {
+        onSwitchMode('hub');
+        setTimeout(() => {
+          const target = document.getElementById('country-music-section');
+          if (target) target.scrollIntoView({ behavior: 'smooth' });
+        }, 80);
+      }
+      return;
+    }
+
+    if (id === 'download') {
+      if (onSwitchMode) onSwitchMode('hub');
+      setTimeout(() => {
+        const el = document.getElementById('download');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+      return;
+    }
+
+    if (onSwitchMode) onSwitchMode('hub');
+    setTimeout(() => {
+      const targetElement = document.getElementById(id);
+      if (targetElement) {
+        targetElement.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 50);
   };
 
   return (
@@ -109,6 +187,18 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right Actions */}
         <div className="flex items-center gap-2.5 flex-shrink-0">
+          {/* PWA Install Button */}
+          {isInstallable && (
+            <button
+              onClick={handleInstallClick}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 text-xs font-semibold hover:bg-cyan-500/30 transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.2)]"
+              title="Install Gen Music App"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Install Web App</span>
+            </button>
+          )}
+
           {/* Primary CTA with Device Suggestion */}
           <button
             onClick={onDownloadClick}
