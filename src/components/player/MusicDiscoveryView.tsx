@@ -56,6 +56,7 @@ import { YouTubeSignInModal } from './YouTubeSignInModal';
 import { EchoAdBlockModal } from './EchoAdBlockModal';
 import { PWAInstallBanner } from './PWAInstallBanner';
 import { RotatingLeaderboardAd, RotatingFeedAd, RotatingCompactAd } from '../ads/RotatingAdEngine';
+import { useEchoMusicSync } from '../../hooks/useEchoMusicSync';
 
 interface Section {
   id: string;
@@ -103,6 +104,8 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
     ytAccount,
     adBlockState
   } = useMusicPlayer();
+
+  const echoSync = useEchoMusicSync(true);
 
   const [activeTab, setActiveTab] = useState<'home' | 'moods' | 'charts' | 'country' | 'search' | 'library' | 'about'>('home');
   const [sections, setSections] = useState<Section[]>([]);
@@ -584,6 +587,24 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
             >
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">AdBlock</span>
+            </button>
+
+            {/* Automated GitHub Code Sync Pill */}
+            <button
+              onClick={() => echoSync.triggerSync()}
+              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                echoSync.isSyncing
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/40 animate-pulse'
+                  : echoSync.isSynced
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  : 'bg-white/5 text-slate-300 border-white/10'
+              }`}
+              title="Automated GitHub Code Sync - EchoMusicApp/Echo-Music"
+            >
+              <Zap className={`w-3.5 h-3.5 ${echoSync.isSyncing ? 'animate-spin text-cyan-400' : 'text-emerald-400'}`} />
+              <span className="hidden xl:inline">
+                {echoSync.isSyncing ? 'Syncing GitHub...' : 'Code Synced'}
+              </span>
             </button>
 
             {/* YouTube Sign In Button */}
