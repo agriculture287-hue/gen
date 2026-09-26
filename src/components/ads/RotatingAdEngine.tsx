@@ -17,8 +17,34 @@ export interface AdCreative {
 
 export const ROTATING_AD_CREATIVES: AdCreative[] = [
   {
+    id: 'ad-monetag-inpage-push',
+    sponsorName: 'Monetag In-Page Push',
+    badge: 'Monetag Official Ad',
+    title: 'Monetag Premium Listener Rewards & Partner Perks',
+    description: 'Verified Monetag In-Page Push & Native ad unit delivering high-eCPM listener rewards, discount vouchers, and exclusive sponsor deals.',
+    highlight: '★ Monetag Verified',
+    emoji: '💎',
+    ctaText: 'Monetag Active',
+    bgGradient: 'from-purple-600/20 via-indigo-600/20 to-cyan-500/15',
+    borderColor: 'border-purple-500/40 hover:border-purple-400/80',
+    textColor: 'text-purple-300'
+  },
+  {
+    id: 'ad-monetag-vignette',
+    sponsorName: 'Monetag Multi-Tag Network',
+    badge: 'Monetag Partner',
+    title: 'Unlock High-Bitrate Spatial Audio Gear & App Perks',
+    description: 'Monetag Auto-Monetization engine delivering targeted audio accessories and high-speed streaming VPN deals.',
+    highlight: '★ Monetag Sponsored',
+    emoji: '⚡',
+    ctaText: 'Explore Partner',
+    bgGradient: 'from-indigo-600/20 via-blue-600/20 to-slate-900',
+    borderColor: 'border-indigo-500/40 hover:border-indigo-400/80',
+    textColor: 'text-indigo-300'
+  },
+  {
     id: 'ad-omg10-perks',
-    sponsorName: 'OMG10 Network',
+    sponsorName: 'OMG10 Network (Monetag)',
     badge: 'Exclusive Sponsor',
     title: 'Unlock Premium Streaming Perks & Free Gifts',
     description: 'Claim exclusive listener bonuses, digital vouchers, and special discount codes from our verified network partner.',
@@ -31,7 +57,7 @@ export const ROTATING_AD_CREATIVES: AdCreative[] = [
   },
   {
     id: 'ad-hifi-audio',
-    sponsorName: 'Acoustic SoundLab',
+    sponsorName: 'Acoustic SoundLab (Monetag)',
     badge: 'Audio Partner',
     title: 'Upgrade to Studio Lossless ANC Headphones — 40% Off',
     description: 'Experience Gen Music 320kbps Dolby spatial audio with professional audiophile-grade wireless monitors.',
@@ -44,7 +70,7 @@ export const ROTATING_AD_CREATIVES: AdCreative[] = [
   },
   {
     id: 'ad-stream-speed',
-    sponsorName: 'HyperNet VPN',
+    sponsorName: 'HyperNet VPN (Monetag)',
     badge: 'Fast Connect',
     title: 'Ultra-Fast Global Music Streaming & 0-Lag Buffering',
     description: 'Bypass ISP audio throttling and access geo-restricted song catalogs worldwide with ultra-low latency.',
@@ -54,32 +80,6 @@ export const ROTATING_AD_CREATIVES: AdCreative[] = [
     bgGradient: 'from-emerald-500/15 via-teal-500/15 to-slate-900',
     borderColor: 'border-emerald-500/30 hover:border-emerald-400/60',
     textColor: 'text-emerald-300'
-  },
-  {
-    id: 'ad-creator-suite',
-    sponsorName: 'BeatForge Pro',
-    badge: 'Music Creation',
-    title: 'Create Your Own Remixes & Beats with AI Sound Engine',
-    description: 'Turn your favorite song stems into custom tracks, vocal isolations, and 808 bass beats effortlessly.',
-    highlight: '★ Free Creator Pass',
-    emoji: '🎹',
-    ctaText: 'Try Beat Maker',
-    bgGradient: 'from-pink-500/15 via-rose-500/15 to-purple-900/20',
-    borderColor: 'border-pink-500/30 hover:border-pink-400/60',
-    textColor: 'text-pink-300'
-  },
-  {
-    id: 'ad-gamer-audio',
-    sponsorName: 'Titan DAC Audio',
-    badge: 'Gaming & Music',
-    title: '3D Binaural USB Soundcards for PC, Mac & Android',
-    description: 'Enhance your daily music listening and gaming sessions with certified Dolby 7.1 hardware audio virtualizers.',
-    highlight: '★ Top Rated 2024',
-    emoji: '🎮',
-    ctaText: 'Claim Discount',
-    bgGradient: 'from-violet-500/15 via-indigo-500/15 to-cyan-900/20',
-    borderColor: 'border-violet-500/30 hover:border-violet-400/60',
-    textColor: 'text-violet-300'
   }
 ];
 
