@@ -38,17 +38,38 @@ jobs:
     name: Auto Deploy to Vercel Production
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Deploy to Vercel Action
-        uses: amondnet/vercel-action@v25
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--prod'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: 20
+
+      - name: Check Vercel Credentials & Deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning ::VERCEL_TOKEN secret is not set in GitHub repository secrets. Deferring to Vercel GitHub Native Integration."
+            echo "To enable direct GitHub Actions deployment to Vercel, add VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID in GitHub Repository Settings -> Secrets and variables -> Actions."
+            exit 0
+          fi
+
+          echo "Installing Vercel CLI..."
+          npm install -g vercel@latest
+
+          echo "Pulling Vercel Environment Information..."
+          vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+          echo "Building Project Artifacts for Vercel..."
+          vercel build --prod --token=$VERCEL_TOKEN
+
+          echo "Deploying Project Artifacts to Vercel Production..."
+          vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+
