@@ -10,6 +10,12 @@ import {
   getUpNextQueue, 
   getLyrics, 
   getStreamInfo,
+  getMoodsAndGenres,
+  getChartsFeed,
+  getArtistDetails,
+  getAlbumDetails,
+  recognizeSong,
+  importPlaylist,
   CURATED_CATALOG
 } from './server/innertubeService.ts';
 import {
@@ -291,7 +297,99 @@ app.get('/api/stream/:id', async (req, res) => {
   }
 });
 
-// 6. GPL-3.0 Licensing & Upstream Echo Music Credits
+// 6. Moods & Genres Catalog (24 categories from Echo Music)
+app.get('/api/moods-genres', async (_req, res) => {
+  try {
+    const categories = await getMoodsAndGenres();
+    res.json({
+      success: true,
+      categories
+    });
+  } catch (err: any) {
+    console.error('API /api/moods-genres error:', err);
+    res.status(500).json({ success: false, error: err.message, categories: [] });
+  }
+});
+
+// 7. Global Charts (Top 50, Viral Hits, Trending)
+app.get('/api/charts', async (_req, res) => {
+  try {
+    const charts = await getChartsFeed();
+    res.json({
+      success: true,
+      ...charts
+    });
+  } catch (err: any) {
+    console.error('API /api/charts error:', err);
+    res.status(500).json({ success: false, error: err.message, top50: CURATED_CATALOG });
+  }
+});
+
+// 8. Artist Profile & Discography
+app.get('/api/artist', async (req, res) => {
+  try {
+    const name = typeof req.query.name === 'string' ? req.query.name : 'Ed Sheeran';
+    const artist = await getArtistDetails(name);
+    res.json({
+      success: true,
+      ...artist
+    });
+  } catch (err: any) {
+    console.error('API /api/artist error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 9. Album Details & Tracklist
+app.get('/api/album', async (req, res) => {
+  try {
+    const title = typeof req.query.title === 'string' ? req.query.title : '';
+    const artist = typeof req.query.artist === 'string' ? req.query.artist : '';
+    const album = await getAlbumDetails(title, artist);
+    res.json({
+      success: true,
+      ...album
+    });
+  } catch (err: any) {
+    console.error('API /api/album error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 10. Echo Find - Audio Recognition (ShazamKit / Vibra Engine)
+app.post('/api/recognize', async (req, res) => {
+  try {
+    const { query } = req.body || {};
+    const result = await recognizeSong(query);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err: any) {
+    console.error('API /api/recognize error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 11. Spotify, YouTube & M3U Playlist Importer
+app.post('/api/import-playlist', async (req, res) => {
+  try {
+    const { urlOrData } = req.body || {};
+    if (!urlOrData) {
+      return res.status(400).json({ success: false, error: 'URL or playlist data required' });
+    }
+    const playlist = await importPlaylist(urlOrData);
+    res.json({
+      success: true,
+      playlist
+    });
+  } catch (err: any) {
+    console.error('API /api/import-playlist error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 12. GPL-3.0 Licensing & Upstream Echo Music Credits
 app.get('/api/credits', (_req, res) => {
   res.json({
     name: 'Gen Music',
@@ -400,11 +498,16 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
-      // Do not serve index.html for missing static assets or API endpoints
-      if (req.path.startsWith('/api/') || req.path.startsWith('/assets/') || req.path.includes('.')) {
+      // Do not serve index.html for missing API endpoints or specific asset extensions
+      if (req.path.startsWith('/api/') || req.path.startsWith('/assets/') || (req.path.includes('.') && !req.path.endsWith('.html'))) {
         return res.status(404).send('Resource not found');
       }
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(500).send('Application build in progress. Please refresh in a moment.');
+      }
     });
   }
 

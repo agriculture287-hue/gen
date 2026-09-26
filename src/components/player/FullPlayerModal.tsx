@@ -17,7 +17,14 @@ import {
   Sliders, 
   Share2,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Moon,
+  Palette,
+  Layers,
+  Radio,
+  Clock,
+  ShieldCheck,
+  Youtube
 } from 'lucide-react';
 import { useMusicPlayer } from '../../context/MusicPlayerContext';
 import { triggerSponsorHyperlink } from '../../utils/downloadHelper';
@@ -54,6 +61,17 @@ export const FullPlayerModal: React.FC = () => {
     setIsFullPlayerOpen,
     setIsLyricsOpen,
     setIsQueueOpen,
+    setIsEqualizerOpen,
+    setIsSleepTimerOpen,
+    setIsAdBlockModalOpen,
+    setIsYtSignInModalOpen,
+    adBlockState,
+    ytAccount,
+    playerTheme,
+    setPlayerTheme,
+    openArtist,
+    openAlbum,
+    sleepTimer,
     lyrics,
     currentLyricIndex,
   } = useMusicPlayer();
@@ -77,13 +95,29 @@ export const FullPlayerModal: React.FC = () => {
       role="dialog"
       aria-label="Full Player"
     >
-      {/* Background ambient lighting */}
+      {/* Background ambient lighting based on theme */}
       <div 
-        className="fixed inset-0 pointer-events-none opacity-25 blur-3xl -z-10 scale-125 transition-all duration-1000"
-        style={{
-          backgroundImage: `radial-gradient(circle at center, rgba(0, 240, 255, 0.4) 0%, rgba(138, 43, 226, 0.2) 50%, transparent 80%)`,
-        }}
-      />
+        className="fixed inset-0 pointer-events-none -z-10 transition-all duration-1000 overflow-hidden"
+      >
+        {playerTheme === 'apple' ? (
+          /* Apple Music style blurred fluid background canvas */
+          <div className="absolute inset-0 bg-gradient-to-tr from-purple-900/40 via-cyan-900/30 to-pink-900/40 backdrop-blur-3xl opacity-70">
+            <img 
+              src={currentTrack.thumbnail} 
+              alt="ambient" 
+              className="w-full h-full object-cover filter blur-3xl opacity-50 scale-150 transform animate-pulse" 
+            />
+          </div>
+        ) : (
+          /* Material You style ambient glow */
+          <div 
+            className="w-full h-full opacity-35 blur-3xl scale-125 transition-all duration-1000"
+            style={{
+              backgroundImage: `radial-gradient(circle at center, rgba(0, 240, 255, 0.45) 0%, rgba(138, 43, 226, 0.25) 50%, transparent 80%)`,
+            }}
+          />
+        )}
+      </div>
 
       {/* Top Header */}
       <div className="max-w-4xl mx-auto w-full px-6 py-4 flex items-center justify-between">
@@ -101,7 +135,7 @@ export const FullPlayerModal: React.FC = () => {
             onClick={() => setActiveTab('cover')}
             className={`px-4 py-1.5 rounded-xl font-medium transition-all ${
               activeTab === 'cover'
-                ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20'
+                ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20 font-bold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -111,7 +145,7 @@ export const FullPlayerModal: React.FC = () => {
             onClick={() => setActiveTab('lyrics')}
             className={`px-4 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
               activeTab === 'lyrics'
-                ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20'
+                ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/20 font-bold'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -120,84 +154,137 @@ export const FullPlayerModal: React.FC = () => {
           </button>
         </div>
 
-        <button
-          onClick={() => setIsQueueOpen(true)}
-          className="p-2 text-slate-400 hover:text-white rounded-2xl hover:bg-white/5 transition-colors cursor-pointer"
-          aria-label="Open queue"
-        >
-          <ListMusic className="w-6 h-6" />
-        </button>
+        {/* Controls: AdBlock, YouTube, Equalizer, Sleep Timer & Queue */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setIsAdBlockModalOpen(true)}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              adBlockState.enabled ? 'text-emerald-400 bg-emerald-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Echo AdBlock & SponsorBlock"
+          >
+            <ShieldCheck className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setIsYtSignInModalOpen(true)}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              ytAccount.signedIn ? 'text-red-400 bg-red-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="YouTube Account Sign In"
+          >
+            <Youtube className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setIsEqualizerOpen(true)}
+            className="p-2 text-slate-400 hover:text-cyan-300 rounded-xl hover:bg-white/5 transition-colors cursor-pointer"
+            title="Axion 5-Band Equalizer"
+          >
+            <Sliders className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setIsSleepTimerOpen(true)}
+            className={`p-2 rounded-xl transition-colors cursor-pointer ${
+              sleepTimer.active ? 'text-indigo-400 bg-indigo-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+            }`}
+            title="Sleep Timer"
+          >
+            <Moon className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setIsQueueOpen(true)}
+            className="p-2 text-slate-400 hover:text-white rounded-2xl hover:bg-white/5 transition-colors cursor-pointer"
+            aria-label="Open queue"
+          >
+            <ListMusic className="w-6 h-6" />
+          </button>
+        </div>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col items-center justify-center max-w-xl mx-auto w-full px-6 py-4">
         {activeTab === 'cover' ? (
           <div className="flex flex-col items-center w-full">
-            {/* Holographic Album Art with subtle rotation */}
+            {/* Holographic Album Art or Vinyl Canvas */}
             <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 my-4 group">
               <div 
                 className={`absolute inset-0 rounded-3xl bg-gradient-to-tr from-cyan-500/30 to-purple-600/30 blur-2xl transition-all duration-700 pointer-events-none ${
                   isPlaying ? 'opacity-80 scale-105' : 'opacity-30'
                 }`}
               />
-              <div className="relative w-full h-full rounded-3xl overflow-hidden border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)] bg-slate-900">
+              
+              {playerTheme === 'canvas' ? (
+                /* Vinyl Disc mode */
+                <div className={`w-full h-full rounded-full border-4 border-slate-800 bg-black shadow-2xl p-6 flex items-center justify-center relative overflow-hidden ${
+                  isPlaying ? 'animate-[spin_12s_linear_infinite]' : ''
+                }`}>
+                  <img
+                    src={currentTrack.thumbnail}
+                    alt={currentTrack.title}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-black"
+                  />
+                  <div className="w-6 h-6 rounded-full bg-slate-900 border-2 border-slate-700 absolute" />
+                </div>
+              ) : (
+                /* Standard Hi-Res Art */
                 <img
-                  src={currentTrack.thumbnail || '/logo.png'}
+                  src={currentTrack.thumbnail}
                   alt={currentTrack.title}
-                  className="w-full h-full object-cover"
+                  className="relative w-full h-full object-cover rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/10"
                 />
-              </div>
-
-              {/* Dolby / Hi-Res Audio Badge */}
-              <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-cyan-400/40 text-[10px] font-mono text-cyan-300 font-bold flex items-center gap-1 shadow-lg">
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                DOLBY 3D
-              </div>
+              )}
             </div>
 
-            {/* Current Lyric Teaser */}
-            {lyrics?.synced && lyrics.lines.length > 0 && currentLyricIndex >= 0 && (
-              <div 
+            {/* Quick mini lyrics line preview */}
+            {lyrics && lyrics.lines && lyrics.lines.length > 0 && currentLyricIndex >= 0 && (
+              <p 
                 onClick={() => setActiveTab('lyrics')}
-                className="mt-2 mb-4 px-4 py-2 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-sm font-medium text-center cursor-pointer hover:bg-cyan-500/20 transition-all max-w-md truncate"
+                className="text-xs sm:text-sm font-semibold text-cyan-300 text-center truncate max-w-md py-1.5 px-4 rounded-full bg-cyan-500/10 border border-cyan-500/20 my-2 cursor-pointer hover:bg-cyan-500/20 transition animate-in fade-in"
               >
                 "{lyrics.lines[currentLyricIndex]?.text}"
-              </div>
+              </p>
             )}
           </div>
         ) : (
-          /* Inline Lyrics Scroll */
-          <div className="w-full h-80 sm:h-96 overflow-y-auto px-4 py-6 text-center space-y-4 scroll-smooth">
-            {!lyrics || !lyrics.lines.length ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <p>No synced lyrics available.</p>
-                <p className="text-xs text-slate-500 mt-2 whitespace-pre-line">{lyrics?.plainText}</p>
-              </div>
+          /* Synced Lyrics in-player view */
+          <div className="w-full h-80 sm:h-96 flex flex-col justify-center items-center overflow-y-auto space-y-4 px-4 text-center my-4 font-sans">
+            {lyrics && lyrics.synced && lyrics.lines && lyrics.lines.length > 0 ? (
+              lyrics.lines.map((line, idx) => {
+                const isActive = currentLyricIndex === idx;
+                return (
+                  <p
+                    key={idx}
+                    onClick={() => seek(line.time)}
+                    className={`transition-all duration-300 cursor-pointer ${
+                      isActive
+                        ? 'text-lg sm:text-2xl font-black text-cyan-300 scale-105 drop-shadow-[0_0_12px_rgba(0,240,255,0.6)]'
+                        : 'text-sm sm:text-base font-semibold text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {line.text}
+                  </p>
+                );
+              })
             ) : (
-              lyrics.lines.map((l, i) => (
-                <p
-                  key={`${l.time}-${i}`}
-                  onClick={() => seek(l.time)}
-                  className={`text-lg sm:text-xl font-bold cursor-pointer transition-all duration-200 select-none ${
-                    i === currentLyricIndex
-                      ? 'text-cyan-300 scale-105 drop-shadow-[0_0_15px_rgba(0,240,255,0.6)]'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  {l.text}
+              <div className="text-center text-slate-400 space-y-2">
+                <Mic2 className="w-10 h-10 mx-auto text-slate-600" />
+                <p className="text-sm">
+                  {lyrics?.plainText || 'Loading live lyrics...'}
                 </p>
-              ))
+              </div>
             )}
           </div>
         )}
 
-        {/* Track Title & Artist */}
+        {/* Track Title and Artist (Click opens artist modal) */}
         <div className="w-full flex items-center justify-between mt-4">
           <div className="min-w-0 flex-1 pr-4">
-            <h2 className="text-xl sm:text-2xl font-bold text-white truncate">
+            <h3 className="text-xl sm:text-2xl font-bold text-white truncate" title={currentTrack.title}>
               {currentTrack.title}
-            </h2>
-            <p className="text-sm sm:text-base text-slate-400 truncate mt-0.5">
+            </h3>
+            <p 
+              onClick={() => openArtist(currentTrack.artist)}
+              className="text-sm sm:text-base text-slate-400 truncate mt-0.5 hover:text-cyan-300 hover:underline cursor-pointer"
+            >
               {currentTrack.artist}
             </p>
           </div>

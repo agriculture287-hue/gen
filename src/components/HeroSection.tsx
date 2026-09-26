@@ -19,6 +19,7 @@ import {
   ExternalLink,
   Apple,
   Car,
+  Play,
   ArrowDownToLine
 } from 'lucide-react';
 import { AppPlatformRelease } from '../types';
@@ -26,19 +27,21 @@ import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 import { HolographicAudio3D } from './HolographicAudio3D';
-import { handleDownloadWithSponsor, triggerDownloadCelebration, getSponsorCooldownStatus } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor, triggerDownloadCelebration, getSponsorCooldownStatus, triggerSponsorHyperlink } from '../utils/downloadHelper';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
 interface HeroSectionProps {
   platforms: AppPlatformRelease[];
   onSelectPlatformDownload: (platformId?: string) => void;
   onViewFeatures: () => void;
+  onLaunchOnlinePlayer?: () => void;
 }
 
 export const HeroSection: React.FC<HeroSectionProps> = ({
   platforms,
   onSelectPlatformDownload,
   onViewFeatures,
+  onLaunchOnlinePlayer,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -232,6 +235,25 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
             return (
               <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full pt-1">
+                {/* 1. Primary Redirection Button to /online with Sponsor Hyperlink */}
+                <button
+                  onClick={() => {
+                    triggerSponsorHyperlink(() => {
+                      if (onLaunchOnlinePlayer) {
+                        onLaunchOnlinePlayer();
+                      } else {
+                        window.location.href = '/online';
+                      }
+                    });
+                  }}
+                  id="hero-play-online-btn"
+                  className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:from-cyan-300 hover:via-blue-400 hover:to-indigo-500 text-black font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-400/30 hover:shadow-2xl hover:shadow-cyan-400/50 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  <span>🎵 Play Online (Web Player)</span>
+                </button>
+
+                {/* 2. Platform App Download Button */}
                 <a
                   href={heroTargetUrl}
                   target="_blank"
@@ -260,27 +282,28 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     }, 8000);
                   }}
                   id="hero-primary-download-btn"
-                  className="w-full sm:w-auto px-7 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-purple-600 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-cyan-500/25 hover:shadow-2xl hover:shadow-cyan-500/40 hover:opacity-95 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
+                  className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white/[0.06] border border-white/10 hover:border-cyan-500/40 text-slate-100 hover:bg-white/[0.1] font-bold text-sm sm:text-base shadow-lg transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2.5 cursor-pointer active:scale-98"
                 >
                   {isHeroDownloading ? (
                     <ArrowDownToLine className="w-5 h-5 animate-bounce text-cyan-200" />
                   ) : (
-                    <Download className="w-5 h-5" />
+                    <Download className="w-5 h-5 text-cyan-400" />
                   )}
                   <span>
                     {isHeroDownloading
                       ? 'Starting Download...'
-                      : deviceInfo.platform === 'android' ? 'Download Android APK' :
-                        deviceInfo.platform === 'windows' ? 'Download Windows EXE' :
-                        deviceInfo.platform === 'macos' ? 'Download macOS DMG' :
-                        'Download Free App'}
+                      : deviceInfo.platform === 'android' ? 'Download APK' :
+                        deviceInfo.platform === 'windows' ? 'Download EXE' :
+                        deviceInfo.platform === 'macos' ? 'Download DMG' :
+                        'Download App'}
                   </span>
                 </a>
 
+                {/* 3. Explore Features */}
                 <button
                   onClick={onViewFeatures}
                   id="hero-explore-features-btn"
-                  className="w-full sm:w-auto px-5 py-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-cyan-500/40 text-slate-200 hover:bg-white/[0.08] font-bold text-sm shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-4 rounded-2xl bg-transparent border border-white/10 hover:border-cyan-500/30 text-slate-300 hover:text-white font-semibold text-sm transition flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Explore Features</span>
                 </button>

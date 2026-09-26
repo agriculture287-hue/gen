@@ -1,4 +1,4 @@
-import { Track, RepeatMode } from '../types/music';
+import { Track, RepeatMode, SponsorSegment } from '../types/music';
 
 declare global {
   interface Window {
@@ -29,6 +29,14 @@ class AudioPlayerService {
   private listeners: Set<PlayerStateListener> = new Set();
   private onTrackEndCallback: (() => void) | null = null;
   private isInitializing: boolean = false;
+
+  // Echo AdBlock & SponsorBlock state
+  private sponsorSegments: SponsorSegment[] = [];
+  private isSponsorBlockEnabled: boolean = true;
+  private isAudioAdBlockEnabled: boolean = true;
+  private skippedSegmentUUIDs: Set<string> = new Set();
+  private onSegmentSkippedCallback: ((segment: SponsorSegment, categoryLabel: string) => void) | null = null;
+  private onAdBlockedCallback: (() => void) | null = null;
 
   constructor() {
     this.initYouTubeAPI();
@@ -146,10 +154,87 @@ class AudioPlayerService {
         const dur = this.ytPlayer.getDuration() || this.duration;
         this.currentTime = cur;
         if (dur > 0) this.duration = dur;
+
+        // Echo AdBlock & SponsorBlock auto-skip logic
+        if (this.isSponsorBlockEnabled && this.sponsorSegments.length > 0) {
+          for (const seg of this.sponsorSegments) {
+            const [start, end] = seg.segment;
+            if (cur >= start && cur < end) {
+              if (!this.skippedSegmentUUIDs.has(seg.UUID)) {
+                this.skippedSegmentUUIDs.add(seg.UUID);
+                // Fast-forward past sponsor/intro segment
+                this.seekTo(end + 0.1);
+                const categoryLabels: Record<string, string> = {
+                  sponsor: 'Sponsor Message',
+                  selfpromo: 'Self Promotion',
+                  interaction: 'Interaction Reminder',
+                  intro: 'Intro Animation',
+                  outro: 'Outro / Credits',
+                  music_offtopic: 'Non-Music Segment',
+                  preview: 'Preview Segment'
+                };
+                const label = categoryLabels[seg.category] || 'Non-Music Part';
+                if (this.onSegmentSkippedCallback) {
+                  this.onSegmentSkippedCallback(seg, label);
+                }
+                break;
+              }
+            }
+          }
+        }
+
         this.notify();
         this.updateMediaSessionPosition();
       }
     }, 250);
+  }
+
+  private async fetchSponsorSegments(videoId: string) {
+    this.sponsorSegments = [];
+    this.skippedSegmentUUIDs.clear();
+    try {
+      const categories = JSON.stringify([
+        'sponsor',
+        'selfpromo',
+        'interaction',
+        'intro',
+        'outro',
+        'music_offtopic',
+        'preview'
+      ]);
+      const res = await fetch(
+        `https://sponsor.ajay.app/api/skipSegments?videoID=${videoId}&categories=${encodeURIComponent(categories)}`,
+        { signal: AbortSignal.timeout(3000) }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          this.sponsorSegments = data.map((item: any) => ({
+            category: item.category,
+            segment: item.segment,
+            UUID: item.UUID || `${item.category}-${item.segment[0]}`
+          }));
+        }
+      }
+    } catch {
+      // SponsorBlock segment not found or timeout is fine for standard music tracks
+    }
+  }
+
+  public setSponsorBlockEnabled(enabled: boolean) {
+    this.isSponsorBlockEnabled = enabled;
+  }
+
+  public setAudioAdBlockEnabled(enabled: boolean) {
+    this.isAudioAdBlockEnabled = enabled;
+  }
+
+  public setOnSegmentSkipped(cb: (segment: SponsorSegment, categoryLabel: string) => void) {
+    this.onSegmentSkippedCallback = cb;
+  }
+
+  public setOnAdBlocked(cb: () => void) {
+    this.onAdBlockedCallback = cb;
   }
 
   private stopTimeTracker() {
@@ -193,6 +278,9 @@ class AudioPlayerService {
     this.duration = track.durationSeconds || 0;
     this.isBuffering = true;
     this.notify();
+
+    // Fetch SponsorBlock segment definitions for this video
+    this.fetchSponsorSegments(track.id);
 
     if (!this.ytPlayer) {
       this.createPlayer();
@@ -247,6 +335,16 @@ class AudioPlayerService {
     }
     this.notify();
     this.updateMediaSessionPosition();
+  }
+
+  public setPlaybackRate(rate: number) {
+    if (this.ytPlayer && typeof this.ytPlayer.setPlaybackRate === 'function') {
+      try {
+        this.ytPlayer.setPlaybackRate(rate);
+      } catch (e) {
+        console.warn('Playback rate error:', e);
+      }
+    }
   }
 
   public setVolume(volume: number) {

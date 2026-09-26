@@ -14,7 +14,8 @@ import {
   Repeat1, 
   Shuffle,
   Music2,
-  Sparkles
+  Sparkles,
+  ShieldCheck
 } from 'lucide-react';
 import { useMusicPlayer } from '../../context/MusicPlayerContext';
 import { triggerSponsorHyperlink } from '../../utils/downloadHelper';
@@ -50,6 +51,8 @@ export const MiniPlayer: React.FC = () => {
     setIsFullPlayerOpen,
     setIsQueueOpen,
     setIsLyricsOpen,
+    setIsAdBlockModalOpen,
+    adBlockState,
     isLyricsOpen,
     isQueueOpen,
   } = useMusicPlayer();
@@ -292,6 +295,18 @@ export const MiniPlayer: React.FC = () => {
               aria-label="Volume level"
             />
           </div>
+
+          {/* Echo AdBlock Shield status button */}
+          <button
+            onClick={() => setIsAdBlockModalOpen(true)}
+            className={`p-2 rounded-xl transition-all cursor-pointer ${
+              adBlockState.enabled ? 'text-emerald-400 hover:bg-emerald-500/10' : 'text-slate-500 hover:text-white'
+            }`}
+            title="Echo AdBlock & SponsorBlock Protected"
+            aria-label="AdBlock Settings"
+          >
+            <ShieldCheck className="w-4 h-4" />
+          </button>
 
           {/* Full Player Expand */}
           <button

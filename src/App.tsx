@@ -99,18 +99,41 @@ export const AppContent: React.FC = () => {
     }
   ];
 
+  const navigateTo = (targetPath: string, mode: 'player' | 'hub') => {
+    try {
+      if (window.location.pathname.toLowerCase() !== targetPath) {
+        window.history.pushState({}, '', targetPath);
+      }
+    } catch {}
+    setCurrentPath(targetPath);
+    setCurrentMode(mode);
+    if (mode === 'player') {
+      setActiveNav('player');
+      document.title = 'GEN MUSIC — Free Online Music Streaming & Synced Lyrics';
+    } else if (targetPath === '/download' || targetPath === '/downloads') {
+      setActiveNav('download');
+      document.title = 'GEN MUSIC — Download for Android, Mac & Windows';
+    } else {
+      setActiveNav('home');
+      document.title = 'GEN MUSIC 2.4 — Free Music Streaming & Hi-Fi Audio App';
+    }
+  };
+
   useEffect(() => {
     const checkRoute = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
+      
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
         setCurrentMode('hub');
         setActiveNav('download');
-      } else if (path === '/player' || hash === '#player' || hash === '#/player') {
-        setCurrentPath(path);
+        document.title = 'GEN MUSIC — Download for Android, Mac & Windows';
+      } else if (path === '/online' || path === '/player' || path === '/stream' || path === '/streaming' || hash === '#online' || hash === '#/online' || hash === '#player' || hash === '#/player') {
+        setCurrentPath('/online');
         setCurrentMode('player');
         setActiveNav('player');
+        document.title = 'GEN MUSIC — Free Online Music Streaming & Synced Lyrics';
       } else if (hash === '#echo-music-across' || hash === '#echo-music') {
         setCurrentPath(path);
         setCurrentMode('hub');
@@ -129,6 +152,9 @@ export const AppContent: React.FC = () => {
         }, 100);
       } else {
         setCurrentPath(path);
+        if (currentMode === 'player' && path !== '/online') {
+          setCurrentMode('hub');
+        }
       }
     };
 
@@ -195,7 +221,13 @@ export const AppContent: React.FC = () => {
         setActiveNav={setActiveNav}
         onDownloadClick={scrollToDownload}
         currentMode={currentMode}
-        onSwitchMode={(mode) => setCurrentMode(mode)}
+        onSwitchMode={(mode) => {
+          if (mode === 'player') {
+            navigateTo('/online', 'player');
+          } else {
+            navigateTo('/', 'hub');
+          }
+        }}
       />
 
       {/* Main Content Sections */}
@@ -215,30 +247,13 @@ export const AppContent: React.FC = () => {
               <DownloadsPage />
             ) : (
               <>
-                {/* 3. Hero Section */}
+                {/* 3. Hero Section with Redirection Button with Hyperlink to /online */}
                 <HeroSection 
                   platforms={platforms}
                   onSelectPlatformDownload={() => scrollToDownload()}
                   onViewFeatures={scrollToFeatures}
-                />
-
-                {/* 3.1 Live Geo Music Section (IP-based, click opens full app and plays) */}
-                <CountryMusicSection 
-                  onOpenFullApp={() => {
-                    setCurrentMode('player');
-                    setActiveNav('player');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                />
-
-                {/* 3.2 Enter Echo Music Across Section (with direct Download Option) */}
-                <EchoMusicAcrossSection 
-                  onEnterEchoMusic={(searchQuery) => {
-                    if (searchQuery) {
-                      setExternalSearchQuery(searchQuery);
-                    }
-                    setCurrentMode('player');
-                    setActiveNav('player');
+                  onLaunchOnlinePlayer={() => {
+                    navigateTo('/online', 'player');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
                 />

@@ -60,12 +60,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     setDeferredPrompt(null);
   };
 
-  const navLinks = [
+  const navLinks = currentMode === 'player' ? [
+    { id: 'home-hub', label: '🏠 Home & Downloads' },
+    { id: 'player', label: '🎵 Online Streaming' },
+  ] : [
     { id: 'player', label: '🎵 Play Online' },
-    { id: 'echo-music-across', label: '🎧 Echo Music Across' },
-    { id: 'country-music', label: '🌍 Country Hits' },
-    { id: 'download', label: '📥 Get Apps' },
+    { id: 'download', label: '📥 Download App' },
     { id: 'features', label: '⚡ Features' },
+    { id: 'screenshots', label: '📱 Screenshots' },
     { id: 'faq', label: 'FAQ' },
   ];
 
@@ -73,11 +75,21 @@ export const Navbar: React.FC<NavbarProps> = ({
     setActiveNav(id);
     setMobileMenuOpen(false);
 
+    if (id === 'home-hub') {
+      if (onSwitchMode) onSwitchMode('hub');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (id === 'player') {
-      triggerSponsorHyperlink(() => {
-        if (onSwitchMode) onSwitchMode('player');
+      if (currentMode !== 'player') {
+        triggerSponsorHyperlink(() => {
+          if (onSwitchMode) onSwitchMode('player');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-      });
+      }
       return;
     }
 

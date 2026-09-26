@@ -28,6 +28,11 @@ export function generateSitemapXml(baseUrl: string = getBaseUrl()): string {
       priority: '1.0',
     },
     {
+      path: '/online',
+      changefreq: 'daily',
+      priority: '0.9',
+    },
+    {
       path: '/download',
       changefreq: 'weekly',
       priority: '0.9',

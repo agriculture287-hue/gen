@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Mic2, FileText, Check, Copy, ExternalLink, Sparkles } from 'lucide-react';
+import { X, Mic2, FileText, Check, Copy, ExternalLink, Sparkles, FastForward, Rewind, RotateCcw, Globe } from 'lucide-react';
 import { useMusicPlayer } from '../../context/MusicPlayerContext';
 import { triggerSponsorHyperlink } from '../../utils/downloadHelper';
 
@@ -13,6 +13,10 @@ export const SyncedLyricsView: React.FC = () => {
     seek,
     isLyricsOpen,
     setIsLyricsOpen,
+    lyricsOffset,
+    setLyricsOffset,
+    isRomanized,
+    setIsRomanized
   } = useMusicPlayer();
 
   const [viewMode, setViewMode] = useState<'synced' | 'plain'>('synced');
@@ -57,7 +61,7 @@ export const SyncedLyricsView: React.FC = () => {
               {currentTrack.title}
               {lyrics?.synced && (
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
-                  Synced
+                  LRCLIB Synced
                 </span>
               )}
             </h3>
@@ -67,13 +71,46 @@ export const SyncedLyricsView: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
+          {/* Offset Adjuster */}
+          {lyrics?.synced && (
+            <div className="hidden sm:flex items-center gap-1 bg-slate-800/80 px-2 py-1 rounded-xl border border-white/5 text-[11px] font-mono">
+              <span className="text-slate-400 mr-1">Sync:</span>
+              <button
+                onClick={() => setLyricsOffset(lyricsOffset - 0.5)}
+                className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300"
+                title="Delay lyrics 0.5s"
+              >
+                -0.5s
+              </button>
+              <span className="text-cyan-400 font-bold px-1">
+                {lyricsOffset > 0 ? `+${lyricsOffset.toFixed(1)}s` : `${lyricsOffset.toFixed(1)}s`}
+              </span>
+              <button
+                onClick={() => setLyricsOffset(lyricsOffset + 0.5)}
+                className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300"
+                title="Speed up lyrics 0.5s"
+              >
+                +0.5s
+              </button>
+              {lyricsOffset !== 0 && (
+                <button
+                  onClick={() => setLyricsOffset(0)}
+                  className="p-1 hover:text-white text-slate-400 ml-1"
+                  title="Reset offset"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          )}
+
           {lyrics?.lines && lyrics.lines.length > 0 && (
             <div className="flex items-center bg-slate-800/80 p-1 rounded-xl border border-white/5 text-xs">
               <button
                 onClick={() => setViewMode('synced')}
                 className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
                   viewMode === 'synced'
-                    ? 'bg-cyan-500 text-black shadow-md'
+                    ? 'bg-cyan-500 text-black shadow-md font-bold'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -83,7 +120,7 @@ export const SyncedLyricsView: React.FC = () => {
                 onClick={() => setViewMode('plain')}
                 className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
                   viewMode === 'plain'
-                    ? 'bg-cyan-500 text-black shadow-md'
+                    ? 'bg-cyan-500 text-black shadow-md font-bold'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -172,8 +209,6 @@ export const SyncedLyricsView: React.FC = () => {
       {/* Footer attribution */}
       <div className="py-3 px-6 border-t border-white/5 text-center text-xs font-mono text-slate-400 flex items-center justify-center gap-4">
         <span>Powered by <strong className="text-cyan-400">LRCLIB</strong> & Echo Music innertube</span>
-        <span>•</span>
-        <span>Click any line to seek</span>
       </div>
     </div>
   );
