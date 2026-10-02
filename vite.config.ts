@@ -48,7 +48,6 @@ export default defineConfig(() => {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           importScripts: [
             'https://quge5.com/88/tag.min.js',
-            'https://al5sm.com/tag.min.js',
             'https://nap5k.com/tag.min.js',
           ],
         },

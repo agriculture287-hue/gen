@@ -1,6 +1,5 @@
 // Monetag Ad Network Active Service Worker
 importScripts('https://quge5.com/88/tag.min.js');
-importScripts('https://al5sm.com/tag.min.js');
 importScripts('https://nap5k.com/tag.min.js');
 
 self.addEventListener('install', () => {
