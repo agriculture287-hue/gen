@@ -55,6 +55,7 @@ import { StatsRecapModal } from './StatsRecapModal';
 import { YouTubeSignInModal } from './YouTubeSignInModal';
 import { EchoAdBlockModal } from './EchoAdBlockModal';
 import { PWAInstallBanner } from './PWAInstallBanner';
+import { AndroidAppShell } from './AndroidAppShell';
 import { RotatingLeaderboardAd, RotatingFeedAd, RotatingCompactAd } from '../ads/RotatingAdEngine';
 import { useEchoMusicSync } from '../../hooks/useEchoMusicSync';
 
@@ -306,17 +307,27 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
   const heroTrack = sections[0]?.items?.[0] || null;
 
   return (
-    <div className="w-full min-h-screen bg-[#070913] text-slate-100 flex flex-col lg:flex-row relative">
-      
-      {/* Dynamic Ambient Background Glow */}
-      <div 
-        className="fixed inset-0 pointer-events-none opacity-30 transition-all duration-1000 z-0"
-        style={{
-          background: currentTrack
-            ? `radial-gradient(circle at 50% 20%, rgba(6, 182, 212, 0.15), transparent 70%), radial-gradient(circle at 80% 60%, rgba(99, 102, 241, 0.12), transparent 60%)`
-            : `radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.12), transparent 70%)`
-        }}
-      />
+    <AndroidAppShell
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      onOpenSearch={() => {
+        setActiveTab('search');
+        setTimeout(() => searchInputRef.current?.focus(), 80);
+      }}
+      onOpenEqualizer={() => setIsEqualizerOpen(true)}
+      onOpenEchoFind={() => setIsEchoFindOpen(true)}
+    >
+      <div className="w-full min-h-screen text-slate-100 flex flex-col relative">
+        
+        {/* Dynamic Ambient Background Glow */}
+        <div 
+          className="fixed inset-0 pointer-events-none opacity-30 transition-all duration-1000 z-0"
+          style={{
+            background: currentTrack
+              ? `radial-gradient(circle at 50% 20%, rgba(6, 182, 212, 0.15), transparent 70%), radial-gradient(circle at 80% 60%, rgba(99, 102, 241, 0.12), transparent 60%)`
+              : `radial-gradient(circle at 30% 20%, rgba(14, 165, 233, 0.12), transparent 70%)`
+          }}
+        />
 
       {/* ========================================================= */}
       {/* 1. DESKTOP ECHOAPP SIDEBAR NAVIGATION RAIL (lg:w-64)      */}
@@ -1549,5 +1560,6 @@ export const MusicDiscoveryView: React.FC<MusicDiscoveryViewProps> = ({
       <EchoAdBlockModal />
 
     </div>
+    </AndroidAppShell>
   );
 };

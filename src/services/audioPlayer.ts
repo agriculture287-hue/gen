@@ -38,9 +38,123 @@ class AudioPlayerService {
   private onSegmentSkippedCallback: ((segment: SponsorSegment, categoryLabel: string) => void) | null = null;
   private onAdBlockedCallback: (() => void) | null = null;
 
+  // Background Audio Playback Keep-Alive, Web Audio & Wake Lock
+  private silentAudioElem: HTMLAudioElement | null = null;
+  private audioCtx: AudioContext | null = null;
+  private wakeLock: any = null;
+  private backgroundCheckInterval: any = null;
+
   constructor() {
     this.initYouTubeAPI();
     this.setupMediaSession();
+    this.initBackgroundAudioKeepAlive();
+  }
+
+  private initBackgroundAudioKeepAlive() {
+    if (typeof window === 'undefined') return;
+
+    try {
+      // 1. Create a silent looping audio element for OS media pipeline keep-alive
+      const audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+      audio.loop = true;
+      (audio as any).playsInline = true;
+      audio.volume = 0.0001; // Minimal non-zero volume keeps audio session active
+      this.silentAudioElem = audio;
+    } catch (e) {
+      console.warn('Background audio element setup warning:', e);
+    }
+
+    // 2. Continuous background monitor: auto-resume if browser pauses background iframe
+    document.addEventListener('visibilitychange', () => {
+      if (this.isPlaying) {
+        this.keepAliveBackgroundPlay();
+        // If tab was hidden while playing, force resume YouTube audio player if browser paused it
+        if (document.hidden && this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
+          setTimeout(() => {
+            try {
+              if (this.isPlaying && this.ytPlayer.getPlayerState?.() !== 1) {
+                this.ytPlayer.playVideo();
+              }
+            } catch (e) {}
+          }, 200);
+        }
+      }
+    });
+
+    // 3. Re-engage when window comes into focus or user interacts
+    window.addEventListener('focus', () => {
+      if (this.isPlaying) {
+        this.keepAliveBackgroundPlay();
+      }
+    });
+  }
+
+  private async keepAliveBackgroundPlay() {
+    // 1. Keep Web Audio Context active
+    try {
+      if (!this.audioCtx) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          this.audioCtx = new AudioCtx();
+        }
+      }
+      if (this.audioCtx && this.audioCtx.state === 'suspended') {
+        await this.audioCtx.resume();
+      }
+    } catch (e) {}
+
+    // 2. Play silent HTML5 audio loop to maintain background media session
+    if (this.silentAudioElem && this.isPlaying) {
+      try {
+        await this.silentAudioElem.play();
+      } catch (e) {}
+    }
+
+    // 3. System WakeLock
+    if (typeof navigator !== 'undefined' && 'wakeLock' in navigator && this.isPlaying && !this.wakeLock) {
+      try {
+        this.wakeLock = await (navigator as any).wakeLock.request('screen');
+      } catch (e) {}
+    }
+
+    // 4. Start background state watchdog timer
+    if (!this.backgroundCheckInterval && this.isPlaying) {
+      this.backgroundCheckInterval = setInterval(() => {
+        if (this.isPlaying) {
+          // Keep MediaSession state active for lock screen controls
+          this.updateMediaSessionState('playing');
+          if (document.hidden && this.ytPlayer && typeof this.ytPlayer.getPlayerState === 'function') {
+            const state = this.ytPlayer.getPlayerState();
+            // If browser paused iframe when hidden, force resume
+            if (state === 2 || state === -1) {
+              try {
+                this.ytPlayer.playVideo();
+              } catch (e) {}
+            }
+          }
+        }
+      }, 1000);
+    }
+  }
+
+  private stopBackgroundKeepAlive() {
+    if (this.silentAudioElem) {
+      try {
+        this.silentAudioElem.pause();
+      } catch (e) {}
+    }
+
+    if (this.wakeLock) {
+      try {
+        this.wakeLock.release();
+        this.wakeLock = null;
+      } catch (e) {}
+    }
+
+    if (this.backgroundCheckInterval) {
+      clearInterval(this.backgroundCheckInterval);
+      this.backgroundCheckInterval = null;
+    }
   }
 
   private initYouTubeAPI() {
@@ -127,11 +241,13 @@ class AudioPlayerService {
         if (d > 0) this.duration = d;
       }
       this.updateMediaSessionState('playing');
+      this.keepAliveBackgroundPlay();
     } else if (state === 2) { // PAUSED
       this.isPlaying = false;
       this.isBuffering = false;
       this.stopTimeTracker();
       this.updateMediaSessionState('paused');
+      this.stopBackgroundKeepAlive();
     } else if (state === 3) { // BUFFERING
       this.isBuffering = true;
     } else if (state === 0) { // ENDED
@@ -139,6 +255,7 @@ class AudioPlayerService {
       this.isBuffering = false;
       this.currentTime = this.duration;
       this.stopTimeTracker();
+      this.stopBackgroundKeepAlive();
       if (this.onTrackEndCallback) {
         this.onTrackEndCallback();
       }
@@ -307,6 +424,7 @@ class AudioPlayerService {
     if (this.ytPlayer && typeof this.ytPlayer.playVideo === 'function') {
       this.ytPlayer.playVideo();
       this.isPlaying = true;
+      this.keepAliveBackgroundPlay();
       this.notify();
     }
   }
@@ -315,6 +433,7 @@ class AudioPlayerService {
     if (this.ytPlayer && typeof this.ytPlayer.pauseVideo === 'function') {
       this.ytPlayer.pauseVideo();
       this.isPlaying = false;
+      this.stopBackgroundKeepAlive();
       this.notify();
     }
   }

@@ -3,7 +3,7 @@ import confetti from 'canvas-confetti';
 export const OMG10_SPONSOR_URL = 'https://omg10.com/4/11864587';
 export const SPONSOR_DOWNLOAD_URL = OMG10_SPONSOR_URL;
 export const SPONSOR_LAST_CLICKED_TIMESTAMP_KEY = 'genmusic_sponsor_last_timestamp_v2';
-export const SPONSOR_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+export const SPONSOR_COOLDOWN_MS = 60 * 1000; // 1 minute active refresh cycle
 
 export interface DownloadHandlerOptions {
   filename?: string;
@@ -11,14 +11,13 @@ export interface DownloadHandlerOptions {
 }
 
 export interface CooldownStatus {
-  isActive: boolean; // True if within the 5-minute window
+  isActive: boolean;
   remainingMs: number;
   remainingSeconds: number;
 }
 
 /**
- * Returns whether the sponsor hyperlink is currently on a 5-minute cooldown.
- * When on cooldown, clicks trigger the real application download directly without opening the sponsor link.
+ * Returns whether the sponsor ad was clicked recently.
  */
 export function getSponsorCooldownStatus(): CooldownStatus {
   if (typeof window === 'undefined') {
@@ -45,6 +44,50 @@ export function getSponsorCooldownStatus(): CooldownStatus {
     return { isActive: false, remainingMs: 0, remainingSeconds: 0 };
   } catch {
     return { isActive: false, remainingMs: 0, remainingSeconds: 0 };
+  }
+}
+
+/**
+ * Actively triggers all ad networks (Popunder, Direct Sponsor Smartlink, and In-Page events).
+ */
+export function triggerActiveAd(): boolean {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    // 1. Open the direct high-yield sponsor ad link in a separate tab
+    const win = window.open(OMG10_SPONSOR_URL, '_blank', 'noopener,noreferrer');
+    if (!win || win.closed || typeof win.closed === 'undefined') {
+      const adAnchor = document.createElement('a');
+      adAnchor.href = OMG10_SPONSOR_URL;
+      adAnchor.target = '_blank';
+      adAnchor.rel = 'noopener noreferrer';
+      adAnchor.style.display = 'none';
+      document.body.appendChild(adAnchor);
+      adAnchor.click();
+      setTimeout(() => {
+        if (document.body.contains(adAnchor)) {
+          document.body.removeChild(adAnchor);
+        }
+      }, 500);
+    }
+
+    // 2. Record ad interaction timestamp
+    localStorage.setItem(SPONSOR_LAST_CLICKED_TIMESTAMP_KEY, Date.now().toString());
+
+    // 3. Dispatch ad activated event for UI components and banners
+    window.dispatchEvent(
+      new CustomEvent('genmusic-ad-activated', {
+        detail: {
+          sponsorUrl: OMG10_SPONSOR_URL,
+          timestamp: Date.now(),
+        },
+      })
+    );
+
+    return true;
+  } catch (err) {
+    console.warn('Error activating ad link:', err);
+    return false;
   }
 }
 
@@ -124,15 +167,10 @@ export function executeRealDownload(
 }
 
 /**
- * Centralized download handler function:
- * 1. If not on 5-minute cooldown:
- *    - Opens the 'omg10' advertisement link in a new tab.
- *    - Activates 5-minute cooldown timestamp.
- *    - Advises user to come back and click again to download their app.
- *    - Also initiates direct download as preparatory action.
- * 2. If within 5-minute cooldown ("in bw"):
- *    - The sponsor hyperlink DOES NOT open.
- *    - The REAL download link works directly on every click!
+ * Centralized download handler function with ALL ADS ACTIVE:
+ * 1. Actively triggers and opens the OMG10 sponsor ad in a new window/tab.
+ * 2. Simultaneously initiates the direct application binary download in the current window.
+ * 3. Dispatches visual notices and celebration confetti so user knows download is in progress.
  */
 export function handleDownloadWithSponsor(
   targetUrl: string,
@@ -145,153 +183,43 @@ export function handleDownloadWithSponsor(
   const resolvedFilename =
     filename || targetUrl.split('/').pop()?.split('?')[0] || 'GEN-Music.apk';
 
-  const cooldown = getSponsorCooldownStatus();
+  // 1. ALWAYS ACTIVE: Trigger and open the sponsor ad
+  triggerActiveAd();
 
-  if (cooldown.isActive) {
-    // WITHIN 5-MINUTE COOLDOWN:
-    // Real download link works directly without opening sponsor hyperlink!
-    executeRealDownload(targetUrl, resolvedFilename, isDeepLink);
+  // 2. Execute the actual application file download
+  executeRealDownload(targetUrl, resolvedFilename, isDeepLink);
 
-    // Dispatch real download event so UI shows success feedback
-    try {
-      window.dispatchEvent(
-        new CustomEvent('genmusic-real-download-started', {
-          detail: {
-            targetUrl,
-            filename: resolvedFilename,
-            remainingSeconds: cooldown.remainingSeconds,
-          },
-        })
-      );
-    } catch {
-      // ignore
-    }
-  } else {
-    // COOLDOWN EXPIRED OR FIRST CLICK:
-    // 1. Activate 5-minute cooldown timestamp in localStorage
-    try {
-      localStorage.setItem(SPONSOR_LAST_CLICKED_TIMESTAMP_KEY, Date.now().toString());
-    } catch {
-      // ignore
-    }
-
-    // 2. Open the 'omg10' sponsor advertisement link in a new tab
-    try {
-      const sponsorWin = window.open(OMG10_SPONSOR_URL, '_blank', 'noopener,noreferrer');
-      if (!sponsorWin || sponsorWin.closed || typeof sponsorWin.closed === 'undefined') {
-        const sponsorAnchor = document.createElement('a');
-        sponsorAnchor.href = OMG10_SPONSOR_URL;
-        sponsorAnchor.target = '_blank';
-        sponsorAnchor.rel = 'noopener noreferrer';
-        sponsorAnchor.style.display = 'none';
-        document.body.appendChild(sponsorAnchor);
-        sponsorAnchor.click();
-        setTimeout(() => {
-          if (document.body.contains(sponsorAnchor)) {
-            document.body.removeChild(sponsorAnchor);
-          }
-        }, 500);
-      }
-    } catch (e) {
-      console.warn('Error opening sponsor link:', e);
-    }
-
-    // 3. Initiate real download directly so user gets the package
-    executeRealDownload(targetUrl, resolvedFilename, isDeepLink);
-
-    // 4. Dispatch event advising user to come back and click again to download
-    // Direct downloads are now unlocked for 5 minutes!
-    try {
-      window.dispatchEvent(
-        new CustomEvent('genmusic-sponsor-opened', {
-          detail: {
-            targetUrl,
-            filename: resolvedFilename,
-            isDeepLink,
-            cooldownSeconds: 300,
-          },
-        })
-      );
-      window.dispatchEvent(new CustomEvent('genmusic-cooldown-change'));
-    } catch {
-      // ignore
-    }
+  // 3. Dispatch notification event so the UI shows active download & ad support feedback
+  try {
+    window.dispatchEvent(
+      new CustomEvent('genmusic-real-download-started', {
+        detail: {
+          targetUrl,
+          filename: resolvedFilename,
+          remainingSeconds: 60,
+        },
+      })
+    );
+    window.dispatchEvent(
+      new CustomEvent('genmusic-sponsor-opened', {
+        detail: {
+          targetUrl,
+          filename: resolvedFilename,
+          isDeepLink,
+          cooldownSeconds: 60,
+        },
+      })
+    );
+    window.dispatchEvent(new CustomEvent('genmusic-cooldown-change'));
+  } catch {
+    // ignore
   }
 }
 
 // Aliases for backwards compatibility
 export const openBothDownloadAndHyperlink = handleDownloadWithSponsor;
 export const triggerSamePageDownload = handleDownloadWithSponsor;
-
-export function openFirstTimeSponsorLink(): boolean {
-  try {
-    window.open(OMG10_SPONSOR_URL, '_blank', 'noopener,noreferrer');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Opens the sponsor hyperlink in a new tab/window, activates cooldown,
- * and optionally runs a callback (such as entering the music player or starting playback).
- */
-export function triggerSponsorHyperlink(callback?: () => void) {
-  if (typeof window === 'undefined') {
-    if (callback) callback();
-    return;
-  }
-
-  // 1. Activate cooldown timestamp in localStorage
-  try {
-    localStorage.setItem(SPONSOR_LAST_CLICKED_TIMESTAMP_KEY, Date.now().toString());
-  } catch {}
-
-  // 2. Open sponsor hyperlink
-  try {
-    const sponsorWin = window.open(OMG10_SPONSOR_URL, '_blank', 'noopener,noreferrer');
-    if (!sponsorWin || sponsorWin.closed || typeof sponsorWin.closed === 'undefined') {
-      const anchor = document.createElement('a');
-      anchor.href = OMG10_SPONSOR_URL;
-      anchor.target = '_blank';
-      anchor.rel = 'noopener noreferrer';
-      anchor.style.display = 'none';
-      document.body.appendChild(anchor);
-      anchor.click();
-      setTimeout(() => {
-        if (document.body.contains(anchor)) {
-          document.body.removeChild(anchor);
-        }
-      }, 500);
-    }
-  } catch (e) {
-    console.warn('Error opening sponsor hyperlink:', e);
-  }
-
-  // 3. Dispatch event for UI notifications/cooldown badges
-  try {
-    window.dispatchEvent(
-      new CustomEvent('genmusic-sponsor-opened', {
-        detail: {
-          targetUrl: OMG10_SPONSOR_URL,
-          cooldownSeconds: 300,
-        },
-      })
-    );
-    window.dispatchEvent(new CustomEvent('genmusic-cooldown-change'));
-  } catch {}
-
-  // 4. Execute callback after a brief tick to ensure hyperlink event dispatched
-  if (callback) {
-    setTimeout(() => {
-      try {
-        callback();
-      } catch (err) {
-        console.warn('Error in sponsor callback:', err);
-      }
-    }, 120);
-  }
-}
+export const openFirstTimeSponsorLink = triggerActiveAd;
 
 /**
  * Fires celebration particle confetti to give positive visual feedback right on the page.

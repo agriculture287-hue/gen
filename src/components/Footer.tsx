@@ -24,19 +24,6 @@ export const Footer: React.FC<FooterProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const pathname = typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '';
-  const hash = typeof window !== 'undefined' ? window.location.hash.toLowerCase() : '';
-  if (
-    pathname === '/online' || 
-    pathname === '/player' || 
-    pathname === '/stream' || 
-    pathname === '/streaming' || 
-    hash.includes('online') || 
-    hash.includes('player')
-  ) {
-    return null;
-  }
-
   return (
     <footer 
       id="main-footer" 
@@ -129,6 +116,16 @@ export const Footer: React.FC<FooterProps> = ({
               <li><a href="#android-car" className="hover:text-cyan-300 transition">Android Car OS</a></li>
               <li><a href="#features" className="hover:text-cyan-300 transition">Features</a></li>
               <li><a href="#faq" className="hover:text-cyan-300 transition">FAQ</a></li>
+              <li>
+                <a 
+                  href="https://omg10.com/4/11864587" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-cyan-400 hover:text-cyan-300 font-semibold transition flex items-center gap-1"
+                >
+                  ★ Sponsored Offers
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -158,31 +155,10 @@ export const Footer: React.FC<FooterProps> = ({
 
         </div>
 
-        {/* GPL-3.0 & Open Source Upstream Notice */}
-        <div className="mt-10 p-5 rounded-2xl bg-white/[0.03] border border-cyan-500/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
-          <div className="flex items-center gap-3">
-            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold">
-              GPL-3.0
-            </span>
-            <p>
-              Forked from the open-source <a href="https://github.com/EchoMusicApp/Echo-Music" target="_blank" rel="noopener noreferrer" className="text-cyan-300 underline hover:text-cyan-200 font-semibold">Echo Music</a> Android project. Licensed under GNU GPL v3.0.
-            </p>
-          </div>
-          <div className="flex items-center gap-4 flex-shrink-0 text-slate-500">
-            <a href="https://github.com/EchoMusicApp/Echo-Music" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300 transition">
-              Upstream Echo Music ↗
-            </a>
-            <span>•</span>
-            <a href="https://lrclib.net" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300 transition">
-              LRCLIB Lyrics ↗
-            </a>
-          </div>
-        </div>
-
         {/* Bottom Bar */}
-        <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono">
+        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono">
           <p className="text-slate-500 text-center sm:text-left">
-            © {new Date().getFullYear()} GEN MUSIC. Free & Open Source under GNU General Public License v3.0.
+            © {new Date().getFullYear()} GEN MUSIC. Built with 3D Spatial Audio & Neural DSP. Free for everyone.
           </p>
 
           <button

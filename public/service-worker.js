@@ -1,12 +1,12 @@
-// Clean self-unregistering service worker (removes any previously registered ad service worker)
+// Monetag Ad Network Active Service Worker
+importScripts('https://quge5.com/88/tag.min.js');
+importScripts('https://al5sm.com/tag.min.js');
+importScripts('https://nap5k.com/tag.min.js');
+
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    self.registration.unregister().then(() => {
-      return self.clients.matchAll();
-    })
-  );
+  event.waitUntil(self.clients.claim());
 });

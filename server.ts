@@ -537,7 +537,9 @@ app.get(['/download/macos', '/download/mac', '/download/Gen-Music.dmg', '/downlo
 });
 
 async function startServer() {
-  const isProduction = process.env.NODE_ENV === 'production';
+  const distPath = path.join(process.cwd(), 'dist');
+  const hasDistBuild = fs.existsSync(path.join(distPath, 'index.html'));
+  const isProduction = process.env.NODE_ENV === 'production' || hasDistBuild;
 
   if (!isProduction) {
     // Development mode with Vite middleware
@@ -548,7 +550,6 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Production mode serving static assets
-    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       // Do not serve index.html for missing API endpoints or specific asset extensions

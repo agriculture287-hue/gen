@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
-import { triggerSponsorHyperlink } from '../utils/downloadHelper';
+import { triggerSponsorHyperlink, triggerOnlinePlaySponsor } from '../utils/downloadHelper';
 
 interface NavbarProps {
   activeNav: string;
@@ -83,7 +83,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
     if (id === 'player') {
       if (currentMode !== 'player') {
-        triggerSponsorHyperlink(() => {
+        triggerOnlinePlaySponsor(() => {
           if (onSwitchMode) onSwitchMode('player');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });

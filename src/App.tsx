@@ -13,24 +13,14 @@ import { DownloadsPage } from './components/DownloadsPage';
 import { AndroidCarAppsSection } from './components/AndroidCarAppsSection';
 import { MusicVisualizer3D } from './components/MusicVisualizer3D';
 import { DownloadNoticeBanner } from './components/DownloadNoticeBanner';
+import { AdBanner } from './components/AdBanner';
 import { DOWNLOAD_LINKS } from './data/downloadLinks';
 import { AppPlatformRelease } from './types';
-import { MusicPlayerProvider } from './context/MusicPlayerContext';
-import { MiniPlayer } from './components/player/MiniPlayer';
-import { FullPlayerModal } from './components/player/FullPlayerModal';
-import { SyncedLyricsView } from './components/player/SyncedLyricsView';
-import { QueueDrawer } from './components/player/QueueDrawer';
-import { MusicDiscoveryView } from './components/player/MusicDiscoveryView';
-import { CountryMusicSection } from './components/CountryMusicSection';
-import { EchoMusicAcrossSection } from './components/EchoMusicAcrossSection';
-import { ErrorBoundary } from './components/ErrorBoundary';
 
-export const AppContent: React.FC = () => {
+export const App: React.FC = () => {
   const [activeNav, setActiveNav] = useState('home');
-  const [currentMode, setCurrentMode] = useState<'player' | 'hub'>('hub');
   const [currentPath, setCurrentPath] = useState(window.location.pathname.toLowerCase());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [externalSearchQuery, setExternalSearchQuery] = useState<string | undefined>(undefined);
 
   // Statically mapped platforms based on downloadLinks.ts
   const platforms: AppPlatformRelease[] = [
@@ -99,62 +89,14 @@ export const AppContent: React.FC = () => {
     }
   ];
 
-  const navigateTo = (targetPath: string, mode: 'player' | 'hub') => {
-    try {
-      if (window.location.pathname.toLowerCase() !== targetPath) {
-        window.history.pushState({}, '', targetPath);
-      }
-    } catch {}
-    setCurrentPath(targetPath);
-    setCurrentMode(mode);
-    if (mode === 'player') {
-      setActiveNav('player');
-      document.title = 'GEN MUSIC — Free Online Music Streaming & Synced Lyrics';
-    } else if (targetPath === '/download' || targetPath === '/downloads') {
-      setActiveNav('download');
-      document.title = 'GEN MUSIC — Download for Android, Mac & Windows';
-    } else {
-      setActiveNav('home');
-      document.title = 'GEN MUSIC 2.4 — Free Music Streaming & Hi-Fi Audio App';
-    }
-  };
-
   useEffect(() => {
     const checkRoute = () => {
       const path = window.location.pathname.toLowerCase();
       const hash = window.location.hash.toLowerCase();
-      
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
-        setCurrentMode('hub');
-        setActiveNav('download');
-        document.title = 'GEN MUSIC — Download for Android, Mac & Windows';
-      } else if (path === '/online' || path === '/player' || path === '/stream' || path === '/streaming' || hash === '#online' || hash === '#/online' || hash === '#player' || hash === '#/player') {
-        setCurrentPath('/online');
-        setCurrentMode('player');
-        setActiveNav('player');
-        document.title = 'GEN MUSIC — Free Online Music Streaming & Synced Lyrics';
-      } else if (hash === '#echo-music-across' || hash === '#echo-music') {
-        setCurrentPath(path);
-        setCurrentMode('hub');
-        setActiveNav('echo-music-across');
-        setTimeout(() => {
-          const el = document.getElementById('echo-music-across');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      } else if (hash === '#country-music') {
-        setCurrentPath(path);
-        setCurrentMode('hub');
-        setActiveNav('country-music');
-        setTimeout(() => {
-          const el = document.getElementById('country-music-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
       } else {
         setCurrentPath(path);
-        if (currentMode === 'player' && path !== '/online') {
-          setCurrentMode('hub');
-        }
       }
     };
 
@@ -180,26 +122,38 @@ export const AppContent: React.FC = () => {
   };
 
   const scrollToDownload = () => {
-    setCurrentMode('hub');
-    setActiveNav('download');
-    setTimeout(() => {
-      const el = document.getElementById('download');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 50);
+    const el = document.getElementById('download');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const scrollToFeatures = () => {
-    setCurrentMode('hub');
-    setActiveNav('features');
-    setTimeout(() => {
-      const el = document.getElementById('features');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }, 50);
+    const el = document.getElementById('features');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
   };
+
+
+
+  if (currentPath === '/download' || currentPath === '/downloads') {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
+        <AdBanner format="leaderboard" className="mt-4" />
+        <DownloadsPage />
+        <div className="max-w-5xl mx-auto px-4 w-full my-6">
+          <AdBanner format="native" />
+        </div>
+        <Footer 
+          onOpenLegalModal={handleOpenLegalModal}
+          onDownloadClick={() => {}}
+        />
+        <DownloadNoticeBanner />
+        <AdBanner format="floating" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#07080e] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative overflow-x-hidden">
@@ -209,125 +163,92 @@ export const AppContent: React.FC = () => {
       <div className="fixed top-1/2 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
       <div className="fixed bottom-20 left-10 w-96 h-96 bg-pink-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* 1. Top Announcement Bar (Hidden in app player mode) */}
-      {currentMode !== 'player' && currentPath !== '/online' && (
-        <TopBanner 
-          onDownloadClick={scrollToDownload} 
-          announcementText="GEN MUSIC 2.4 (GPL-3.0) — Unlimited Free Streaming, Synced Lyrics & Offline Apps for Android, Mac & Windows."
-        />
-      )}
+      {/* 1. Top Announcement Bar */}
+      <TopBanner 
+        onDownloadClick={scrollToDownload} 
+        announcementText="GEN MUSIC Official Release is Available Now — Download for Android, Android Car, Mac & Windows."
+      />
 
       {/* 2. Navigation with Brand, Multi-platform links & Telegram */}
       <Navbar 
         activeNav={activeNav}
         setActiveNav={setActiveNav}
         onDownloadClick={scrollToDownload}
-        currentMode={currentMode}
-        onSwitchMode={(mode) => {
-          if (mode === 'player') {
-            navigateTo('/online', 'player');
-          } else {
-            navigateTo('/', 'hub');
-          }
-        }}
       />
 
+      {/* Top Active Leaderboard Ad Banner (Auto-refreshing 60s) */}
+      <AdBanner format="leaderboard" className="mt-3" />
+
       {/* Main Content Sections */}
-      <main className="flex-grow">
+      <main className="flex-grow pb-28">
         
-        {/* Toggle between Online Music Discovery Player and Downloads Hub */}
-        {currentMode === 'player' && currentPath !== '/download' && currentPath !== '/downloads' ? (
-          <div>
-            <MusicDiscoveryView 
-              initialSearchQuery={externalSearchQuery}
-              onClearInitialQuery={() => setExternalSearchQuery(undefined)}
-            />
-          </div>
-        ) : (
-          <div>
-            {currentPath === '/download' || currentPath === '/downloads' ? (
-              <DownloadsPage />
-            ) : (
-              <>
-                {/* 3. Hero Section with Redirection Button with Hyperlink to /online */}
-                <HeroSection 
-                  platforms={platforms}
-                  onSelectPlatformDownload={() => scrollToDownload()}
-                  onViewFeatures={scrollToFeatures}
-                  onLaunchOnlinePlayer={() => {
-                    navigateTo('/online', 'player');
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                />
+        {/* 3. Hero Section */}
+        <HeroSection 
+          platforms={platforms}
+          onSelectPlatformDownload={() => {
+            scrollToDownload();
+          }}
+          onViewFeatures={scrollToFeatures}
+        />
 
-                {/* 4. Unified Multi-Platform Download & Release Hub */}
-                <DownloadAppSection 
-                  platforms={platforms}
-                />
+        {/* 4. Unified Multi-Platform Download & Release Hub */}
+        <DownloadAppSection 
+          platforms={platforms}
+        />
 
-                {/* 5. Why Choose GEN MUSIC Section */}
-                <WhyChooseSection 
-                  onDownloadClick={scrollToDownload}
-                />
+        {/* Mid-Content Native Sponsored Banner */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 my-10">
+          <AdBanner format="native" />
+        </div>
 
-                {/* 6. Android Auto & Car Apps Section */}
-                <AndroidCarAppsSection 
-                  onDownloadClick={scrollToDownload}
-                />
+        {/* 5. Why Choose GEN MUSIC Section */}
+        <WhyChooseSection 
+          onDownloadClick={scrollToDownload}
+        />
 
-                {/* 7. Dynamic 3D Spatial Music Visualizer Engine */}
-                <MusicVisualizer3D />
+        {/* 6. Android Auto & Car Apps Section */}
+        <AndroidCarAppsSection 
+          onDownloadClick={scrollToDownload}
+        />
 
-                {/* 8. Complete Features Section */}
-                <PremiumFeaturesSection 
-                  onDownloadClick={scrollToDownload}
-                />
+        {/* 7. Dynamic 3D Spatial Music Visualizer Engine */}
+        <MusicVisualizer3D />
 
-                {/* 9. App Interface Screenshots */}
-                <ScreenshotsSection />
+        {/* 8. Complete Features Section */}
+        <PremiumFeaturesSection 
+          onDownloadClick={scrollToDownload}
+        />
 
-                {/* 10. Updates & Announcements */}
-                <UpdatesSection 
-                  onDownloadClick={scrollToDownload}
-                />
+        {/* 9. App Interface Screenshots */}
+        <ScreenshotsSection />
 
-                {/* 11. Frequently Asked Questions */}
-                <FAQSection />
-              </>
-            )}
-          </div>
-        )}
+        {/* 10. Updates & Announcements */}
+        <UpdatesSection 
+          onDownloadClick={scrollToDownload}
+        />
+
+        {/* 11. Frequently Asked Questions */}
+        <FAQSection />
 
       </main>
 
-      {/* Main App Footer (Hidden in app player mode) */}
-      {currentMode !== 'player' && currentPath !== '/online' && (
-        <Footer 
-          onOpenLegalModal={handleOpenLegalModal}
-          onDownloadClick={scrollToDownload}
-        />
-      )}
+      {/* Main App Footer */}
+      <Footer 
+        onOpenLegalModal={handleOpenLegalModal}
+        onDownloadClick={scrollToDownload}
+      />
 
-      {/* Advisory Notice Banner for Download Sponsor & 5-Min Cooldown Direct Download (Hidden in streaming mode) */}
-      <DownloadNoticeBanner isStreamingMode={currentMode === 'player'} />
+      {/* Advisory Notice Banner for Download Sponsor & Active Downloads */}
+      <DownloadNoticeBanner />
 
-      {/* Persistent Mini Player (Always docked at bottom across all pages) */}
-      <MiniPlayer />
-
-      {/* Full Screen Player Modal */}
-      <FullPlayerModal />
-
-      {/* Synced Lyrics Modal / Drawer */}
-      <SyncedLyricsView />
-
-      {/* Play Queue Drawer */}
-      <QueueDrawer />
+      {/* Persistent Floating Sticky Bottom Ad Banner */}
+      <AdBanner format="floating" />
 
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div 
           id="app-toast-alert"
-          className="fixed bottom-24 right-6 z-50 px-5 py-3.5 rounded-2xl bg-[#0d1020]/95 border border-cyan-500/40 text-white text-xs sm:text-sm font-mono shadow-[0_0_25px_rgba(0,240,255,0.2)] backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-center gap-3"
+          className="fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl bg-[#0d1020]/95 border border-cyan-500/40 text-white text-xs sm:text-sm font-mono shadow-[0_0_25px_rgba(0,240,255,0.2)] backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-center gap-3"
         >
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
           <span>{toastMessage}</span>
@@ -344,15 +265,4 @@ export const AppContent: React.FC = () => {
   );
 };
 
-export const App: React.FC = () => {
-  return (
-    <ErrorBoundary>
-      <MusicPlayerProvider>
-        <AppContent />
-      </MusicPlayerProvider>
-    </ErrorBoundary>
-  );
-};
-
 export default App;
-

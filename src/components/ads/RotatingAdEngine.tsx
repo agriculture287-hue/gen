@@ -147,9 +147,18 @@ export function useRotatingAdIndex(initialOffset = 0, externalCycleCount?: numbe
 export const RotatingLeaderboardAd: React.FC<{ cycleCount?: number }> = ({ cycleCount }) => {
   const { currentAd, formattedTime, isRotating, refreshNow } = useRotatingAdIndex(0, cycleCount);
 
+  const handleMonetagClick = () => {
+    try {
+      window.open('https://quge5.com/88/tag.min.js', '_blank', 'noopener,noreferrer');
+    } catch {
+      // Ignore popup blocks
+    }
+  };
+
   return (
     <div 
-      className={`w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r ${currentAd.bgGradient} border ${currentAd.borderColor} shadow-xl transition-all duration-500 relative overflow-hidden group select-none ${
+      onClick={handleMonetagClick}
+      className={`w-full p-4 sm:p-5 rounded-3xl bg-gradient-to-r ${currentAd.bgGradient} border ${currentAd.borderColor} shadow-xl transition-all duration-500 relative overflow-hidden group select-none cursor-pointer ${
         isRotating ? 'opacity-40 scale-[0.99]' : 'opacity-100 scale-100'
       }`}
     >
@@ -182,12 +191,15 @@ export const RotatingLeaderboardAd: React.FC<{ cycleCount?: number }> = ({ cycle
         </div>
 
         {/* Right CTA & Refresh Badge */}
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <span className="px-3 py-1.5 rounded-xl bg-white/10 text-white text-xs font-bold border border-white/10 shadow-sm flex items-center gap-1.5">
             {currentAd.highlight}
           </span>
           <button
-            onClick={refreshNow}
+            onClick={(e) => {
+              e.stopPropagation();
+              refreshNow();
+            }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white transition cursor-pointer"
             title="Rotate to next sponsor ad"
           >
@@ -203,9 +215,18 @@ export const RotatingLeaderboardAd: React.FC<{ cycleCount?: number }> = ({ cycle
 export const RotatingFeedAd: React.FC<{ offset?: number; cycleCount?: number }> = ({ offset = 1, cycleCount }) => {
   const { currentAd, formattedTime, isRotating, refreshNow } = useRotatingAdIndex(offset, cycleCount);
 
+  const handleMonetagClick = () => {
+    try {
+      window.open('https://quge5.com/88/tag.min.js', '_blank', 'noopener,noreferrer');
+    } catch {
+      // Ignore popup blocks
+    }
+  };
+
   return (
     <div 
-      className={`p-5 sm:p-6 rounded-3xl bg-gradient-to-r ${currentAd.bgGradient} border ${currentAd.borderColor} shadow-xl transition-all duration-500 relative overflow-hidden group select-none ${
+      onClick={handleMonetagClick}
+      className={`p-5 sm:p-6 rounded-3xl bg-gradient-to-r ${currentAd.bgGradient} border ${currentAd.borderColor} shadow-xl transition-all duration-500 relative overflow-hidden group select-none cursor-pointer ${
         isRotating ? 'opacity-40 scale-[0.99]' : 'opacity-100 scale-100'
       }`}
     >
@@ -236,13 +257,16 @@ export const RotatingFeedAd: React.FC<{ offset?: number; cycleCount?: number }> 
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-shrink-0">
+        <div className="flex items-center gap-2.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
           <div className="px-4 py-2 rounded-xl bg-white/10 border border-white/15 text-xs font-bold text-white flex items-center gap-2 shadow-md">
             <span>{currentAd.ctaText}</span>
             <span className="text-cyan-300">{currentAd.highlight}</span>
           </div>
           <button
-            onClick={refreshNow}
+            onClick={(e) => {
+              e.stopPropagation();
+              refreshNow();
+            }}
             className="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white transition cursor-pointer"
             title="Next partner ad"
           >
@@ -258,9 +282,18 @@ export const RotatingFeedAd: React.FC<{ offset?: number; cycleCount?: number }> 
 export const RotatingCompactAd: React.FC<{ offset?: number; cycleCount?: number }> = ({ offset = 2, cycleCount }) => {
   const { currentAd, formattedTime, isRotating, refreshNow } = useRotatingAdIndex(offset, cycleCount);
 
+  const handleMonetagClick = () => {
+    try {
+      window.open('https://quge5.com/88/tag.min.js', '_blank', 'noopener,noreferrer');
+    } catch {
+      // Ignore popup blocks
+    }
+  };
+
   return (
     <div 
-      className={`p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r ${currentAd.bgGradient} border ${currentAd.borderColor} transition-all duration-500 flex items-center justify-between gap-3 text-left shadow-md group select-none ${
+      onClick={handleMonetagClick}
+      className={`p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r ${currentAd.bgGradient} border ${currentAd.borderColor} transition-all duration-500 flex items-center justify-between gap-3 text-left shadow-md group select-none cursor-pointer ${
         isRotating ? 'opacity-40 scale-[0.99]' : 'opacity-100 scale-100'
       }`}
     >
@@ -286,12 +319,15 @@ export const RotatingCompactAd: React.FC<{ offset?: number; cycleCount?: number 
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
         <span className="text-xs text-cyan-300 font-bold px-2.5 py-1 rounded-lg bg-white/10 border border-white/10">
           {currentAd.highlight}
         </span>
         <button
-          onClick={refreshNow}
+          onClick={(e) => {
+            e.stopPropagation();
+            refreshNow();
+          }}
           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white transition cursor-pointer"
           title="Refresh ad"
         >

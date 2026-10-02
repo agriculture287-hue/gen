@@ -27,7 +27,7 @@ import { GenMusicLogo } from './GenMusicLogo';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DeviceSuggestionBanner } from './DeviceSuggestionBanner';
 import { HolographicAudio3D } from './HolographicAudio3D';
-import { handleDownloadWithSponsor, triggerDownloadCelebration, getSponsorCooldownStatus, triggerSponsorHyperlink } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor, triggerDownloadCelebration, getSponsorCooldownStatus, triggerSponsorHyperlink, triggerOnlinePlaySponsor } from '../utils/downloadHelper';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 
 interface HeroSectionProps {
@@ -238,7 +238,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 {/* 1. Primary Redirection Button to /online with Sponsor Hyperlink */}
                 <button
                   onClick={() => {
-                    triggerSponsorHyperlink(() => {
+                    triggerOnlinePlaySponsor(() => {
                       if (onLaunchOnlinePlayer) {
                         onLaunchOnlinePlayer();
                       } else {

@@ -22,6 +22,7 @@ import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
 import { handleDownloadWithSponsor, getSponsorCooldownStatus } from '../utils/downloadHelper';
+import { AdBanner } from './AdBanner';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
@@ -299,6 +300,9 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Active Ad Banner */}
+          <AdBanner format="leaderboard" />
 
           {/* Four Platform Download Cards Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">

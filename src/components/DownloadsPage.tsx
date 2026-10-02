@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { handleDownloadWithSponsor, getSponsorCooldownStatus } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor, getSponsorCooldownStatus, triggerActiveAd } from '../utils/downloadHelper';
+import { AdBanner } from './AdBanner';
 
 export const DownloadsPage: React.FC = () => {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
@@ -146,6 +147,11 @@ export const DownloadsPage: React.FC = () => {
               We've automatically suggested and highlighted the {deviceInfo.recommendedFileFormat} package below.
             </span>
           </div>
+
+          {/* Active Leaderboard Ad Banner */}
+          <div className="mt-8">
+            <AdBanner format="leaderboard" />
+          </div>
         </div>
 
         {/* Platform Download Cards Grid */}
@@ -231,6 +237,11 @@ export const DownloadsPage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Mid-Page Native Active Ad Banner */}
+        <div className="mt-12 max-w-4xl mx-auto">
+          <AdBanner format="native" />
         </div>
 
       </div>
