@@ -14,6 +14,8 @@ import { AndroidCarAppsSection } from './components/AndroidCarAppsSection';
 import { MusicVisualizer3D } from './components/MusicVisualizer3D';
 import { DownloadNoticeBanner } from './components/DownloadNoticeBanner';
 import { AdBanner } from './components/AdBanner';
+import { EchoCornerPlayer } from './components/EchoCornerPlayer';
+import { ListenPage } from './pages/Listen';
 import { DOWNLOAD_LINKS } from './data/downloadLinks';
 import { AppPlatformRelease } from './types';
 
@@ -95,6 +97,8 @@ export const App: React.FC = () => {
       const hash = window.location.hash.toLowerCase();
       if (path === '/download' || path === '/downloads' || hash === '#/download' || hash === '#download') {
         setCurrentPath('/download');
+      } else if (path === '/listen' || hash === '#/listen' || hash === '#listen') {
+        setCurrentPath('/listen');
       } else {
         setCurrentPath(path);
       }
@@ -135,41 +139,44 @@ export const App: React.FC = () => {
     }
   };
 
-
-
   if (currentPath === '/download' || currentPath === '/downloads') {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
-        <AdBanner format="leaderboard" className="mt-4" />
+      <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col font-sans selection:bg-sky-400 selection:text-slate-950 relative">
         <DownloadsPage />
-        <div className="max-w-5xl mx-auto px-4 w-full my-6">
-          <AdBanner format="native" />
-        </div>
         <Footer 
           onOpenLegalModal={handleOpenLegalModal}
           onDownloadClick={() => {}}
         />
         <DownloadNoticeBanner />
+        <EchoCornerPlayer />
+        <AdBanner format="floating" />
+      </div>
+    );
+  }
+
+  if (currentPath === '/listen') {
+    return (
+      <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col font-sans selection:bg-sky-400 selection:text-slate-950 relative">
+        <ListenPage />
+        <Footer 
+          onOpenLegalModal={handleOpenLegalModal}
+          onDownloadClick={() => {}}
+        />
         <AdBanner format="floating" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#07080e] text-slate-100 flex flex-col font-sans selection:bg-cyan-400 selection:text-black relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#0b0e14] text-slate-100 flex flex-col font-sans selection:bg-sky-400 selection:text-slate-950 relative overflow-x-hidden bg-grid-subtle">
       
-      {/* Background ambient futuristic glow orbs */}
-      <div className="fixed top-20 left-1/4 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="fixed top-1/2 right-10 w-96 h-96 bg-purple-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
-      <div className="fixed bottom-20 left-10 w-96 h-96 bg-pink-600/5 rounded-full blur-3xl pointer-events-none -z-10" />
-
       {/* 1. Top Announcement Bar */}
       <TopBanner 
         onDownloadClick={scrollToDownload} 
         announcementText="GEN MUSIC Official Release is Available Now — Download for Android, Android Car, Mac & Windows."
       />
 
-      {/* 2. Navigation with Brand, Multi-platform links & Telegram */}
+      {/* 2. Navigation with Brand & Links */}
       <Navbar 
         activeNav={activeNav}
         setActiveNav={setActiveNav}
@@ -177,10 +184,10 @@ export const App: React.FC = () => {
       />
 
       {/* Top Active Leaderboard Ad Banner (Auto-refreshing 60s) */}
-      <AdBanner format="leaderboard" className="mt-3" />
+      <AdBanner format="leaderboard" className="mt-3 mb-2" />
 
       {/* Main Content Sections */}
-      <main className="flex-grow pb-28">
+      <main className="flex-grow pb-16">
         
         {/* 3. Hero Section */}
         <HeroSection 
@@ -197,7 +204,7 @@ export const App: React.FC = () => {
         />
 
         {/* Mid-Content Native Sponsored Banner */}
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 my-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 my-12">
           <AdBanner format="native" />
         </div>
 
@@ -241,6 +248,9 @@ export const App: React.FC = () => {
       {/* Advisory Notice Banner for Download Sponsor & Active Downloads */}
       <DownloadNoticeBanner />
 
+      {/* Persistent Echo Music Online Player Corner */}
+      <EchoCornerPlayer />
+
       {/* Persistent Floating Sticky Bottom Ad Banner */}
       <AdBanner format="floating" />
 
@@ -248,13 +258,13 @@ export const App: React.FC = () => {
       {toastMessage && (
         <div 
           id="app-toast-alert"
-          className="fixed bottom-6 right-6 z-50 px-5 py-3.5 rounded-2xl bg-[#0d1020]/95 border border-cyan-500/40 text-white text-xs sm:text-sm font-mono shadow-[0_0_25px_rgba(0,240,255,0.2)] backdrop-blur-xl animate-in slide-in-from-bottom-5 fade-in duration-300 flex items-center gap-3"
+          className="fixed bottom-14 right-6 z-50 px-4 py-3 rounded-xl surface-card text-white text-xs sm:text-sm font-medium shadow-xl flex items-center gap-2.5 animate-in slide-in-from-bottom-5 duration-200"
         >
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+          <span className="w-2 h-2 rounded-full bg-sky-400" />
           <span>{toastMessage}</span>
           <button 
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-cyan-300 ml-2 text-xs font-bold cursor-pointer"
+            className="text-slate-400 hover:text-white ml-2 text-xs font-bold cursor-pointer"
           >
             ✕
           </button>

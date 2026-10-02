@@ -75,7 +75,7 @@ export const DeviceSuggestionBanner: React.FC<DeviceSuggestionBannerProps> = ({
               {isAndroid && `Direct Android APK Package (${fileSize || '24.8 MB'}) • Universal build`}
               {isWindows && `Windows 64-bit Installer (.exe) (${fileSize || '56.2 MB'}) • Windows 10/11`}
               {isMac && `macOS Universal Disk Image (.dmg) (${fileSize || '68.4 MB'}) • Apple Silicon & Intel`}
-              {isIOS && `Web Player active. Android APK & Desktop versions available.`}
+              {isIOS && `Web Player active. Android APK & Desktop editions available.`}
               {!isAndroid && !isWindows && !isMac && !isIOS && `Direct high-speed package available.`}
             </p>
           </div>

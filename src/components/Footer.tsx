@@ -1,14 +1,5 @@
 import React from 'react';
-import { 
-  Music, 
-  Instagram, 
-  ArrowUp,
-  Shield,
-  Download,
-  Lock,
-  ShieldCheck,
-  CheckCircle2
-} from 'lucide-react';
+import { ArrowUp } from 'lucide-react';
 import { GenMusicLogo } from './GenMusicLogo';
 
 interface FooterProps {
@@ -28,41 +19,57 @@ export const Footer: React.FC<FooterProps> = ({
     <footer 
       id="main-footer" 
       aria-label="Footer"
-      className="border-t border-white/10 bg-[#05070d] text-slate-400 text-sm mt-16 relative"
+      className="border-t border-white/10 bg-[#090b10] text-slate-400 text-sm mt-16 relative"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           
-          {/* Brand Col */}
+          {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="flex items-center gap-3">
-              <GenMusicLogo size="md" glow={true} />
-              <div className="flex flex-col">
-                <span className="text-2xl font-black text-white font-heading">
-                  GEN <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">MUSIC</span>
-                </span>
-                <span className="text-xs font-semibold text-slate-500 font-mono">
-                  Music For Every Mood
-                </span>
-              </div>
+            <div className="flex items-center gap-2.5">
+              <GenMusicLogo size="sm" glow={false} />
+              <span className="text-xl font-bold text-white font-heading">
+                GEN MUSIC
+              </span>
             </div>
 
             <p className="text-xs sm:text-sm text-slate-400 max-w-sm leading-relaxed">
-              Futuristic, high-fidelity music streaming client with high-speed direct APK releases for Android, Android Car, Windows, and macOS.
+              High-fidelity music streaming client with verified direct package releases for Android, Android Car, Windows, and macOS.
             </p>
 
-            <div className="flex items-center gap-3 text-xs text-slate-400 pt-1">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-mono font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                GEN MUSIC v2.4.1 Online
-              </span>
-              <span className="font-mono text-slate-500">• 100% Free Forever</span>
+            <div className="text-xs text-slate-400 pt-1 font-medium">
+              <span>100% Free Forever · No Subscription</span>
             </div>
           </div>
 
-          {/* Legal & Help Links */}
+          {/* Navigation Links */}
           <div className="space-y-3">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
+              Navigation
+            </h3>
+            <ul className="space-y-2 text-xs">
+              <li><a href="/" className="hover:text-white transition">Home</a></li>
+              <li><a href="/listen" className="hover:text-white transition text-sky-400 font-medium">Web Player (Listen)</a></li>
+              <li><a href="/#download" className="hover:text-white transition">Downloads</a></li>
+              <li><a href="/#car-apps" className="hover:text-white transition">Car Audio</a></li>
+              <li><a href="/#features" className="hover:text-white transition">Features</a></li>
+              <li><a href="/#faq" className="hover:text-white transition">FAQ</a></li>
+              <li>
+                <a 
+                  href="https://omg10.com/4/11864587" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-sky-400 hover:text-sky-300 font-semibold transition"
+                >
+                  ★ Sponsored Offers
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal & Policy Links */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-300">
               Legal & Help
             </h3>
             <ul className="space-y-2 text-xs">
@@ -70,7 +77,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   onClick={() => onOpenLegalModal('privacy')}
                   id="footer-privacy-link"
-                  className="hover:text-cyan-300 transition cursor-pointer text-left"
+                  className="hover:text-white transition cursor-pointer text-left"
                 >
                   Privacy Policy
                 </button>
@@ -79,7 +86,7 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   onClick={() => onOpenLegalModal('terms')}
                   id="footer-terms-link"
-                  className="hover:text-cyan-300 transition cursor-pointer text-left"
+                  className="hover:text-white transition cursor-pointer text-left"
                 >
                   Terms of Service
                 </button>
@@ -88,16 +95,16 @@ export const Footer: React.FC<FooterProps> = ({
                 <button
                   onClick={() => onOpenLegalModal('support')}
                   id="footer-support-link"
-                  className="hover:text-cyan-300 transition cursor-pointer text-left"
+                  className="hover:text-white transition cursor-pointer text-left"
                 >
-                  Support & Help Center
+                  Support & Help
                 </button>
               </li>
               <li>
                 <button
                   onClick={() => onOpenLegalModal('contact')}
                   id="footer-contact-link"
-                  className="hover:text-cyan-300 transition cursor-pointer text-left"
+                  className="hover:text-white transition cursor-pointer text-left"
                 >
                   Contact Developers
                 </button>
@@ -105,69 +112,21 @@ export const Footer: React.FC<FooterProps> = ({
             </ul>
           </div>
 
-          {/* Landing Navigation */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-              Navigation
-            </h3>
-            <ul className="space-y-2 text-xs">
-              <li><a href="#home" className="hover:text-cyan-300 transition">Terminal Home</a></li>
-              <li><a href="#download" className="hover:text-cyan-300 transition">Client Binaries</a></li>
-              <li><a href="#android-car" className="hover:text-cyan-300 transition">Android Car OS</a></li>
-              <li><a href="#features" className="hover:text-cyan-300 transition">Features</a></li>
-              <li><a href="#faq" className="hover:text-cyan-300 transition">FAQ</a></li>
-              <li>
-                <a 
-                  href="https://omg10.com/4/11864587" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-cyan-400 hover:text-cyan-300 font-semibold transition flex items-center gap-1"
-                >
-                  ★ Sponsored Offers
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Social Community & Info */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
-              Channels
-            </h3>
-            <div className="flex flex-col space-y-2">
-              <div
-                id="footer-social-instagram"
-                className="flex items-center gap-2 text-xs text-slate-400 p-1.5 rounded-lg"
-              >
-                <Instagram className="w-4 h-4 text-pink-400" />
-                <span>@genmusic.official</span>
-              </div>
-
-              <div
-                id="footer-social-community"
-                className="flex items-center gap-2 text-xs text-slate-400 p-1.5 rounded-lg"
-              >
-                <Music className="w-4 h-4 text-cyan-400" />
-                <span>Audio Community</span>
-              </div>
-            </div>
-          </div>
-
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono">
-          <p className="text-slate-500 text-center sm:text-left">
-            © {new Date().getFullYear()} GEN MUSIC. Built with 3D Spatial Audio & Neural DSP. Free for everyone.
+        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+          <p className="text-slate-500">
+            © {new Date().getFullYear()} GEN MUSIC. Free, unlimited music streaming and offline audio player.
           </p>
 
           <button
             onClick={scrollToTop}
             id="back-to-top-btn"
-            className="flex items-center gap-1.5 text-slate-400 hover:text-cyan-300 transition cursor-pointer p-1.5 rounded-lg hover:bg-white/[0.04]"
+            className="flex items-center gap-1.5 text-slate-400 hover:text-white transition cursor-pointer p-1.5 rounded-lg hover:bg-white/5"
           >
             <span>Back to top</span>
-            <ArrowUp className="w-4 h-4 text-cyan-400" />
+            <ArrowUp className="w-3.5 h-3.5 text-sky-400" />
           </button>
         </div>
       </div>

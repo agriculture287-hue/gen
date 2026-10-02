@@ -4,39 +4,25 @@ import {
   Smartphone, 
   Monitor, 
   Laptop, 
+  Car,
   CheckCircle2, 
-  ShieldCheck, 
-  ExternalLink, 
-  Zap, 
-  Send, 
-  Sparkles,
-  Flame,
-  Layers,
   ArrowDownToLine,
-  Car
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { AppPlatformRelease } from '../types';
-import { VersionManifest } from '../types/update';
-import { DEFAULT_VERSION_MANIFEST } from '../data/versionManifest';
 import { detectUserDevice, DeviceInfo } from '../utils/deviceDetector';
 import { DOWNLOAD_LINKS } from '../data/downloadLinks';
-import { handleDownloadWithSponsor, getSponsorCooldownStatus } from '../utils/downloadHelper';
+import { handleDownloadWithSponsor } from '../utils/downloadHelper';
 import { AdBanner } from './AdBanner';
 
 interface DownloadAppSectionProps {
   platforms: AppPlatformRelease[];
-  manifest?: VersionManifest;
 }
 
-export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
-  platforms: initialPlatforms,
-  manifest = DEFAULT_VERSION_MANIFEST,
-}) => {
-  const [downloadingPlatformId, setDownloadingPlatformId] = useState<string | null>(null);
+export const DownloadAppSection: React.FC<DownloadAppSectionProps> = () => {
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadSuccessId, setDownloadSuccessId] = useState<string | null>(null);
-  const [downloadNoticeText, setDownloadNoticeText] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'android' | 'windows' | 'macos' | 'android-car'>('all');
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>({
     platform: 'android',
     recommendedFileFormat: '.apk',
@@ -52,404 +38,242 @@ export const DownloadAppSection: React.FC<DownloadAppSectionProps> = ({
   const triggerCelebration = () => {
     try {
       confetti({
-        particleCount: 70,
-        spread: 60,
+        particleCount: 60,
+        spread: 55,
         origin: { y: 0.65 },
-        colors: ['#2563eb', '#10b981', '#6366f1', '#ec4899'],
+        colors: ['#38bdf8', '#0284c7', '#f59e0b', '#10b981'],
       });
     } catch {
       // safe fallback
     }
   };
 
-  const downloadCards = [
+  const downloadPlatforms = [
     {
       id: 'android',
       platform: 'android',
-      name: 'GEN MUSIC for Android',
-      shortName: 'Android',
-      tagline: 'Direct APK Package for Phones, Tablets & Android TV',
+      name: 'Android',
+      version: DOWNLOAD_LINKS.version,
       fileFormat: '.apk',
       fileSize: DOWNLOAD_LINKS.android.fileSize,
       downloadUrl: DOWNLOAD_LINKS.android.downloadUrl,
-      filename: `GEN-Music.apk`,
-      minSystem: DOWNLOAD_LINKS.android.minSystem,
+      filename: 'GEN-Music.apk',
       architecture: DOWNLOAD_LINKS.android.architecture,
-      badge: 'Most Popular',
-      accentColor: 'from-emerald-500 to-teal-600',
-      borderColor: 'border-emerald-500/50',
-      bgGradient: 'from-emerald-50/50 via-white to-white',
-      icon: <Smartphone className="w-8 h-8 text-emerald-600" />,
+      minSystem: DOWNLOAD_LINKS.android.minSystem,
+      buttonText: 'Download Android APK',
+      icon: <Smartphone className="w-6 h-6 text-sky-400" />,
       features: [
-        'Dolby 3D Spatial Audio & Lossless 320kbps MP3 Saver',
-        'Background Playback with Lockscreen Media Controls',
-        'Unlimited Free Music & Playlist Auto-Sync',
-        'Zero Commercial Audio Interruptions Forever',
+        'Dolby 3D binaural spatial engine',
+        'Offline MP3 downloads up to 320kbps',
+        'Background lockscreen playback',
+        'Zero audio ad interruptions',
       ],
-    },
-    {
-      id: 'windows',
-      platform: 'windows',
-      name: 'GEN MUSIC for Windows',
-      shortName: 'Windows',
-      tagline: 'Standard 64-bit Installer with Auto-Update Support',
-      fileFormat: '.exe',
-      fileSize: DOWNLOAD_LINKS.windows.fileSize,
-      downloadUrl: DOWNLOAD_LINKS.windows.downloadUrl,
-      filename: `GEN-Music-Setup.exe`,
-      minSystem: DOWNLOAD_LINKS.windows.minSystem,
-      architecture: DOWNLOAD_LINKS.windows.architecture,
-      badge: 'Desktop Edition',
-      accentColor: 'from-blue-600 to-indigo-600',
-      borderColor: 'border-blue-500/50',
-      bgGradient: 'from-blue-50/50 via-white to-white',
-      icon: <Monitor className="w-8 h-8 text-blue-600" />,
-      features: [
-        'Global Media Key Hotkeys & Discord Rich Presence',
-        '10-Band Graphic Equalizer with Bass Virtualizer',
-        'Local Audio File Importer with Automatic Tag Match',
-        'Silent Background Auto-Updater Engine',
-      ],
-    },
-    {
-      id: 'macos',
-      platform: 'macos',
-      name: 'GEN MUSIC for macOS',
-      shortName: 'macOS',
-      tagline: 'Universal DMG for Apple Silicon (M1/M2/M3/M4) & Intel Macs',
-      fileFormat: '.dmg',
-      fileSize: DOWNLOAD_LINKS.macos.fileSize,
-      downloadUrl: DOWNLOAD_LINKS.macos.downloadUrl,
-      filename: `GEN-Music.dmg`,
-      minSystem: DOWNLOAD_LINKS.macos.minSystem,
-      architecture: DOWNLOAD_LINKS.macos.architecture,
-      badge: 'Apple Silicon Ready',
-      accentColor: 'from-indigo-600 to-purple-600',
-      borderColor: 'border-purple-500/50',
-      bgGradient: 'from-purple-50/50 via-white to-white',
-      icon: <Laptop className="w-8 h-8 text-indigo-600" />,
-      features: [
-        'Native Apple Silicon M-Series Hardware Acceleration',
-        'AirPlay 2 & Spatial Audio Direct Streaming',
-        'Menu Bar Mini-Player with Track Preview',
-        'Digitally Signed & Sandboxed for Gatekeeper',
-      ],
+      isDetected: deviceInfo.platform === 'android',
     },
     {
       id: 'android-car',
       platform: 'android-car',
-      name: 'GEN MUSIC for Android Auto',
-      shortName: 'Android Car',
-      tagline: 'Compatible APK for Android Smart Dashboards & Car OS',
+      name: 'Android Auto & Car OS',
+      version: DOWNLOAD_LINKS.version,
       fileFormat: '.apk',
       fileSize: DOWNLOAD_LINKS.androidCar.fileSize,
       downloadUrl: DOWNLOAD_LINKS.androidCar.downloadUrl,
-      filename: `GEN-Music-Car.apk`,
-      minSystem: 'Android Auto / Android Automotive OS 8.0+',
-      architecture: 'ARM64 & ARMv7 Universal',
-      badge: 'Car Dashboard Ready',
-      accentColor: 'from-cyan-500 to-blue-600',
-      borderColor: 'border-cyan-500/50',
-      bgGradient: 'from-cyan-50/50 via-white to-white',
-      icon: <Car className="w-8 h-8 text-cyan-600" />,
+      filename: 'GEN-Music-Car.apk',
+      architecture: DOWNLOAD_LINKS.androidCar.architecture,
+      minSystem: DOWNLOAD_LINKS.androidCar.minSystem,
+      buttonText: 'Download Android Car APK',
+      icon: <Car className="w-6 h-6 text-sky-400" />,
       features: [
-        'Oversized Safe-Touch Buttons for Driving Safety',
-        'Google Assistant Hands-Free Voice Controls',
-        'Optimized for Standard, Curved, & Widescreen Panels',
-        'Seamless Steering Wheel Multi-Controller Mapping',
+        'Widescreen dashboard layout',
+        'Hands-free voice telemetry',
+        'Zero-latency offline buffer',
+        'Steering wheel control mapping',
       ],
+      isDetected: false,
+    },
+    {
+      id: 'windows',
+      platform: 'windows',
+      name: 'Windows Desktop',
+      version: DOWNLOAD_LINKS.version,
+      fileFormat: '.exe',
+      fileSize: DOWNLOAD_LINKS.windows.fileSize,
+      downloadUrl: DOWNLOAD_LINKS.windows.downloadUrl,
+      filename: 'Gen-Music.exe',
+      architecture: DOWNLOAD_LINKS.windows.architecture,
+      minSystem: DOWNLOAD_LINKS.windows.minSystem,
+      buttonText: 'Download Windows EXE',
+      icon: <Monitor className="w-6 h-6 text-sky-400" />,
+      features: [
+        'WASAPI hardware audio acceleration',
+        '10-band equalizer with bass boost',
+        'Global media hotkeys & tray mode',
+        'Automatic silent updates',
+      ],
+      isDetected: deviceInfo.platform === 'windows',
+    },
+    {
+      id: 'macos',
+      platform: 'macos',
+      name: 'macOS Desktop',
+      version: DOWNLOAD_LINKS.version,
+      fileFormat: '.dmg',
+      fileSize: DOWNLOAD_LINKS.macos.fileSize,
+      downloadUrl: DOWNLOAD_LINKS.macos.downloadUrl,
+      filename: 'Gen-Music.dmg',
+      architecture: DOWNLOAD_LINKS.macos.architecture,
+      minSystem: DOWNLOAD_LINKS.macos.minSystem,
+      buttonText: 'Download macOS DMG',
+      icon: <Laptop className="w-6 h-6 text-sky-400" />,
+      features: [
+        'Apple Silicon M-Series optimization',
+        'Menu bar mini-player with shortcuts',
+        'AirPlay 2 lossless stream routing',
+        'Universal binary for Intel & M-chips',
+      ],
+      isDetected: deviceInfo.platform === 'macos',
     },
   ];
 
-  const handleDownloadClick = (e: React.MouseEvent, card: typeof downloadCards[0]) => {
+  const handleDownload = (e: React.MouseEvent, item: typeof downloadPlatforms[0]) => {
     e.preventDefault();
-    const targetUrl = card.downloadUrl;
-    if (!targetUrl) return;
+    if (!item.downloadUrl) return;
 
-    const wasOnCooldown = getSponsorCooldownStatus().isActive;
-
-    setDownloadingPlatformId(card.id);
-    setDownloadSuccessId(card.id);
+    setDownloadingId(item.id);
+    setDownloadSuccessId(item.id);
     triggerCelebration();
 
-    if (wasOnCooldown) {
-      setDownloadNoticeText(`Direct download active! ${card.shortName} (${card.fileFormat}) is downloading.`);
-    } else {
-      setDownloadNoticeText(`Sponsor link opened! Return here & click again to download — direct download unlocked for 5 minutes.`);
-    }
-
-    // Centralized download handler: opens omg10 ad link in new tab and initiates app download in current window
-    handleDownloadWithSponsor(targetUrl, card.filename);
+    // Centralized download handler with sponsor link
+    handleDownloadWithSponsor(item.downloadUrl, item.filename);
 
     setTimeout(() => {
-      setDownloadingPlatformId(null);
+      setDownloadingId(null);
     }, 2500);
 
     setTimeout(() => {
       setDownloadSuccessId(null);
-      setDownloadNoticeText(null);
-    }, 8000);
+    }, 6000);
   };
-
-  const filteredCards = activeTab === 'all' 
-    ? downloadCards 
-    : downloadCards.filter((c) => c.platform === activeTab);
 
   return (
     <section 
       id="download" 
       aria-label="Official Multi-Platform App Download & Release Hub"
-      className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-20"
+      className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-16"
     >
-      <div id="downloads-hub" className="relative rounded-[36px] bg-[#090c1a]/90 border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.8)] backdrop-blur-2xl p-6 sm:p-12 overflow-hidden">
+      <div className="space-y-12">
         
-        {/* Futuristic background ambient glow */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[140px] pointer-events-none" />
+        {/* Section Header */}
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-heading">
+            Official Client Deployments
+          </h2>
+          <p className="text-sm sm:text-base text-slate-400">
+            Select your operating system for verified, direct package downloads.
+          </p>
+        </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto space-y-10">
-          
-          {/* Section Header */}
-          <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider shadow-xs">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>OFFICIAL CLIENT DEPLOYMENTS</span>
-            </div>
-
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-heading">
-              Download{' '}
-              <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
-                GEN MUSIC
-              </span>
-            </h2>
-
-            <p className="text-base sm:text-lg text-slate-400 leading-relaxed">
-              Select your operating system. Direct links point to our high-speed release repositories. 
-              Zero interruptions, 3D spatial audio decoder, and lossless playback.
-            </p>
-
-            {/* Platform Filter Tabs */}
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('all')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer border ${
-                  activeTab === 'all'
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.15)]'
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
-                }`}
-              >
-                All Platforms (4)
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('android')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
-                  activeTab === 'android'
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
-                }`}
-              >
-                <Smartphone className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Android (.apk)</span>
-                {deviceInfo.platform === 'android' && (
-                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/30 border border-emerald-400/40 text-emerald-200 font-mono uppercase">Detected</span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('android-car')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
-                  activeTab === 'android-car'
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
-                }`}
-              >
-                <Car className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Android Car (.apk)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('windows')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
-                  activeTab === 'windows'
-                    ? 'bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
-                }`}
-              >
-                <Monitor className="w-3.5 h-3.5 text-blue-400" />
-                <span>Windows (.exe)</span>
-                {deviceInfo.platform === 'windows' && (
-                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-blue-500/30 border border-blue-400/40 text-blue-200 font-mono uppercase">Detected</span>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('macos')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 border ${
-                  activeTab === 'macos'
-                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
-                    : 'bg-white/[0.03] hover:bg-white/[0.08] text-slate-400 border-white/10'
-                }`}
-              >
-                <Laptop className="w-3.5 h-3.5 text-purple-400" />
-                <span>macOS (.dmg)</span>
-                {deviceInfo.platform === 'macos' && (
-                  <span className="ml-1 text-[9px] px-1.5 py-0.2 rounded-full bg-purple-500/30 border border-purple-400/40 text-purple-200 font-mono uppercase">Detected</span>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Active Ad Banner */}
+        {/* Reserved space leaderboard ad banner */}
+        <div className="w-full">
           <AdBanner format="leaderboard" />
+        </div>
 
-          {/* Four Platform Download Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6 sm:gap-8">
-            {filteredCards.map((card) => {
-              const isDownloading = downloadingPlatformId === card.id;
-              const isSuccess = downloadSuccessId === card.id;
-              const isDeviceMatch = 
-                (card.id === 'android' && deviceInfo.platform === 'android') ||
-                (card.id === 'windows' && deviceInfo.platform === 'windows') ||
-                (card.id === 'macos' && deviceInfo.platform === 'macos');
+        {/* Equal-sized Platform Download Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch">
+          {downloadPlatforms.map((item) => {
+            const isDownloading = downloadingId === item.id;
+            const isSuccess = downloadSuccessId === item.id;
 
-              return (
-                <div
-                  key={card.id}
-                  id={`download-card-${card.id}`}
-                  className={`relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 bg-[#0d1020]/90 backdrop-blur-xl border ${
-                    isDeviceMatch 
-                      ? 'border-cyan-400 ring-2 ring-cyan-500/30 shadow-[0_0_35px_rgba(0,240,255,0.2)] scale-[1.02]' 
-                      : 'border-white/10 hover:border-cyan-500/40 shadow-xl hover:shadow-cyan-500/10'
-                  } hover:-translate-y-1`}
-                >
-                  {/* Badge */}
-                  <div className="flex items-center justify-between mb-5">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="px-3 py-1 rounded-full bg-black/60 border border-white/10 text-cyan-300 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs">
-                        <Flame className="w-3 h-3 text-cyan-400 fill-cyan-400" />
-                        <span>{card.badge}</span>
-                      </span>
+            return (
+              <div
+                key={item.id}
+                id={`download-card-${item.id}`}
+                className={`surface-card p-6 flex flex-col justify-between relative ${
+                  item.isDetected 
+                    ? 'border-sky-500/60 ring-1 ring-sky-500/30' 
+                    : 'border-white/10'
+                }`}
+              >
+                <div>
+                  {/* Top Bar with Icon & Specs */}
+                  <div className="flex items-center justify-between gap-3 mb-5">
+                    <div className="w-12 h-12 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center shrink-0">
+                      {item.icon}
+                    </div>
 
-                      {isDeviceMatch && (
-                        <span className="px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-300 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-xs animate-pulse">
-                          <Sparkles className="w-3 h-3 text-cyan-300" />
-                          <span>Detected Platform</span>
+                    <div className="text-right text-xs font-mono text-slate-400">
+                      <span className="block text-white font-semibold">{item.fileSize}</span>
+                      <span className="text-[10px] text-slate-500">Official</span>
+                    </div>
+                  </div>
+
+                  {/* Title & Format */}
+                  <div className="space-y-1 mb-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-bold text-white font-heading">
+                        {item.name}
+                      </h3>
+                      {item.isDetected && (
+                        <span className="text-[10px] font-semibold text-sky-400 bg-sky-950/60 border border-sky-500/30 px-2 py-0.5 rounded-full">
+                          Your OS
                         </span>
                       )}
                     </div>
-                  </div>
-
-                  {/* Card Main Info */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="p-3.5 rounded-2xl bg-white/[0.05] border border-white/10 shadow-xs">
-                        {card.icon}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-black text-white tracking-tight font-heading">
-                          {card.name}
-                        </h3>
-                        <p className="text-xs text-slate-400 font-mono">
-                          {card.fileSize} • {card.fileFormat}
-                        </p>
-                      </div>
-                    </div>
-
-                    <p className="text-xs text-slate-400 leading-relaxed font-normal">
-                      {card.tagline}
+                    <p className="text-xs text-slate-400 font-mono">
+                      {item.fileFormat} · {item.architecture}
                     </p>
-
-                    {/* Features Checklist */}
-                    <div className="space-y-2 bg-white/[0.02] p-3.5 rounded-2xl border border-white/5">
-                      {card.features.map((feat, idx) => (
-                        <div key={idx} className="flex items-start gap-2 text-[11px] text-slate-300 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
-                          <span>{feat}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* System Requirement */}
-                    <div className="bg-black/40 rounded-xl p-3 border border-white/5 text-[11px] text-slate-400 font-mono">
-                      <span className="font-bold text-slate-300 block mb-0.5">SPEC:</span>
-                      <span>{card.minSystem}</span>
-                    </div>
                   </div>
 
-                  {/* Action Area: Download Button */}
-                  <div className="space-y-3 pt-6 mt-4 border-t border-white/10">
-                    <a
-                      href={card.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={card.filename}
-                      id={`btn-download-${card.id}`}
-                      onClick={(e) => handleDownloadClick(e, card)}
-                      className={`w-full py-4 px-4 rounded-2xl font-extrabold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 text-white shadow-lg cursor-pointer bg-gradient-to-r ${card.accentColor} hover:opacity-95 active:scale-[0.98] shadow-cyan-500/20`}
-                    >
-                      {isDownloading ? (
-                        <ArrowDownToLine className="w-4 h-4 animate-bounce" />
-                      ) : (
-                        <Download className="w-4 h-4" />
-                      )}
-                      <span>
-                        {isDownloading
-                          ? `Downloading Package...`
-                          : `Download ${card.shortName} (${card.fileFormat})`}
-                      </span>
-                    </a>
-
-                    {/* Success Notice */}
-                    {isSuccess && (
-                      <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-[11px] flex items-start gap-2 font-medium animate-fadeIn leading-relaxed">
-                        <CheckCircle2 className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-                        <span>{downloadNoticeText || 'Transfer initialized! Check your browser downloads.'}</span>
-                      </div>
-                    )}
-
-                    {/* Live Configured Link Info */}
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 font-mono px-1">
-                      <span className="truncate max-w-[200px]" title={card.downloadUrl}>
-                        {card.downloadUrl.startsWith('http') ? 'HTTPS Mirror' : 'Direct Binary'}
-                      </span>
-                      <span className="text-cyan-400/80">SHA-256 Verified</span>
-                    </div>
+                  {/* Specs Box */}
+                  <div className="p-3 rounded-lg bg-slate-950/60 border border-white/5 mb-5 text-xs text-slate-400 font-mono space-y-1">
+                    <div className="text-slate-500 uppercase text-[10px] tracking-wider font-semibold">Requirement</div>
+                    <div className="text-slate-300 leading-snug">{item.minSystem}</div>
                   </div>
+
+                  {/* Feature Bullets */}
+                  <ul className="space-y-2 mb-6">
+                    {item.features.map((feat, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-xs text-slate-300">
+                        <Check className="w-3.5 h-3.5 text-sky-400 shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* Verification & Security Guarantee Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left max-w-4xl mx-auto pt-4 text-xs text-slate-400 border-t border-white/10">
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-slate-200 block font-heading">Digitally Verified & Clean</strong>
-                <span>Direct package installation with SHA-256 integrity checksums.</span>
+                {/* Bottom CTA Button */}
+                <div className="pt-4 border-t border-white/10 space-y-2">
+                  <a
+                    href={item.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={item.filename}
+                    onClick={(e) => handleDownload(e, item)}
+                    id={`btn-download-${item.id}`}
+                    className="w-full py-3 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer transform active:scale-98"
+                  >
+                    {isDownloading ? (
+                      <ArrowDownToLine className="w-4 h-4 animate-bounce" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                    <span>{isDownloading ? 'Downloading...' : item.buttonText}</span>
+                  </a>
+
+                  {/* Download confirmation notice */}
+                  {isSuccess && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 justify-center">
+                      <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      <span>Download initiated</span>
+                    </div>
+                  )}
+                </div>
+
               </div>
-            </div>
-
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-              <Zap className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-slate-200 block font-heading">100% Free Forever</strong>
-                <span>Zero commercial audio ads, unlimited song skips, and lossless playback.</span>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-white/[0.02] border border-white/10">
-              <Sparkles className="w-4 h-4 text-pink-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-slate-200 block font-heading">Seamless Upgrades</strong>
-                <span>Continuous over-the-air updates, low memory footprint, and DSP tweaks.</span>
-              </div>
-            </div>
-          </div>
-
+            );
+          })}
         </div>
+
       </div>
     </section>
   );

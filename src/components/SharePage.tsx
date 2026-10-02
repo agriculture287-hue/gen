@@ -33,7 +33,7 @@ export const SharePage: React.FC<SharePageProps> = ({ videoId }) => {
   const appOpenedRef = useRef(false);
 
   const cleanId = encodeURIComponent(videoId || '');
-  const apkUrl = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music-v2.0.4.apk';
+  const apkUrl = 'https://github.com/agriculture287-hue/gen/releases/download/apk/GEN-Music.apk';
 
   const androidIntentUrl = buildAndroidIntent(cleanId);
   const iosSchemeUrl = buildCustomSchemeUri(cleanId);

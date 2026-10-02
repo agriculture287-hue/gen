@@ -4,10 +4,9 @@ import {
   Sparkles, 
   DownloadCloud, 
   Headphones, 
-  Layout, 
+  Moon, 
   CheckCircle2,
-  ArrowRight,
-  Flame
+  ArrowRight
 } from 'lucide-react';
 import { WHY_CHOOSE_CARDS } from '../data/landingData';
 
@@ -16,15 +15,15 @@ interface WhyChooseSectionProps {
 }
 
 export const WhyChooseSection: React.FC<WhyChooseSectionProps> = ({ onDownloadClick }) => {
-  const getIcon = (iconName: string) => {
-    switch (iconName) {
-      case 'Layers': return <Layers className="w-6 h-6 text-cyan-400" />;
-      case 'Sparkles': return <Sparkles className="w-6 h-6 text-pink-400" />;
-      case 'DownloadCloud': return <DownloadCloud className="w-6 h-6 text-indigo-400" />;
-      case 'Headphones': return <Headphones className="w-6 h-6 text-cyan-400" />;
-      case 'Layout': return <Layout className="w-6 h-6 text-purple-400" />;
-      case 'CheckCircle2': return <CheckCircle2 className="w-6 h-6 text-emerald-400" />;
-      default: return <Sparkles className="w-6 h-6 text-cyan-400" />;
+  const getIcon = (id: string, iconName: string) => {
+    switch (id) {
+      case 'wc-1': return <Layers className="w-5 h-5 text-sky-400" />;
+      case 'wc-2': return <Sparkles className="w-5 h-5 text-sky-400" />;
+      case 'wc-3': return <DownloadCloud className="w-5 h-5 text-sky-400" />;
+      case 'wc-4': return <Headphones className="w-5 h-5 text-sky-400" />;
+      case 'wc-5': return <Moon className="w-5 h-5 text-sky-400" />;
+      case 'wc-6': return <CheckCircle2 className="w-5 h-5 text-sky-400" />;
+      default: return <Headphones className="w-5 h-5 text-sky-400" />;
     }
   };
 
@@ -32,68 +31,54 @@ export const WhyChooseSection: React.FC<WhyChooseSectionProps> = ({ onDownloadCl
     <section 
       id="features" 
       aria-label="Why Choose GEN MUSIC"
-      className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-white"
+      className="py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto"
     >
       {/* Section Header */}
-      <div className="text-center max-w-3xl mx-auto mb-14 space-y-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider">
-          <Flame className="w-3.5 h-3.5 text-cyan-400" />
-          <span>ARCHITECTURAL ADVANTAGES</span>
-        </div>
-
-        <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight font-heading">
-          Why Choose{' '}
-          <span className="bg-gradient-to-r from-cyan-400 via-indigo-400 to-pink-400 bg-clip-text text-transparent">
-            GEN MUSIC?
-          </span>
+      <div className="text-center max-w-2xl mx-auto mb-16 space-y-3">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight font-heading">
+          Why Choose GEN MUSIC
         </h2>
-
-        <p className="text-base sm:text-lg text-slate-400">
-          Zero subscriptions, no country locks, and bit-perfect playback. Engineered for ultimate acoustic purity.
+        <p className="text-sm sm:text-base text-slate-400 leading-relaxed">
+          Zero subscriptions, no regional locks, and lossless offline playback engineered for acoustic clarity.
         </p>
       </div>
 
-      {/* 6 Requested Cards Grid */}
+      {/* 6 Clean Feature Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {WHY_CHOOSE_CARDS.map((card, index) => (
           <div
             key={card.id}
             id={`why-choose-${card.id}`}
-            className="group relative rounded-3xl bg-[#0c0f1e]/90 p-7 border border-white/10 hover:border-cyan-500/40 shadow-xl hover:shadow-[0_0_30px_rgba(0,240,255,0.12)] transition-all duration-200 flex flex-col justify-between backdrop-blur-xl hover:-translate-y-1"
+            className="surface-card p-6 flex flex-col justify-between"
           >
             <div className="space-y-4">
-              {/* Header with Icon & Counter */}
               <div className="flex items-center justify-between">
-                <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 group-hover:scale-105 transition shadow-xs">
-                  {getIcon(card.icon)}
+                <div className="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center shrink-0">
+                  {getIcon(card.id, card.icon)}
                 </div>
-                <span className="text-xs font-mono font-bold text-cyan-400/60">
-                  0{index + 1} // PROTOCOL
+                <span className="text-xs font-mono text-slate-500 font-semibold tabular-nums">
+                  0{index + 1}
                 </span>
               </div>
 
-              {/* Title & Description */}
-              <div>
-                <h3 className="text-xl font-bold text-white group-hover:text-cyan-300 transition font-heading">
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white font-heading">
                   {card.title}
                 </h3>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                <p className="text-sm text-slate-400 leading-relaxed">
                   {card.description}
                 </p>
               </div>
             </div>
 
-            {/* Bottom Feature Pill */}
-            <div className="pt-5 mt-5 border-t border-white/10 flex items-center justify-between">
-              <span className="text-[11px] font-mono font-bold px-3 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                ACTIVE
-              </span>
+            <div className="pt-5 mt-6 border-t border-white/5 flex items-center justify-between">
+              <span className="text-xs text-slate-500 font-medium">Included standard</span>
               <button
                 onClick={onDownloadClick}
-                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition cursor-pointer"
+                className="text-xs font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1 transition cursor-pointer"
               >
                 <span>Get App</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>

@@ -4,25 +4,6 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { DOWNLOAD_LINKS } from './src/data/downloadLinks.ts';
-import { 
-  searchYouTubeMusic, 
-  getHomeFeed, 
-  getUpNextQueue, 
-  getLyrics, 
-  getStreamInfo,
-  getMoodsAndGenres,
-  getChartsFeed,
-  getArtistDetails,
-  getAlbumDetails,
-  recognizeSong,
-  importPlaylist,
-  CURATED_CATALOG
-} from './server/innertubeService.ts';
-import {
-  COUNTRY_CATALOG,
-  POPULAR_COUNTRIES,
-  getCountryCatalog
-} from './server/countryMusicCatalog.ts';
 
 dotenv.config();
 
@@ -34,435 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Helper to strip "v" prefix from version strings if needed
 const cleanVersion = DOWNLOAD_LINKS.version.replace(/^v/, '');
-
-// --- IP & Geo Detection Helpers ---
-function getClientIp(req: express.Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0].trim();
-  }
-  const realIp = req.headers['x-real-ip'];
-  if (typeof realIp === 'string') {
-    return realIp.trim();
-  }
-  return req.socket.remoteAddress || '127.0.0.1';
-}
-
-const COUNTRY_NAMES: Record<string, { name: string; flag: string }> = {
-  IN: { name: 'India', flag: '🇮🇳' },
-  US: { name: 'United States', flag: '🇺🇸' },
-  GB: { name: 'United Kingdom', flag: '🇬🇧' },
-  BR: { name: 'Brazil', flag: '🇧🇷' },
-  MX: { name: 'Mexico', flag: '🇲🇽' },
-  NG: { name: 'Nigeria', flag: '🇳🇬' },
-  JP: { name: 'Japan', flag: '🇯🇵' },
-  KR: { name: 'South Korea', flag: '🇰🇷' },
-  DE: { name: 'Germany', flag: '🇩🇪' },
-  FR: { name: 'France', flag: '🇫🇷' },
-  PH: { name: 'Philippines', flag: '🇵🇭' },
-  ID: { name: 'Indonesia', flag: '🇮🇩' },
-  CA: { name: 'Canada', flag: '🇨🇦' },
-  AU: { name: 'Australia', flag: '🇦🇺' },
-  ES: { name: 'Spain', flag: '🇪🇸' },
-  IT: { name: 'Italy', flag: '🇮🇹' },
-  RU: { name: 'Russia', flag: '🇷🇺' },
-  PK: { name: 'Pakistan', flag: '🇵🇰' },
-  BD: { name: 'Bangladesh', flag: '🇧🇩' },
-  EG: { name: 'Egypt', flag: '🇪🇬' },
-  SA: { name: 'Saudi Arabia', flag: '🇸🇦' },
-  AE: { name: 'United Arab Emirates', flag: '🇦🇪' },
-  ZA: { name: 'South Africa', flag: '🇿🇦' },
-  AR: { name: 'Argentina', flag: '🇦🇷' },
-  CO: { name: 'Colombia', flag: '🇨🇴' },
-  TR: { name: 'Turkey', flag: '🇹🇷' },
-  VN: { name: 'Vietnam', flag: '🇻🇳' },
-  TH: { name: 'Thailand', flag: '🇹🇭' },
-  MY: { name: 'Malaysia', flag: '🇲🇾' },
-  SG: { name: 'Singapore', flag: '🇸🇬' },
-  NL: { name: 'Netherlands', flag: '🇳🇱' },
-  SE: { name: 'Sweden', flag: '🇸🇪' },
-};
-
-async function detectCountryFromReq(req: express.Request): Promise<{ ip: string; countryCode: string; countryName: string; flag: string }> {
-  const cfCountry = req.headers['cf-ipcountry'] as string | undefined;
-  const gcpCountry = req.headers['x-appengine-country'] as string | undefined;
-  const xCountry = req.headers['x-country-code'] as string | undefined;
-  const directCode = (cfCountry || gcpCountry || xCountry || '').toUpperCase();
-
-  const ip = getClientIp(req);
-
-  if (directCode && directCode !== 'XX' && directCode.length === 2) {
-    const info = COUNTRY_NAMES[directCode] || { name: directCode, flag: '🌐' };
-    return {
-      ip,
-      countryCode: directCode,
-      countryName: info.name,
-      flag: info.flag
-    };
-  }
-
-  // Check if IP is public
-  const isPrivate = /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|::1|fc00:|fe80:)/.test(ip);
-  if (!isPrivate && ip) {
-    try {
-      const res = await fetch(`https://api.country.is/${ip}`, { signal: AbortSignal.timeout(1800) });
-      if (res.ok) {
-        const data: any = await res.json();
-        const code = (data.country || '').toUpperCase();
-        if (code && code.length === 2) {
-          const info = COUNTRY_NAMES[code] || { name: code, flag: '🌐' };
-          return {
-            ip,
-            countryCode: code,
-            countryName: info.name,
-            flag: info.flag
-          };
-        }
-      }
-    } catch {
-      // Fallback silently
-    }
-  }
-
-  return {
-    ip: ip || '127.0.0.1',
-    countryCode: 'US',
-    countryName: 'United States',
-    flag: '🇺🇸'
-  };
-}
-
-// --- Gen Music Innertube & Audio REST API (Echo Music GPL-3.0 Fork) ---
-
-// 0. Live IP & Country Geolocation
-app.get('/api/geo', async (req, res) => {
-  try {
-    const geo = await detectCountryFromReq(req);
-    res.json({
-      success: true,
-      ...geo
-    });
-  } catch (err: any) {
-    res.json({
-      success: true,
-      ip: '127.0.0.1',
-      countryCode: 'US',
-      countryName: 'United States',
-      flag: '🇺🇸'
-    });
-  }
-});
-
-// 0.1 Country-Specific Music & Charts API (IP-based or by country parameter)
-app.get('/api/country-music', async (req, res) => {
-  try {
-    let countryCode = typeof req.query.country === 'string' ? req.query.country.toUpperCase() : '';
-    let detectedGeo: { ip: string; countryCode: string; countryName: string; flag: string };
-
-    if (!countryCode || countryCode === 'AUTO') {
-      detectedGeo = await detectCountryFromReq(req);
-      countryCode = detectedGeo.countryCode;
-    } else {
-      const ip = getClientIp(req);
-      const info = COUNTRY_NAMES[countryCode] || { name: countryCode, flag: '🌐' };
-      detectedGeo = {
-        ip,
-        countryCode,
-        countryName: info.name,
-        flag: info.flag
-      };
-    }
-
-    const catalog = getCountryCatalog(countryCode);
-    const countryName = COUNTRY_NAMES[countryCode]?.name || catalog.countryName;
-    const flag = COUNTRY_NAMES[countryCode]?.flag || catalog.flag;
-
-    res.json({
-      success: true,
-      countryCode,
-      countryName,
-      flag,
-      ip: detectedGeo.ip,
-      genre: catalog.genre,
-      description: catalog.description,
-      tracks: catalog.tracks,
-      availableCountries: POPULAR_COUNTRIES
-    });
-  } catch (err: any) {
-    console.error('API /api/country-music error:', err);
-    const fallback = getCountryCatalog('US');
-    res.json({
-      success: true,
-      countryCode: 'US',
-      countryName: 'United States',
-      flag: '🇺🇸',
-      genre: fallback.genre,
-      description: fallback.description,
-      tracks: fallback.tracks,
-      availableCountries: POPULAR_COUNTRIES
-    });
-  }
-});
-
-// 1. Search YouTube Music
-app.get('/api/search', async (req, res) => {
-  try {
-    const query = typeof req.query.q === 'string' ? req.query.q : '';
-    const filter = typeof req.query.filter === 'string' ? req.query.filter : undefined;
-    const results = await searchYouTubeMusic(query, filter);
-    res.json({
-      success: true,
-      query,
-      count: results.length,
-      results
-    });
-  } catch (err: any) {
-    console.error('API /api/search error:', err);
-    res.status(500).json({ success: false, error: err.message, results: CURATED_CATALOG });
-  }
-});
-
-// 2. Curated Home Feed (Trending, Charts, Quick Picks, New Releases)
-app.get('/api/home', async (_req, res) => {
-  try {
-    const sections = await getHomeFeed();
-    res.json({
-      success: true,
-      sections
-    });
-  } catch (err: any) {
-    console.error('API /api/home error:', err);
-    res.status(500).json({ success: false, error: err.message, sections: [] });
-  }
-});
-
-// 3. Up Next Queue & Radio Recommendations
-app.get('/api/queue/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const title = typeof req.query.title === 'string' ? req.query.title : undefined;
-    const artist = typeof req.query.artist === 'string' ? req.query.artist : undefined;
-    const tracks = await getUpNextQueue(id, title, artist);
-    res.json({
-      success: true,
-      videoId: id,
-      count: tracks.length,
-      tracks
-    });
-  } catch (err: any) {
-    console.error('API /api/queue error:', err);
-    res.status(500).json({ success: false, error: err.message, tracks: CURATED_CATALOG });
-  }
-});
-
-// 4. Synchronized & Plain Lyrics (LRCLIB + YTM)
-app.get('/api/lyrics/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const title = typeof req.query.title === 'string' ? req.query.title : undefined;
-    const artist = typeof req.query.artist === 'string' ? req.query.artist : undefined;
-    const duration = req.query.duration ? parseFloat(req.query.duration as string) : undefined;
-    const lyrics = await getLyrics(id, title, artist, duration);
-    res.json({
-      success: true,
-      ...lyrics
-    });
-  } catch (err: any) {
-    console.error('API /api/lyrics error:', err);
-    res.status(500).json({
-      success: false,
-      id: req.params.id,
-      title: req.query.title || 'Unknown',
-      artist: req.query.artist || 'Unknown',
-      synced: false,
-      lines: [],
-      plainText: 'Lyrics unavailable.',
-      provider: 'None'
-    });
-  }
-});
-
-// 5. Stream Information & Direct Audio Resolution
-app.get('/api/stream/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const streamInfo = getStreamInfo(id);
-    res.json({
-      success: true,
-      ...streamInfo
-    });
-  } catch (err: any) {
-    console.error('API /api/stream error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 6. Moods & Genres Catalog (24 categories from Echo Music)
-app.get('/api/moods-genres', async (_req, res) => {
-  try {
-    const categories = await getMoodsAndGenres();
-    res.json({
-      success: true,
-      categories
-    });
-  } catch (err: any) {
-    console.error('API /api/moods-genres error:', err);
-    res.status(500).json({ success: false, error: err.message, categories: [] });
-  }
-});
-
-// 7. Global Charts (Top 50, Viral Hits, Trending)
-app.get('/api/charts', async (_req, res) => {
-  try {
-    const charts = await getChartsFeed();
-    res.json({
-      success: true,
-      ...charts
-    });
-  } catch (err: any) {
-    console.error('API /api/charts error:', err);
-    res.status(500).json({ success: false, error: err.message, top50: CURATED_CATALOG });
-  }
-});
-
-// 8. Artist Profile & Discography
-app.get('/api/artist', async (req, res) => {
-  try {
-    const name = typeof req.query.name === 'string' ? req.query.name : 'Ed Sheeran';
-    const artist = await getArtistDetails(name);
-    res.json({
-      success: true,
-      ...artist
-    });
-  } catch (err: any) {
-    console.error('API /api/artist error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 9. Album Details & Tracklist
-app.get('/api/album', async (req, res) => {
-  try {
-    const title = typeof req.query.title === 'string' ? req.query.title : '';
-    const artist = typeof req.query.artist === 'string' ? req.query.artist : '';
-    const album = await getAlbumDetails(title, artist);
-    res.json({
-      success: true,
-      ...album
-    });
-  } catch (err: any) {
-    console.error('API /api/album error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 10. Echo Find - Audio Recognition (ShazamKit / Vibra Engine)
-app.post('/api/recognize', async (req, res) => {
-  try {
-    const { query } = req.body || {};
-    const result = await recognizeSong(query);
-    res.json({
-      success: true,
-      ...result
-    });
-  } catch (err: any) {
-    console.error('API /api/recognize error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 11. Spotify, YouTube & M3U Playlist Importer
-app.post('/api/import-playlist', async (req, res) => {
-  try {
-    const { urlOrData } = req.body || {};
-    if (!urlOrData) {
-      return res.status(400).json({ success: false, error: 'URL or playlist data required' });
-    }
-    const playlist = await importPlaylist(urlOrData);
-    res.json({
-      success: true,
-      playlist
-    });
-  } catch (err: any) {
-    console.error('API /api/import-playlist error:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// 12. Echo Music Automated GitHub Code Sync Endpoint
-app.get(['/api/echomusic/sync', '/api/sync-echomusic'], async (_req, res) => {
-  try {
-    let repoMeta: any = null;
-    let releasesMeta: any = null;
-
-    try {
-      // Fetch latest GitHub repository status from EchoMusicApp/Echo-Music
-      const headers = { 'User-Agent': 'GenMusic-Sync-Automation/2.4 (GPL-3.0)' };
-      const repoRes = await fetch('https://api.github.com/repos/EchoMusicApp/Echo-Music', { headers });
-      if (repoRes.ok) {
-        repoMeta = await repoRes.json();
-      }
-
-      const releaseRes = await fetch('https://api.github.com/repos/EchoMusicApp/Echo-Music/releases/latest', { headers });
-      if (releaseRes.ok) {
-        releasesMeta = await releaseRes.json();
-      }
-    } catch (e) {
-      console.warn('GitHub API fetch fallback:', e);
-    }
-
-    const syncManifest = {
-      success: true,
-      repo: {
-        name: repoMeta?.full_name || 'EchoMusicApp/Echo-Music',
-        description: repoMeta?.description || 'Free, open-source Kotlin & Web audio streaming app for Android, Desktop and Web',
-        url: repoMeta?.html_url || 'https://github.com/EchoMusicApp/Echo-Music',
-        stars: repoMeta?.stargazers_count || 1250,
-        forks: repoMeta?.forks_count || 180,
-        defaultBranch: repoMeta?.default_branch || 'main',
-        latestTag: releasesMeta?.tag_name || 'v2.4.0',
-        pushedAt: repoMeta?.pushed_at || new Date().toISOString()
-      },
-      syncedCodeModules: [
-        { id: 'innertube', name: 'YouTube Music Scraper', version: '2.4.0', cached: true },
-        { id: 'axion-dsp', name: '5-Band Audio Equalizer DSP', version: '2.4.0', cached: true },
-        { id: 'lrclib', name: 'Synchronized Lyrics Engine', version: '2.4.0', cached: true },
-        { id: 'sponsorblock', name: 'AdBlock & Sponsor Skip API', version: '2.4.0', cached: true },
-        { id: 'dolby-spatial', name: '3D Spatial Audio Virtualizer', version: '2.4.0', cached: true }
-      ],
-      archiveDownloadUrl: 'https://github.com/EchoMusicApp/Echo-Music/archive/refs/heads/main.zip',
-      syncTimestamp: Date.now(),
-      status: 'FULLY_SYNCED'
-    };
-
-    res.json(syncManifest);
-  } catch (err: any) {
-    console.error('API /api/echomusic/sync error:', err);
-    res.status(500).json({ success: false, error: err?.message || 'Sync failed' });
-  }
-});
-
-// 13. GPL-3.0 Licensing & Upstream Echo Music Credits
-app.get('/api/credits', (_req, res) => {
-  res.json({
-    name: 'Gen Music',
-    license: 'GPL-3.0',
-    upstream: {
-      name: 'Echo Music',
-      url: 'https://github.com/EchoMusicApp/Echo-Music',
-      license: 'GPL-3.0',
-      description: 'Beautiful, feature-rich Android client for YouTube Music'
-    },
-    credits: [
-      { name: 'Echo Music', role: 'Original Upstream Architecture & Innertube logic', url: 'https://github.com/EchoMusicApp/Echo-Music' },
-      { name: 'Metrolist', role: 'Inspiration & UI paradigms', url: 'https://github.com/MetrolistApp/Metrolist' },
-      { name: 'SimpMusic', role: 'Innertube research & streaming mechanisms', url: 'https://github.com/brahmkshatriya/SimpMusic' },
-      { name: 'LRCLIB', role: 'Synchronized & plain-text lyrics API', url: 'https://lrclib.net' },
-      { name: 'Better Lyrics', role: 'Lyrics synchronization references' }
-    ]
-  });
-});
-
 
 // Dynamically serve app-version.json based on downloadLinks.ts
 app.get('/app-version.json', (req, res) => {
@@ -536,10 +88,25 @@ app.get(['/download/macos', '/download/mac', '/download/Gen-Music.dmg', '/downlo
   return res.redirect(302, DOWNLOAD_LINKS.macos.downloadUrl);
 });
 
+// Explicit Service Worker routes for Monetag Ad Network with proper headers
+app.get(['/sw.js', '/service-worker.js'], (req, res, next) => {
+  res.setHeader('Service-Worker-Allowed', '/');
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+  const fileName = req.path.includes('service-worker.js') ? 'service-worker.js' : 'sw.js';
+  const swDistPath = path.join(process.cwd(), 'dist', fileName);
+  const swPublicPath = path.join(process.cwd(), 'public', fileName);
+
+  if (fs.existsSync(swDistPath)) {
+    return res.sendFile(swDistPath);
+  }
+  if (fs.existsSync(swPublicPath)) {
+    return res.sendFile(swPublicPath);
+  }
+  next();
+});
+
 async function startServer() {
-  const distPath = path.join(process.cwd(), 'dist');
-  const hasDistBuild = fs.existsSync(path.join(distPath, 'index.html'));
-  const isProduction = process.env.NODE_ENV === 'production' || hasDistBuild;
+  const isProduction = process.env.NODE_ENV === 'production' || fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
 
   if (!isProduction) {
     // Development mode with Vite middleware
@@ -550,18 +117,10 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // Production mode serving static assets
+    const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      // Do not serve index.html for missing API endpoints or specific asset extensions
-      if (req.path.startsWith('/api/') || req.path.startsWith('/assets/') || (req.path.includes('.') && !req.path.endsWith('.html'))) {
-        return res.status(404).send('Resource not found');
-      }
-      const indexPath = path.join(distPath, 'index.html');
-      if (fs.existsSync(indexPath)) {
-        res.sendFile(indexPath);
-      } else {
-        res.status(500).send('Application build in progress. Please refresh in a moment.');
-      }
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
@@ -570,9 +129,6 @@ async function startServer() {
   });
 }
 
-// Only start the standalone HTTP listener if not running in Vercel Serverless environment
-if (!process.env.VERCEL) {
-  startServer();
-}
+startServer();
 
 export default app;

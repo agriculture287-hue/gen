@@ -5,18 +5,12 @@ import {
   CheckCircle2, 
   Clock, 
   X, 
-  ShieldCheck, 
   Sparkles 
 } from 'lucide-react';
 import { 
-  DOWNLOAD_LINKS 
-} from '../data/downloadLinks';
-import { 
   getSponsorCooldownStatus as checkCooldown, 
-  handleDownloadWithSponsor, 
   executeRealDownload,
-  triggerActiveAd,
-  OMG10_SPONSOR_URL
+  triggerActiveAd
 } from '../utils/downloadHelper';
 
 interface SponsorNoticeData {
@@ -31,7 +25,6 @@ export const DownloadNoticeBanner: React.FC = () => {
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [downloadSuccessNotice, setDownloadSuccessNotice] = useState<string | null>(null);
 
-  // Poll / listen for cooldown state
   useEffect(() => {
     const updateCooldown = () => {
       const status = checkCooldown();
@@ -59,7 +52,7 @@ export const DownloadNoticeBanner: React.FC = () => {
     const handleRealDownloadStarted = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       setDownloadSuccessNotice(
-        `Direct download initiated: ${detail.filename || 'Application'} is downloading now!`
+        `Direct download initiated: ${detail.filename || 'Application'}`
       );
       setTimeout(() => {
         setDownloadSuccessNotice(null);
@@ -99,89 +92,76 @@ export const DownloadNoticeBanner: React.FC = () => {
   return (
     <aside 
       aria-label="Download Status and Direct Download Access"
-      className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 max-w-md w-full animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto"
+      className="fixed bottom-14 sm:bottom-6 right-4 sm:right-6 z-40 max-w-sm w-full animate-in fade-in slide-in-from-bottom-5 duration-200"
     >
-      <div className="relative overflow-hidden rounded-2xl bg-[#090d1a]/95 border border-cyan-500/40 p-4 sm:p-5 shadow-[0_10px_40px_rgba(0,0,0,0.8),0_0_30px_rgba(0,240,255,0.2)] backdrop-blur-xl">
-        {/* Glow ambient background */}
-        <div className="absolute -top-12 -right-12 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl pointer-events-none" />
-
+      <div className="surface-card p-4 sm:p-5 shadow-2xl bg-[#0f131d] border border-white/10">
+        
         {/* Header Row */}
-        <div className="flex items-start justify-between gap-3 relative z-10">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-cyan-500/20 border border-cyan-400/30 text-cyan-300">
-              <Sparkles className="w-4 h-4 text-cyan-400 animate-pulse" />
-            </span>
-            <div>
-              <h3 className="font-extrabold text-white text-sm tracking-tight flex items-center gap-2">
-                <span>Download & Sponsor Active</span>
-                {remainingSeconds > 0 && (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-[10px] font-mono text-cyan-300 font-bold">
-                    <Clock className="w-2.5 h-2.5" />
-                    {formatTime(remainingSeconds)}
-                  </span>
-                )}
-              </h3>
-              <p className="text-[11px] text-slate-400 font-medium">
-                All advertisements & direct mirrors active
-              </p>
-            </div>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-bold text-white text-sm font-heading flex items-center gap-2">
+              <span>Download & Sponsor Active</span>
+              {remainingSeconds > 0 && (
+                <span className="text-[10px] font-mono text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded-full border border-sky-500/20">
+                  {formatTime(remainingSeconds)}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Direct download mirror active
+            </p>
           </div>
 
           <button
             onClick={() => setIsVisible(false)}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition cursor-pointer"
-            aria-label="Dismiss download advisory notice"
+            className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-white/5 transition cursor-pointer"
+            aria-label="Dismiss download notice"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Advisory Message Body */}
-        <div className="mt-3 text-xs text-slate-300 leading-relaxed space-y-2 relative z-10 bg-white/[0.03] p-3 rounded-xl border border-white/5">
+        {/* Message Body */}
+        <div className="mt-3 text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3 rounded-lg border border-white/5">
           {downloadSuccessNotice ? (
-            <p className="text-emerald-300 font-semibold flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <p className="text-emerald-400 font-medium flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>{downloadSuccessNotice}</span>
             </p>
           ) : (
-            <>
-              <p className="text-cyan-200/90 font-medium">
-                👉 <strong>Sponsored Link Active:</strong> Sponsor offer opened in a separate tab. Click below to download your application directly.
-              </p>
-              <p className="text-[11px] text-slate-400">
-                Supporting our sponsors keeps GEN MUSIC 100% free with unlimited streaming and lossless downloads.
-              </p>
-            </>
+            <p className="text-slate-300">
+              Sponsor page opened in a separate tab. Click below if your installer didn't begin downloading automatically.
+            </p>
           )}
         </div>
 
-        {/* Action Button Row */}
-        <div className="mt-3.5 flex flex-wrap sm:flex-nowrap items-center gap-2 relative z-10">
+        {/* Actions */}
+        <div className="mt-3.5 flex items-center gap-2">
           <button
             onClick={handleManualDirectDownload}
-            className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-xs shadow-lg shadow-cyan-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="flex-1 py-2 px-3 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download App Now</span>
+            <span>Download Now</span>
           </button>
 
           <button
             onClick={() => triggerActiveAd()}
-            className="py-2.5 px-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 text-xs font-bold border border-purple-400/40 flex items-center justify-center gap-1.5 transition cursor-pointer"
-            title="Visit Active Sponsor Offer"
+            className="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-white/10 flex items-center gap-1 transition cursor-pointer"
+            title="Visit Sponsor Offer"
           >
-            <span>Visit Sponsor</span>
-            <ExternalLink className="w-3 h-3" />
+            <span>Sponsor</span>
+            <ExternalLink className="w-3 h-3 text-sky-400" />
           </button>
-          
+
           <button
             onClick={() => setIsVisible(false)}
-            className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-semibold border border-white/10 transition cursor-pointer"
+            className="py-2 px-2.5 rounded-lg text-slate-400 hover:text-white text-xs hover:bg-white/5 transition cursor-pointer"
           >
             Close
           </button>
         </div>
+
       </div>
     </aside>
   );
